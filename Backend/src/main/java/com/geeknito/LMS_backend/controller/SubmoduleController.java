@@ -7,6 +7,7 @@ import com.geeknito.LMS_backend.service.SubmoduleService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,6 +23,7 @@ public class SubmoduleController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'INSTRUCTOR')")
     public ResponseEntity<ApiResponse> createSubmodule(@Valid @RequestBody SubmoduleRequest request) {
         SubmoduleEntity submodule = submoduleService.create(request);
         ApiResponse response = new ApiResponse("Submodule created successfully", submodule);
@@ -43,6 +45,7 @@ public class SubmoduleController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'INSTRUCTOR')")
     public ResponseEntity<ApiResponse> updateSubmodule(@PathVariable Long id, @Valid @RequestBody SubmoduleRequest request) {
         SubmoduleEntity submodule = submoduleService.update(id, request);
         ApiResponse response = new ApiResponse("Submodule updated successfully", submodule);
@@ -50,6 +53,7 @@ public class SubmoduleController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse> deleteSubmodule(@PathVariable Long id) {
         submoduleService.delete(id);
         ApiResponse response = new ApiResponse("Submodule deleted successfully", null);

@@ -1,5 +1,6 @@
 package com.geeknito.LMS_backend.entity.learning;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -62,11 +63,13 @@ public class SubmoduleEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "module_id", nullable = false)
     @ToString.Exclude
+    @JsonIgnore
     private ModuleEntity module;
- 
+
     @OneToMany(mappedBy = "submodule", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
     @ToString.Exclude
+    @JsonIgnore
     private List<ContentEntity> contents = new ArrayList<>();
 
     @Column(nullable = false, unique = true, length = 250)

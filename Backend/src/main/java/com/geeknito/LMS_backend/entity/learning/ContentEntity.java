@@ -1,5 +1,6 @@
 package com.geeknito.LMS_backend.entity.learning;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -65,5 +66,6 @@ public class ContentEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "submodule_id", nullable = false)
     @ToString.Exclude
+    @JsonIgnore
     private SubmoduleEntity submodule;
 }

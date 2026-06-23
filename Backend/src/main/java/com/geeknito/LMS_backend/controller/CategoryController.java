@@ -7,6 +7,7 @@ import com.geeknito.LMS_backend.service.CategoryService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,6 +23,7 @@ public class CategoryController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse> createCategory(@Valid @RequestBody CategoryRequest request) {
         CategoryEntity category = categoryService.create(request);
         ApiResponse response = new ApiResponse("Category created successfully", category);
@@ -43,6 +45,7 @@ public class CategoryController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse> updateCategory(@PathVariable Long id, @Valid @RequestBody CategoryRequest request) {
         CategoryEntity category = categoryService.update(id, request);
         ApiResponse response = new ApiResponse("Category updated successfully", category);
@@ -50,6 +53,7 @@ public class CategoryController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse> deleteCategory(@PathVariable Long id) {
         categoryService.delete(id);
         ApiResponse response = new ApiResponse("Category deleted successfully", null);

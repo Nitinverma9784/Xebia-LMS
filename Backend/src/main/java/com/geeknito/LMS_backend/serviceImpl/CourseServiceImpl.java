@@ -7,6 +7,7 @@ import com.geeknito.LMS_backend.exception.ResourceNotFoundException;
 import com.geeknito.LMS_backend.repository.CategoryRepository;
 import com.geeknito.LMS_backend.repository.CourseRepository;
 import com.geeknito.LMS_backend.service.CourseService;
+import org.springframework.cloud.client.circuitbreaker.annotation.CircuitBreaker;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -118,8 +119,14 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     @Transactional(readOnly = true)
+    @CircuitBreaker(name = "courseService", fallbackMethod = "getAllFallback")
     public List<CourseEntity> getAll() {
         return courseRepository.findAll();
+    }
+
+    @SuppressWarnings("unused")
+    private List<CourseEntity> getAllFallback(Exception ex) {
+        return List.of();
     }
 
     @Override

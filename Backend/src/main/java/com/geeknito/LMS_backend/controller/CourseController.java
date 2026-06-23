@@ -7,6 +7,7 @@ import com.geeknito.LMS_backend.service.CourseService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,6 +23,7 @@ public class CourseController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'INSTRUCTOR')")
     public ResponseEntity<ApiResponse> createCourse(@Valid @RequestBody CourseRequest request) {
         CourseEntity course = courseService.create(request);
         ApiResponse response = new ApiResponse("Course created successfully", course);
@@ -43,6 +45,7 @@ public class CourseController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'INSTRUCTOR')")
     public ResponseEntity<ApiResponse> updateCourse(@PathVariable Long id, @Valid @RequestBody CourseRequest request) {
         CourseEntity course = courseService.update(id, request);
         ApiResponse response = new ApiResponse("Course updated successfully", course);
@@ -50,6 +53,7 @@ public class CourseController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse> deleteCourse(@PathVariable Long id) {
         courseService.delete(id);
         ApiResponse response = new ApiResponse("Course deleted successfully", null);

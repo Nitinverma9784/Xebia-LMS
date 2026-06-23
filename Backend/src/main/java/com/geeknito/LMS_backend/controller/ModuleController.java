@@ -7,6 +7,7 @@ import com.geeknito.LMS_backend.service.ModuleService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,6 +23,7 @@ public class ModuleController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'INSTRUCTOR')")
     public ResponseEntity<ApiResponse> createModule(@Valid @RequestBody ModuleRequest request) {
         ModuleEntity module = moduleService.create(request);
         ApiResponse response = new ApiResponse("Module created successfully", module);
@@ -43,6 +45,7 @@ public class ModuleController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'INSTRUCTOR')")
     public ResponseEntity<ApiResponse> updateModule(@PathVariable Long id, @Valid @RequestBody ModuleRequest request) {
         ModuleEntity module = moduleService.update(id, request);
         ApiResponse response = new ApiResponse("Module updated successfully", module);
@@ -50,6 +53,7 @@ public class ModuleController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse> deleteModule(@PathVariable Long id) {
         moduleService.delete(id);
         ApiResponse response = new ApiResponse("Module deleted successfully", null);

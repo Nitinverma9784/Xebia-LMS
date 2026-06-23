@@ -1,5 +1,6 @@
 package com.geeknito.LMS_backend.entity.learning;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -46,5 +47,6 @@ public class CategoryEntity {
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
     @ToString.Exclude
+    @JsonIgnore
     private List<CourseEntity> courses = new ArrayList<>();
 }
