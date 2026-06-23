@@ -1,5 +1,4 @@
 import { Geist, Geist_Mono } from 'next/font/google'
-import Navbar from '@/components/Navbar'
 import Providers from '@/providers/Providers'
 import './globals.css'
 
@@ -14,20 +13,15 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata = {
-  title: 'Xebia LMS',
-  description: 'Enterprise Learning Management System',
+  title: 'Xebia Academy LMS',
+  description: 'Enterprise Learning Management System by Xebia',
 }
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="min-h-full bg-zinc-50 text-zinc-900">
-        <Providers>
-          <Navbar />
-          <main className="mx-auto min-h-[calc(100vh-4rem)] max-w-7xl px-4 py-8 sm:px-6">
-            {children}
-          </main>
-        </Providers>
+      <body className="min-h-full">
+        <Providers>{children}</Providers>
       </body>
     </html>
   )
