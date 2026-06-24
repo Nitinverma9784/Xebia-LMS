@@ -186,7 +186,23 @@ export default function CategoryManagement() {
           <Input label="Name" required maxLength={100} value={form.name} error={errors.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           <Input label="Icon URL" maxLength={1000} value={form.icon} error={errors.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })} placeholder="https://..." />
           <TextArea label="Description" maxLength={1000} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-          <Input label="Color" maxLength={20} value={form.color} error={errors.color} onChange={(e) => setForm({ ...form, color: e.target.value })} placeholder="#000000" />
+          <div>
+            <label className="block text-sm font-semibold mb-1.5 text-brand-text-primary dark:text-slate-200">Color</label>
+            <div className="flex gap-2">
+              <input
+                type="color"
+                value={form.color || '#3b82f6'}
+                onChange={(e) => setForm({ ...form, color: e.target.value })}
+                className="h-10 w-14 rounded-lg border border-brand-border dark:border-slate-800 cursor-pointer bg-white dark:bg-slate-900"
+              />
+              <Input
+                value={form.color}
+                error={errors.color}
+                onChange={(e) => setForm({ ...form, color: e.target.value })}
+                placeholder="#3b82f6"
+              />
+            </div>
+          </div>
           <Select label="Status" value={form.isActive ? 'active' : 'inactive'} onChange={(e) => setForm({ ...form, isActive: e.target.value === 'active' })} options={[{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }]} />
         </div>
       </Modal>

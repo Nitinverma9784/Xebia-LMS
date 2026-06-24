@@ -28,11 +28,13 @@ export default function CourseCard({ course, categoryName, onEdit, onDelete, onD
     >
       <Link href={`/catalog/courses/${course.id}`} className="block">
         <div className="relative h-36 bg-gradient-to-br from-brand-primary/10 to-brand-secondary/10">
-          <img
-            src={course.thumbnail}
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover opacity-80"
-          />
+          {course.thumbnail ? (
+            <img
+              src={course.thumbnail}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover opacity-80"
+            />
+          ) : null}
           <div className="absolute bottom-3 left-3 flex h-10 w-10 items-center justify-center rounded-xl bg-white dark:bg-slate-800 shadow-md p-1.5 border border-brand-border dark:border-slate-800">
             <img src={getTechLogoUrl(course.technology)} alt={course.technology} className="h-full w-full object-contain" />
           </div>

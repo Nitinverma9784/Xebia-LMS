@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Video, FileText, StickyNote, Image, ExternalLink, FileType, Landmark, Calendar, User } from 'lucide-react';
+import { X, Video, FileText, StickyNote, Image, ExternalLink, FileType, Landmark, Calendar, User, Presentation } from 'lucide-react';
 import { formatFileSize, formatDateTime } from '@/utils';
 
 export default function ContentPreviewDrawer({ content, open, onClose }) {

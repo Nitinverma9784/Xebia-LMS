@@ -176,8 +176,10 @@ export default function CourseBuilderWorkspace({ course, category, students, cat
           <Link href={`/catalog/categories/${course.categoryId}`} className="p-2 hover:bg-brand-surface dark:hover:bg-slate-800 rounded-lg text-brand-text-secondary dark:text-slate-400">
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <img src={course.thumbnail} alt="" className="h-12 w-20 rounded-lg object-cover hidden sm:block border border-brand-border dark:border-slate-800" />
-          <img src={getTechLogoUrl(course.technology)} alt="" className="h-10 w-10 rounded-lg bg-brand-surface dark:bg-slate-800 p-1.5 border border-brand-border dark:border-slate-800" />
+          {course.thumbnail ? (
+            <img src={course.thumbnail} alt="" className="h-12 w-20 rounded-lg object-cover hidden sm:block border border-brand-border dark:border-slate-800" />
+          ) : null}
+          <img src={getTechLogoUrl(course.technology) || null} alt="" className="h-10 w-10 rounded-lg bg-brand-surface dark:bg-slate-800 p-1.5 border border-brand-border dark:border-slate-800" />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-lg font-bold text-brand-text-primary dark:text-slate-100 truncate">{course.title}</h1>
@@ -478,7 +480,9 @@ function StudentsPanel({ students }) {
                 <tr key={s.id} className="border-b border-brand-border dark:border-slate-800 last:border-0 hover:bg-brand-surface/40 dark:hover:bg-slate-850/40">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <img src={s.avatar} alt="" className="h-8 w-8 rounded-full object-cover" />
+                      {s.avatar ? (
+                        <img src={s.avatar} alt="" className="h-8 w-8 rounded-full object-cover" />
+                      ) : null}
                       <span className="font-semibold text-brand-text-primary dark:text-slate-200">{s.fullName}</span>
                     </div>
                   </td>
@@ -500,7 +504,9 @@ function StudentsPanel({ students }) {
           {students.map((s) => (
             <div key={s.id} className="rounded-xl border border-brand-border dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-card">
               <div className="flex items-center gap-3">
-                <img src={s.avatar} alt="" className="h-10 w-10 rounded-full object-cover" />
+                {s.avatar ? (
+                  <img src={s.avatar} alt="" className="h-10 w-10 rounded-full object-cover" />
+                ) : null}
                 <div className="min-w-0">
                   <p className="font-semibold text-brand-text-primary dark:text-slate-200 truncate">{s.fullName}</p>
                   <p className="text-xs text-brand-text-secondary dark:text-slate-400 truncate">{s.email}</p>

@@ -66,7 +66,7 @@ export default function ModuleManager({ module, courseId, catalog, showToast, on
     catalog.addSubmodule(courseId, module.id, {
       title: 'New Submodule',
       description: 'Structured learning unit.',
-      slug: 'new-submodule',
+      slug: `new-submodule-${Date.now()}`,
     });
     showToast('Submodule created successfully');
   };
@@ -188,20 +188,20 @@ export default function ModuleManager({ module, courseId, catalog, showToast, on
             No submodules inside this module yet. Click Add Submodule to create one.
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-brand-border dark:border-slate-800 bg-white dark:bg-slate-900">
-            <table className="w-full text-sm">
-              <thead className="bg-brand-surface dark:bg-slate-950 border-b border-brand-border dark:border-slate-800 text-left font-semibold">
-                <tr>
-                  <th className="w-10 px-4 py-3" />
-                  <th className="px-4 py-3">Title</th>
-                  <th className="px-4 py-3">Description</th>
-                  <th className="px-4 py-3">Contents</th>
-                  <th className="px-4 py-3">Active</th>
-                  <th className="px-4 py-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <div className="overflow-x-auto rounded-xl border border-brand-border dark:border-slate-800 bg-white dark:bg-slate-900">
+              <table className="w-full text-sm">
+                <thead className="bg-brand-surface dark:bg-slate-950 border-b border-brand-border dark:border-slate-800 text-left font-semibold">
+                  <tr>
+                    <th className="w-10 px-4 py-3" />
+                    <th className="px-4 py-3">Title</th>
+                    <th className="px-4 py-3">Description</th>
+                    <th className="px-4 py-3">Contents</th>
+                    <th className="px-4 py-3">Active</th>
+                    <th className="px-4 py-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
                   <SortableContext items={submodules.map((s) => s.id)} strategy={verticalListSortingStrategy}>
                     {submodules.map((sub) => {
                       const isEditing = editingSub === sub.id;
@@ -308,10 +308,10 @@ export default function ModuleManager({ module, courseId, catalog, showToast, on
                       );
                     })}
                   </SortableContext>
-                </DndContext>
-              </tbody>
-            </table>
-          </div>
+                </tbody>
+              </table>
+            </div>
+          </DndContext>
         )}
       </motion.div>
     </div>

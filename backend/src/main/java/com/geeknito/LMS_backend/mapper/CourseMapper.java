@@ -13,6 +13,65 @@ import java.util.stream.Collectors;
 
 public class CourseMapper {
 
+    private static ModuleResponseDTO mapModuleToResponseDTO(com.geeknito.LMS_backend.entity.learning.ModuleEntity module) {
+        if (module == null) return null;
+        List<com.geeknito.LMS_backend.dto.SubmoduleResponseDTO> submoduleDTOs = null;
+        if (module.getSubmodules() != null) {
+            submoduleDTOs = module.getSubmodules().stream()
+                    .sorted(Comparator.comparing(com.geeknito.LMS_backend.entity.learning.SubmoduleEntity::getSubmoduleOrder))
+                    .map(CourseMapper::mapSubmoduleToResponseDTO)
+                    .collect(Collectors.toList());
+        }
+        return ModuleResponseDTO.builder()
+                .id(module.getId())
+                .title(module.getTitle())
+                .description(module.getDescription())
+                .moduleOrder(module.getModuleOrder())
+                .isActive(module.getIsActive())
+                .submodules(submoduleDTOs)
+                .build();
+    }
+
+    private static com.geeknito.LMS_backend.dto.SubmoduleResponseDTO mapSubmoduleToResponseDTO(com.geeknito.LMS_backend.entity.learning.SubmoduleEntity submodule) {
+        if (submodule == null) return null;
+        List<com.geeknito.LMS_backend.dto.ContentResponseDTO> contentDTOs = null;
+        if (submodule.getContents() != null) {
+            contentDTOs = submodule.getContents().stream()
+                    .sorted(Comparator.comparing(com.geeknito.LMS_backend.entity.learning.ContentEntity::getContentOrder))
+                    .map(content -> com.geeknito.LMS_backend.dto.ContentResponseDTO.builder()
+                            .id(content.getId())
+                            .type(content.getType())
+                            .text(content.getText())
+                            .code(content.getCode())
+                            .language(content.getLanguage())
+                            .videoUrl(content.getVideoUrl())
+                            .imageUrl(content.getImageUrl())
+                            .alt(content.getAlt())
+                            .caption(content.getCaption())
+                            .title(content.getTitle())
+                            .headingLevel(content.getHeadingLevel())
+                            .contentOrder(content.getContentOrder())
+                            .isActive(content.getIsActive())
+                            .build())
+                    .collect(Collectors.toList());
+        }
+        return com.geeknito.LMS_backend.dto.SubmoduleResponseDTO.builder()
+                .id(submodule.getId())
+                .title(submodule.getTitle())
+                .description(submodule.getDescription())
+                .metaTitle(submodule.getMetaTitle())
+                .metaDescription(submodule.getMetaDescription())
+                .canonicalUrl(submodule.getCanonicalUrl())
+                .ogTitle(submodule.getOgTitle())
+                .ogDescription(submodule.getOgDescription())
+                .ogImage(submodule.getOgImage())
+                .submoduleOrder(submodule.getSubmoduleOrder())
+                .isActive(submodule.getIsActive())
+                .slug(submodule.getSlug())
+                .contents(contentDTOs)
+                .build();
+    }
+
     public static CourseResponseDTO toResponseDTO(CourseEntity entity) {
         if (entity == null) {
             return null;
@@ -24,6 +83,14 @@ public class CourseMapper {
                     .id(entity.getCategory().getId())
                     .name(entity.getCategory().getName())
                     .build();
+        }
+
+        List<ModuleResponseDTO> moduleDTOs = null;
+        if (entity.getModules() != null) {
+            moduleDTOs = entity.getModules().stream()
+                    .sorted(Comparator.comparing(com.geeknito.LMS_backend.entity.learning.ModuleEntity::getModuleOrder))
+                    .map(CourseMapper::mapModuleToResponseDTO)
+                    .collect(Collectors.toList());
         }
 
         return CourseResponseDTO.builder()
@@ -85,37 +152,12 @@ public class CourseMapper {
                 .allowIndexing(entity.getAllowIndexing())
                 .showInSearch(entity.getShowInSearch())
                 .category(categoryDTO)
+                .modules(moduleDTOs)
                 .build();
     }
 
     public static CourseResponseDTO toResponseDTOWithModules(CourseEntity entity) {
-        if (entity == null) {
-            return null;
-        }
-
-        List<ModuleResponseDTO> moduleDTOs = null;
-        if (entity.getModules() != null) {
-            moduleDTOs = entity.getModules().stream()
-                    .sorted(Comparator.comparing(com.geeknito.LMS_backend.entity.learning.ModuleEntity::getModuleOrder))
-                    .map(module -> ModuleResponseDTO.builder()
-                            .id(module.getId())
-                            .title(module.getTitle())
-                            .moduleOrder(module.getModuleOrder())
-                            .isActive(module.getIsActive())
-                            .build())
-                    .collect(Collectors.toList());
-        }
-
-        return CourseResponseDTO.builder()
-                .id(entity.getId())
-                .title(entity.getTitle())
-                .slug(entity.getSlug())
-                .description(entity.getDescription())
-                .level(entity.getLevel())
-                .duration(entity.getDuration())
-                .isActive(entity.getIsActive())
-                .modules(moduleDTOs)
-                .build();
+        return toResponseDTO(entity);
     }
 
     public static CourseEntity toEntity(CourseRequestDTO dto, CategoryEntity category) {
