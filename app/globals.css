@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --brand-primary: #6C1D5F;
+    --brand-primary-dark: #4A1E47;
+    --brand-secondary: #84117C;
+    --brand-success: #01AC9F;
+    --brand-cta: #FF6200;
+    --brand-border: #E5E7EB;
+    --brand-surface: #F7F8FC;
+    --brand-background: #FFFFFF;
+    --text-primary: #1F2937;
+    --text-secondary: #6B7280;
+  }
+
+  .dark {
+    --brand-border: #1E293B;
+    --brand-surface: #0F172A;
+    --brand-background: #020617;
+    --text-primary: #F8FAFC;
+    --text-secondary: #94A3B8;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-brand-background text-brand-text-primary dark:bg-brand-background dark:text-brand-text-primary antialiased;
+  }
+
+  *:focus-visible {
+    @apply outline-none ring-2 ring-brand-primary ring-opacity-40 ring-offset-2;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #E5E7EB transparent;
+  }
+  .dark .scrollbar-thin {
+    scrollbar-color: #334155 transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-brand-border dark:bg-slate-800;
+  }
+}
+
