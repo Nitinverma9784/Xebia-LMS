@@ -6,6 +6,7 @@ import com.geeknito.LMS_backend.entity.learning.CourseEntity;
 import com.geeknito.LMS_backend.exception.ResourceNotFoundException;
 import com.geeknito.LMS_backend.repository.CategoryRepository;
 import com.geeknito.LMS_backend.repository.CourseRepository;
+import com.geeknito.LMS_backend.dto.CourseResponse;
 import com.geeknito.LMS_backend.service.CourseService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -118,9 +119,40 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<CourseEntity> getAll() {
-        return courseRepository.findAll();
-    }
+public List<CourseResponse> getAll() {
+
+    return courseRepository.findAll()
+            .stream()
+            .map(course -> new CourseResponse(
+
+                    course.getId(),
+
+                    course.getTitle(),
+
+                    course.getSlug(),
+
+                    course.getDescription(),
+
+                    course.getShortDescription(),
+
+                    course.getLevel(),
+
+                    course.getLanguage(),
+
+                    course.getDuration(),
+
+                    course.getIcon(),
+                    
+
+                    course.getThumbnail(),
+
+                    course.getBannerImage(),
+
+                    course.getIsActive()
+
+            ))
+            .toList();
+}
 
     @Override
     @Transactional(readOnly = true)

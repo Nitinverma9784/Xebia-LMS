@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.geeknito.LMS_backend.dto.CourseResponse;
 
 import java.util.List;
 
@@ -29,12 +30,18 @@ public class CourseController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse> getAllCourses() {
-        List<CourseEntity> courses = courseService.getAll();
-        ApiResponse response = new ApiResponse("Courses retrieved successfully", courses);
-        return ResponseEntity.ok(response);
-    }
+public ResponseEntity<ApiResponse> getAllCourses() {
 
+    List<CourseResponse> courses = courseService.getAll();
+
+    ApiResponse response =
+            new ApiResponse(
+                    "Courses retrieved successfully",
+                    courses
+            );
+
+    return ResponseEntity.ok(response);
+}
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse> getCourseById(@PathVariable Long id) {
         CourseEntity course = courseService.getById(id);

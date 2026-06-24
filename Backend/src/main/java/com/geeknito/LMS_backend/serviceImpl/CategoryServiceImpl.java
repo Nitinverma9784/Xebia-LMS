@@ -1,5 +1,6 @@
 package com.geeknito.LMS_backend.serviceImpl;
 
+import com.geeknito.LMS_backend.dto.CategoryResponse;
 import com.geeknito.LMS_backend.dto.CategoryRequest;
 import com.geeknito.LMS_backend.entity.learning.CategoryEntity;
 import com.geeknito.LMS_backend.exception.ResourceNotFoundException;
@@ -34,10 +35,19 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<CategoryEntity> getAll() {
-        return categoryRepository.findAll();
-    }
+     public List<CategoryResponse> getAll() {
 
+        return categoryRepository.findAll()
+            .stream()
+            .map(category -> new CategoryResponse(
+                    category.getName(),
+                    category.getIcon(),
+                    category.getDescription(),
+                    category.getColor(),
+                    category.getIsActive()
+            ))
+            .toList();
+}
     @Override
     @Transactional(readOnly = true)
     public CategoryEntity getById(Long id) {

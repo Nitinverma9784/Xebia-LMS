@@ -1,6 +1,7 @@
 package com.geeknito.LMS_backend.controller;
 
 import com.geeknito.LMS_backend.dto.CategoryRequest;
+import com.geeknito.LMS_backend.dto.CategoryResponse;
 import com.geeknito.LMS_backend.entity.learning.CategoryEntity;
 import com.geeknito.LMS_backend.response.ApiResponse;
 import com.geeknito.LMS_backend.service.CategoryService;
@@ -28,12 +29,19 @@ public class CategoryController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    @GetMapping
-    public ResponseEntity<ApiResponse> getAllCategories() {
-        List<CategoryEntity> categories = categoryService.getAll();
-        ApiResponse response = new ApiResponse("Categories retrieved successfully", categories);
-        return ResponseEntity.ok(response);
-    }
+  @GetMapping
+public ResponseEntity<ApiResponse> getAllCategories() {
+
+    List<CategoryResponse> categories = categoryService.getAll();
+
+    ApiResponse response =
+            new ApiResponse(
+                    "Categories retrieved successfully",
+                    categories
+            );
+
+    return ResponseEntity.ok(response);
+}
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse> getCategoryById(@PathVariable Long id) {
