@@ -1,14 +1,15 @@
 package com.geeknito.LMS_backend.service;
 
-import com.geeknito.LMS_backend.dto.ContentRequest;
-import com.geeknito.LMS_backend.entity.learning.ContentEntity;
+import com.geeknito.LMS_backend.dto.ContentRequestDTO;
+import com.geeknito.LMS_backend.dto.ContentResponseDTO;
 
 import java.util.List;
 
 public interface ContentService {
-    ContentEntity create(ContentRequest request);
-    List<ContentEntity> getAll();
-    ContentEntity getById(Long id);
-    ContentEntity update(Long id, ContentRequest request);
+    ContentResponseDTO create(ContentRequestDTO request);
+    List<ContentResponseDTO> getAll();
+    ContentResponseDTO getById(Long id);
+    ContentResponseDTO update(Long id, ContentRequestDTO request);
     void delete(Long id);
 }
+

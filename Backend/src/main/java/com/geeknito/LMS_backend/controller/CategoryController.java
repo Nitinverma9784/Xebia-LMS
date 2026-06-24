@@ -1,8 +1,8 @@
 package com.geeknito.LMS_backend.controller;
 
-import com.geeknito.LMS_backend.dto.CategoryRequest;
-import com.geeknito.LMS_backend.dto.CategoryResponse;
-import com.geeknito.LMS_backend.entity.learning.CategoryEntity;
+import com.geeknito.LMS_backend.dto.CategoryRequestDTO;
+import com.geeknito.LMS_backend.dto.CategoryResponseDTO;
+import com.geeknito.LMS_backend.dto.CategoryWiseCourseResponseDTO;
 import com.geeknito.LMS_backend.response.ApiResponse;
 import com.geeknito.LMS_backend.service.CategoryService;
 import jakarta.validation.Valid;
@@ -23,36 +23,36 @@ public class CategoryController {
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse> createCategory(@Valid @RequestBody CategoryRequest request) {
-        CategoryEntity category = categoryService.create(request);
+    public ResponseEntity<ApiResponse> createCategory(@Valid @RequestBody CategoryRequestDTO request) {
+        CategoryResponseDTO category = categoryService.create(request);
         ApiResponse response = new ApiResponse("Category created successfully", category);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-  @GetMapping
-public ResponseEntity<ApiResponse> getAllCategories() {
-
-    List<CategoryResponse> categories = categoryService.getAll();
-
-    ApiResponse response =
-            new ApiResponse(
-                    "Categories retrieved successfully",
-                    categories
-            );
-
-    return ResponseEntity.ok(response);
-}
+    @GetMapping
+    public ResponseEntity<ApiResponse> getAllCategories() {
+        List<CategoryResponseDTO> categories = categoryService.getAll();
+        ApiResponse response = new ApiResponse("Categories retrieved successfully", categories);
+        return ResponseEntity.ok(response);
+    }
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse> getCategoryById(@PathVariable Long id) {
-        CategoryEntity category = categoryService.getById(id);
+        CategoryResponseDTO category = categoryService.getById(id);
         ApiResponse response = new ApiResponse("Category retrieved successfully", category);
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/{categoryId}/courses")
+    public ResponseEntity<ApiResponse> getCategoryCourses(@PathVariable Long categoryId) {
+        CategoryWiseCourseResponseDTO categoryWiseCourses = categoryService.getCategoryCourses(categoryId);
+        ApiResponse response = new ApiResponse("Courses retrieved successfully", categoryWiseCourses);
+        return ResponseEntity.ok(response);
+    }
+
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse> updateCategory(@PathVariable Long id, @Valid @RequestBody CategoryRequest request) {
-        CategoryEntity category = categoryService.update(id, request);
+    public ResponseEntity<ApiResponse> updateCategory(@PathVariable Long id, @Valid @RequestBody CategoryRequestDTO request) {
+        CategoryResponseDTO category = categoryService.update(id, request);
         ApiResponse response = new ApiResponse("Category updated successfully", category);
         return ResponseEntity.ok(response);
     }

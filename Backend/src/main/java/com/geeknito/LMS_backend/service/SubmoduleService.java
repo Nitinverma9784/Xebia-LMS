@@ -1,14 +1,15 @@
 package com.geeknito.LMS_backend.service;
 
-import com.geeknito.LMS_backend.dto.SubmoduleRequest;
-import com.geeknito.LMS_backend.entity.learning.SubmoduleEntity;
+import com.geeknito.LMS_backend.dto.SubmoduleRequestDTO;
+import com.geeknito.LMS_backend.dto.SubmoduleResponseDTO;
 
 import java.util.List;
 
 public interface SubmoduleService {
-    SubmoduleEntity create(SubmoduleRequest request);
-    List<SubmoduleEntity> getAll();
-    SubmoduleEntity getById(Long id);
-    SubmoduleEntity update(Long id, SubmoduleRequest request);
+    SubmoduleResponseDTO create(SubmoduleRequestDTO request);
+    List<SubmoduleResponseDTO> getAll();
+    SubmoduleResponseDTO getById(Long id);
+    SubmoduleResponseDTO update(Long id, SubmoduleRequestDTO request);
     void delete(Long id);
 }
+

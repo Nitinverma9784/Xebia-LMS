@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ContentRequest {
+public class ContentRequestDTO {
 
     @NotBlank(message = "Content type is required")
     @Size(max = 30, message = "Content type must be at most 30 characters")

@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CourseRequest {
+public class CourseRequestDTO {
 
     @NotBlank(message = "Course title is required")
     @Size(max = 200, message = "Course title must be at most 200 characters")

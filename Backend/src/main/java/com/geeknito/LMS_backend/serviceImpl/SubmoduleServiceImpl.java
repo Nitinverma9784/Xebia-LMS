@@ -1,9 +1,11 @@
 package com.geeknito.LMS_backend.serviceImpl;
 
-import com.geeknito.LMS_backend.dto.SubmoduleRequest;
+import com.geeknito.LMS_backend.dto.SubmoduleRequestDTO;
+import com.geeknito.LMS_backend.dto.SubmoduleResponseDTO;
 import com.geeknito.LMS_backend.entity.learning.ModuleEntity;
 import com.geeknito.LMS_backend.entity.learning.SubmoduleEntity;
 import com.geeknito.LMS_backend.exception.ResourceNotFoundException;
+import com.geeknito.LMS_backend.mapper.SubmoduleMapper;
 import com.geeknito.LMS_backend.repository.ModuleRepository;
 import com.geeknito.LMS_backend.repository.SubmoduleRepository;
 import com.geeknito.LMS_backend.service.SubmoduleService;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -25,71 +28,48 @@ public class SubmoduleServiceImpl implements SubmoduleService {
     }
 
     @Override
-    public SubmoduleEntity create(SubmoduleRequest request) {
+    public SubmoduleResponseDTO create(SubmoduleRequestDTO request) {
         ModuleEntity module = moduleRepository.findById(request.getModuleId())
                 .orElseThrow(() -> new ResourceNotFoundException("Module not found with id: " + request.getModuleId()));
 
-        SubmoduleEntity submodule = SubmoduleEntity.builder()
-                .title(request.getTitle())
-                .description(request.getDescription())
-                .metaTitle(request.getMetaTitle())
-                .metaDescription(request.getMetaDescription())
-                .canonicalUrl(request.getCanonicalUrl())
-                .ogTitle(request.getOgTitle())
-                .ogDescription(request.getOgDescription())
-                .ogImage(request.getOgImage())
-                .submoduleOrder(request.getSubmoduleOrder() != null ? request.getSubmoduleOrder() : 0)
-                .isActive(request.getIsActive() != null ? request.getIsActive() : true)
-                .module(module)
-                .slug(request.getSlug())
-                .build();
-        return submoduleRepository.save(submodule);
+        SubmoduleEntity submodule = SubmoduleMapper.toEntity(request, module);
+        SubmoduleEntity savedSubmodule = submoduleRepository.save(submodule);
+        return SubmoduleMapper.toResponseDTO(savedSubmodule);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<SubmoduleEntity> getAll() {
-        return submoduleRepository.findAll();
+    public List<SubmoduleResponseDTO> getAll() {
+        return submoduleRepository.findAllWithModule().stream()
+                .map(SubmoduleMapper::toResponseDTO)
+                .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public SubmoduleEntity getById(Long id) {
-        return submoduleRepository.findById(id)
+    public SubmoduleResponseDTO getById(Long id) {
+        SubmoduleEntity submodule = submoduleRepository.findByIdWithContents(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Submodule not found with id: " + id));
+        return SubmoduleMapper.toResponseDTOWithContents(submodule);
     }
 
     @Override
-    public SubmoduleEntity update(Long id, SubmoduleRequest request) {
-        SubmoduleEntity submodule = getById(id);
-        
+    public SubmoduleResponseDTO update(Long id, SubmoduleRequestDTO request) {
+        SubmoduleEntity submodule = submoduleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Submodule not found with id: " + id));
+
         ModuleEntity module = moduleRepository.findById(request.getModuleId())
                 .orElseThrow(() -> new ResourceNotFoundException("Module not found with id: " + request.getModuleId()));
 
-        submodule.setTitle(request.getTitle());
-        submodule.setDescription(request.getDescription());
-        submodule.setMetaTitle(request.getMetaTitle());
-        submodule.setMetaDescription(request.getMetaDescription());
-        submodule.setCanonicalUrl(request.getCanonicalUrl());
-        submodule.setOgTitle(request.getOgTitle());
-        submodule.setOgDescription(request.getOgDescription());
-        submodule.setOgImage(request.getOgImage());
-        
-        if (request.getSubmoduleOrder() != null) {
-            submodule.setSubmoduleOrder(request.getSubmoduleOrder());
-        }
-        if (request.getIsActive() != null) {
-            submodule.setIsActive(request.getIsActive());
-        }
-        submodule.setModule(module);
-        submodule.setSlug(request.getSlug());
-        
-        return submoduleRepository.save(submodule);
+        SubmoduleMapper.updateEntity(submodule, request, module);
+        SubmoduleEntity updatedSubmodule = submoduleRepository.save(submodule);
+        return SubmoduleMapper.toResponseDTO(updatedSubmodule);
     }
 
     @Override
     public void delete(Long id) {
-        SubmoduleEntity submodule = getById(id);
+        SubmoduleEntity submodule = submoduleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Submodule not found with id: " + id));
         submoduleRepository.delete(submodule);
     }
 }

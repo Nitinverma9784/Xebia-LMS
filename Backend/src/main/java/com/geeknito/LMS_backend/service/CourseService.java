@@ -1,15 +1,14 @@
 package com.geeknito.LMS_backend.service;
 
-import com.geeknito.LMS_backend.dto.CourseRequest;
-import com.geeknito.LMS_backend.entity.learning.CourseEntity;
-import com.geeknito.LMS_backend.dto.CourseResponse; 
+import com.geeknito.LMS_backend.dto.CourseRequestDTO;
+import com.geeknito.LMS_backend.dto.CourseResponseDTO;
 
 import java.util.List;
 
 public interface CourseService {
-    CourseEntity create(CourseRequest request);
-List<CourseResponse> getAll();
-    CourseEntity getById(Long id);
-    CourseEntity update(Long id, CourseRequest request);
+    CourseResponseDTO create(CourseRequestDTO request);
+    List<CourseResponseDTO> getAll();
+    CourseResponseDTO getById(Long id);
+    CourseResponseDTO update(Long id, CourseRequestDTO request);
     void delete(Long id);
 }

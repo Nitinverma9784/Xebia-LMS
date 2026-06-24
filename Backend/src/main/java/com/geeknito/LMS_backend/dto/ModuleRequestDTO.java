@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ModuleRequest {
+public class ModuleRequestDTO {
 
     @NotBlank(message = "Module title is required")
     @Size(max = 200, message = "Module title must be at most 200 characters")

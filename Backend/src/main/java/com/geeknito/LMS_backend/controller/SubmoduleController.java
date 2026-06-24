@@ -1,7 +1,7 @@
 package com.geeknito.LMS_backend.controller;
 
-import com.geeknito.LMS_backend.dto.SubmoduleRequest;
-import com.geeknito.LMS_backend.entity.learning.SubmoduleEntity;
+import com.geeknito.LMS_backend.dto.SubmoduleRequestDTO;
+import com.geeknito.LMS_backend.dto.SubmoduleResponseDTO;
 import com.geeknito.LMS_backend.response.ApiResponse;
 import com.geeknito.LMS_backend.service.SubmoduleService;
 import jakarta.validation.Valid;
@@ -22,29 +22,29 @@ public class SubmoduleController {
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse> createSubmodule(@Valid @RequestBody SubmoduleRequest request) {
-        SubmoduleEntity submodule = submoduleService.create(request);
+    public ResponseEntity<ApiResponse> createSubmodule(@Valid @RequestBody SubmoduleRequestDTO request) {
+        SubmoduleResponseDTO submodule = submoduleService.create(request);
         ApiResponse response = new ApiResponse("Submodule created successfully", submodule);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
     @GetMapping
     public ResponseEntity<ApiResponse> getAllSubmodules() {
-        List<SubmoduleEntity> submodules = submoduleService.getAll();
+        List<SubmoduleResponseDTO> submodules = submoduleService.getAll();
         ApiResponse response = new ApiResponse("Submodules retrieved successfully", submodules);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse> getSubmoduleById(@PathVariable Long id) {
-        SubmoduleEntity submodule = submoduleService.getById(id);
+        SubmoduleResponseDTO submodule = submoduleService.getById(id);
         ApiResponse response = new ApiResponse("Submodule retrieved successfully", submodule);
         return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse> updateSubmodule(@PathVariable Long id, @Valid @RequestBody SubmoduleRequest request) {
-        SubmoduleEntity submodule = submoduleService.update(id, request);
+    public ResponseEntity<ApiResponse> updateSubmodule(@PathVariable Long id, @Valid @RequestBody SubmoduleRequestDTO request) {
+        SubmoduleResponseDTO submodule = submoduleService.update(id, request);
         ApiResponse response = new ApiResponse("Submodule updated successfully", submodule);
         return ResponseEntity.ok(response);
     }

@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SubmoduleRequest {
+public class SubmoduleRequestDTO {
 
     @NotBlank(message = "Submodule title is required")
     @Size(max = 200, message = "Submodule title must be at most 200 characters")

@@ -1,7 +1,7 @@
 package com.geeknito.LMS_backend.controller;
 
-import com.geeknito.LMS_backend.dto.ModuleRequest;
-import com.geeknito.LMS_backend.entity.learning.ModuleEntity;
+import com.geeknito.LMS_backend.dto.ModuleRequestDTO;
+import com.geeknito.LMS_backend.dto.ModuleResponseDTO;
 import com.geeknito.LMS_backend.response.ApiResponse;
 import com.geeknito.LMS_backend.service.ModuleService;
 import jakarta.validation.Valid;
@@ -22,29 +22,29 @@ public class ModuleController {
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse> createModule(@Valid @RequestBody ModuleRequest request) {
-        ModuleEntity module = moduleService.create(request);
+    public ResponseEntity<ApiResponse> createModule(@Valid @RequestBody ModuleRequestDTO request) {
+        ModuleResponseDTO module = moduleService.create(request);
         ApiResponse response = new ApiResponse("Module created successfully", module);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
     @GetMapping
     public ResponseEntity<ApiResponse> getAllModules() {
-        List<ModuleEntity> modules = moduleService.getAll();
+        List<ModuleResponseDTO> modules = moduleService.getAll();
         ApiResponse response = new ApiResponse("Modules retrieved successfully", modules);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse> getModuleById(@PathVariable Long id) {
-        ModuleEntity module = moduleService.getById(id);
+        ModuleResponseDTO module = moduleService.getById(id);
         ApiResponse response = new ApiResponse("Module retrieved successfully", module);
         return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse> updateModule(@PathVariable Long id, @Valid @RequestBody ModuleRequest request) {
-        ModuleEntity module = moduleService.update(id, request);
+    public ResponseEntity<ApiResponse> updateModule(@PathVariable Long id, @Valid @RequestBody ModuleRequestDTO request) {
+        ModuleResponseDTO module = moduleService.update(id, request);
         ApiResponse response = new ApiResponse("Module updated successfully", module);
         return ResponseEntity.ok(response);
     }

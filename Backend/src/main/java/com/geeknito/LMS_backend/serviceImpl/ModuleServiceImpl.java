@@ -1,9 +1,11 @@
 package com.geeknito.LMS_backend.serviceImpl;
 
-import com.geeknito.LMS_backend.dto.ModuleRequest;
+import com.geeknito.LMS_backend.dto.ModuleRequestDTO;
+import com.geeknito.LMS_backend.dto.ModuleResponseDTO;
 import com.geeknito.LMS_backend.entity.learning.CourseEntity;
 import com.geeknito.LMS_backend.entity.learning.ModuleEntity;
 import com.geeknito.LMS_backend.exception.ResourceNotFoundException;
+import com.geeknito.LMS_backend.mapper.ModuleMapper;
 import com.geeknito.LMS_backend.repository.CourseRepository;
 import com.geeknito.LMS_backend.repository.ModuleRepository;
 import com.geeknito.LMS_backend.service.ModuleService;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -25,56 +28,48 @@ public class ModuleServiceImpl implements ModuleService {
     }
 
     @Override
-    public ModuleEntity create(ModuleRequest request) {
+    public ModuleResponseDTO create(ModuleRequestDTO request) {
         CourseEntity course = courseRepository.findById(request.getCourseId())
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.getCourseId()));
 
-        ModuleEntity module = ModuleEntity.builder()
-                .title(request.getTitle())
-                .description(request.getDescription())
-                .moduleOrder(request.getModuleOrder() != null ? request.getModuleOrder() : 0)
-                .isActive(request.getIsActive() != null ? request.getIsActive() : true)
-                .course(course)
-                .build();
-        return moduleRepository.save(module);
+        ModuleEntity module = ModuleMapper.toEntity(request, course);
+        ModuleEntity savedModule = moduleRepository.save(module);
+        return ModuleMapper.toResponseDTO(savedModule);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ModuleEntity> getAll() {
-        return moduleRepository.findAll();
+    public List<ModuleResponseDTO> getAll() {
+        return moduleRepository.findAllWithCourse().stream()
+                .map(ModuleMapper::toResponseDTO)
+                .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ModuleEntity getById(Long id) {
-        return moduleRepository.findById(id)
+    public ModuleResponseDTO getById(Long id) {
+        ModuleEntity module = moduleRepository.findByIdWithSubmodules(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Module not found with id: " + id));
+        return ModuleMapper.toResponseDTOWithSubmodules(module);
     }
 
     @Override
-    public ModuleEntity update(Long id, ModuleRequest request) {
-        ModuleEntity module = getById(id);
-        
+    public ModuleResponseDTO update(Long id, ModuleRequestDTO request) {
+        ModuleEntity module = moduleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Module not found with id: " + id));
+
         CourseEntity course = courseRepository.findById(request.getCourseId())
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + request.getCourseId()));
 
-        module.setTitle(request.getTitle());
-        module.setDescription(request.getDescription());
-        if (request.getModuleOrder() != null) {
-            module.setModuleOrder(request.getModuleOrder());
-        }
-        if (request.getIsActive() != null) {
-            module.setIsActive(request.getIsActive());
-        }
-        module.setCourse(course);
-        
-        return moduleRepository.save(module);
+        ModuleMapper.updateEntity(module, request, course);
+        ModuleEntity updatedModule = moduleRepository.save(module);
+        return ModuleMapper.toResponseDTO(updatedModule);
     }
 
     @Override
     public void delete(Long id) {
-        ModuleEntity module = getById(id);
+        ModuleEntity module = moduleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Module not found with id: " + id));
         moduleRepository.delete(module);
     }
 }
