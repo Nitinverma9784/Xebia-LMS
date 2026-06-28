@@ -10,6 +10,7 @@ import { useCatalog } from '@/hooks/useCatalog';
 import { useToast } from '@/hooks/useToast';
 import { formatFileSize, formatDate, getTechLogoUrl } from '@/utils';
 import Button from '@/components/ui/Button';
+import PageHeader from '@/components/layout/PageHeader';
 import { Link } from 'react-router-dom';
 import Badge from '@/components/ui/Badge';
 import ContentPreviewDrawer from '@/components/builder/ContentPreviewDrawer';
@@ -89,23 +90,22 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-4 lg:p-6 space-y-6 bg-brand-background min-h-screen text-brand-text-primary transition-colors duration-200">
-      
-      {/* Header section */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-extrabold tracking-tight">Enterprise Dashboard</h1>
-          <p className="text-xs lg:text-sm text-brand-text-secondary mt-0.5">Real-time statistics and course catalog operations at Xebia.</p>
-        </div>
-        <div className="flex gap-2">
-          <Link to="/catalog/courses">
-            <Button size="sm" variant="outline"><BookOpen className="h-4 w-4 mr-2" /> View Catalog</Button>
-          </Link>
-          <Link to="/catalog/courses?create=true">
-            <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Add Course</Button>
-          </Link>
-        </div>
-      </div>
+    <div className="min-h-screen bg-brand-surface p-6 lg:p-8">
+      <PageHeader
+        title="Dashboard"
+        subtitle="Real-time statistics and course catalog operations"
+        action={
+          <div className="flex gap-2">
+            <Link to="/catalog/courses">
+              <Button size="sm" variant="outline"><BookOpen className="h-4 w-4 mr-2" /> View Catalog</Button>
+            </Link>
+            <Link to="/catalog/courses/new">
+              <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Add Course</Button>
+            </Link>
+          </div>
+        }
+      />
+      <div className="space-y-6">
 
       {/* Stats Cards Row */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
@@ -455,6 +455,7 @@ export default function Dashboard() {
 
       {/* Dynamic Content Preview Drawer */}
       <ContentPreviewDrawer content={previewFile} open={!!previewFile} onClose={() => setPreviewFile(null)} />
+      </div>
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Palette, Save } from 'lucide-react';
 import { useCatalog } from '@/hooks/useCatalog';
 import { useToast } from '@/hooks/useToast';
-import Header from '@/components/layout/Header';
+import PageHeader from '@/components/layout/PageHeader';
 import Breadcrumb from '@/components/layout/Breadcrumb';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
@@ -41,7 +41,7 @@ export default function BrandingSettings() {
 
   return (
     <div>
-      <Header title="Branding Settings" subtitle="Customize your white-label LMS appearance" />
+      <PageHeader title="Branding Settings" subtitle="Customize your white-label LMS appearance" />
       <div className="p-4 lg:p-6 space-y-6 max-w-2xl">
         <Breadcrumb items={[{ label: 'Branding' }]} />
 

@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { Image as ImageIcon, LayoutGrid, List, Eye, Video, FileText, Presentation, FileCode as FileType, Clock } from 'lucide-react';
 import { useCatalog } from '@/hooks/useCatalog';
 import { paginate, formatFileSize, formatDate } from '@/utils';
-import Header from '@/components/layout/Header';
+import PageHeader from '@/components/layout/PageHeader';
 import Breadcrumb from '@/components/layout/Breadcrumb';
 import Button from '@/components/ui/Button';
 import SearchBar from '@/components/ui/SearchBar';
@@ -48,9 +48,9 @@ export default function MediaLibrary() {
   if (!hydrated) return null;
 
   return (
-    <div className="bg-brand-background text-brand-text-primary min-h-screen transition-colors duration-200">
-      <Header title="Media Library" subtitle="Centralized asset management" />
-      <div className="p-4 lg:p-6 space-y-6">
+    <div className="min-h-screen bg-brand-surface p-6 lg:p-8">
+      <PageHeader title="Media Library" subtitle="Centralized asset management" />
+      <div className="space-y-6">
         <Breadcrumb items={[{ label: 'Media Library' }]} />
 
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex justify-between items-center">

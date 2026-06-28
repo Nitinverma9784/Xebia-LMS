@@ -73,24 +73,23 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-slate-900 px-4 py-12 dark:bg-slate-950 overflow-hidden select-none">
-      {/* Dynamic Background Gradients */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-brand-primary/10 blur-[120px]" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-purple-500/10 blur-[120px]" />
+    <div className="relative flex min-h-screen items-center justify-center bg-brand-primary-dark px-4 py-12 overflow-hidden select-none">
+      <div className="absolute top-[-10%] left-[-10%] h-[50%] w-[50%] rounded-full bg-accent-teal/10 blur-[120px]" />
+      <div className="absolute bottom-[-10%] right-[-10%] h-[50%] w-[50%] rounded-full bg-brand-secondary/20 blur-[120px]" />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-md space-y-8 rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur-md"
+        className="w-full max-w-md space-y-8 rounded-2xl border border-white/10 bg-white p-8 shadow-2xl"
       >
         <div className="flex flex-col items-center justify-center text-center">
-          <Logo className="h-12 w-auto mb-2 text-white" variant="dark" />
-          <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-white">
+          <Logo className="mb-2 h-12 w-auto" variant="light" />
+          <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-slate-900">
             Welcome Back
           </h2>
-          <p className="mt-2 text-sm text-slate-400">
-            Sign in to manage the Xebia LMS catalog
+          <p className="mt-2 text-sm text-brand-text-secondary">
+            Sign in to the Xebia LMS Admin Panel
           </p>
         </div>
 
@@ -116,7 +115,7 @@ export default function LoginPage() {
                 value={email}
                 error={errors.email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full border-white/10 bg-white/5 text-white placeholder-slate-500 focus:border-brand-primary focus:ring-brand-primary"
+                className="w-full"
               />
               <Mail className="absolute right-3 top-[38px] h-5 w-5 text-slate-400" />
             </div>
@@ -130,7 +129,7 @@ export default function LoginPage() {
                 value={password}
                 error={errors.password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full border-white/10 bg-white/5 text-white placeholder-slate-500 focus:border-brand-primary focus:ring-brand-primary"
+                className="w-full"
               />
               <Lock className="absolute right-3 top-[38px] h-5 w-5 text-slate-400" />
             </div>

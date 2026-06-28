@@ -8,7 +8,7 @@ import { useCatalog } from '@/hooks/useCatalog';
 import { DIFFICULTY_LEVELS, LANGUAGES, TECHNOLOGIES, COURSE_STATUSES } from '@/constants';
 import { slugify } from '@/utils';
 import Breadcrumb from '@/components/layout/Breadcrumb';
-import Header from '@/components/layout/Header';
+import PageHeader from '@/components/layout/PageHeader';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import TextArea from '@/components/ui/TextArea';
@@ -99,7 +99,7 @@ export default function CourseForm() {
 
   return (
     <div>
-      <Header title={isEdit ? 'Edit Course' : 'Create Course'} subtitle="Course basic details" />
+      <PageHeader title={isEdit ? 'Edit Course' : 'Create Course'} subtitle="Course basic details" />
       <div className="p-4 lg:p-6 space-y-6 pb-16">
         <Breadcrumb items={[{ label: 'Courses', href: '/catalog/courses' }, { label: isEdit ? 'Edit' : 'Create' }]} />
 

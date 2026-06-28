@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useCatalog } from '@/hooks/useCatalog';
 import { useToast } from '@/hooks/useToast';
-import Header from '@/components/layout/Header';
+import PageHeader from '@/components/layout/PageHeader';
 import Breadcrumb from '@/components/layout/Breadcrumb';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -271,7 +271,7 @@ export default function UploadContentPage() {
 
   return (
     <div className="bg-brand-background text-brand-text-primary min-h-screen">
-      <Header title="Upload Content" subtitle="Publish curriculum assets" />
+      <PageHeader title="Upload Content" subtitle="Publish curriculum assets" />
       <div className="p-4 lg:p-6 space-y-6 max-w-4xl mx-auto">
         <div className="flex items-center gap-3">
           <Button variant="outline" size="sm" onClick={() => navigate(-1)}>

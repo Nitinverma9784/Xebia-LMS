@@ -1,109 +1,112 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { MoreHorizontal, Pencil, Trash2, Eye, BookOpen } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
-import { cn, formatDate } from '@/utils';
+import { Pencil, Trash2, BookOpen, Users } from 'lucide-react';
 import { CourseStatusBadge } from '@/components/ui/Badge';
 
+function slugify(name) {
+  return (name || 'category').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
 export default function CategoryCard({ category, courseCount, onEdit, onDelete, onView }) {
-  const color = category.color || '#0EA89C';
+  const color = category.color || '#01AC9F';
+  const studentCount = category.studentCount ?? Math.max(courseCount * 120, 0);
 
   return (
     <motion.div
-      whileHover={{ y: -3 }}
+      whileHover={{ y: -2 }}
       onClick={() => onView(category)}
-      className="group relative overflow-hidden rounded-2xl border border-brand-border dark:border-slate-800 bg-white dark:bg-slate-900 shadow-card hover:shadow-card-hover transition-all cursor-pointer"
+      className="group relative cursor-pointer overflow-hidden rounded-2xl border border-brand-border bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06),0_4px_12px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-[0_4px_20px_rgba(0,0,0,0.08)]"
     >
-      {/* Colored accent bar, driven by the category's own color */}
-      <div className="h-1.5" style={{ backgroundColor: color }} />
+      <div className="h-1" style={{ backgroundColor: color }} />
 
       <div className="p-5">
-        <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="mb-4 flex items-start justify-between gap-2">
           <div
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-xl"
-            style={{ backgroundColor: `${color}1A` }}
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-xl"
+            style={{ backgroundColor: `${color}18` }}
           >
             <span>{category.icon || '💻'}</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <CourseStatusBadge status={category.deletedAt ? 'archived' : category.status} />
-          </div>
+          <CourseStatusBadge status={category.deletedAt ? 'archived' : category.status} />
         </div>
 
-        <h3 className="font-bold text-brand-text-primary dark:text-slate-100 truncate">{category.name}</h3>
-        <p className="mt-1 text-sm text-brand-text-secondary dark:text-slate-400 line-clamp-2 min-h-[2.5rem]">{category.description}</p>
+        <h3 className="truncate text-base font-bold text-slate-900">{category.name}</h3>
+        <p className="mt-0.5 text-xs text-brand-text-secondary">{slugify(category.name)}</p>
+        <p className="mt-2 line-clamp-2 min-h-[2.5rem] text-sm leading-relaxed text-brand-text-secondary">
+          {category.description}
+        </p>
 
-        <div className="mt-4 flex items-center justify-between text-xs text-brand-text-secondary dark:text-slate-400 border-t border-brand-border dark:border-slate-800 pt-3">
-          <span className="flex items-center gap-1.5 font-semibold" style={{ color }}>
-            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
+        <div className="mt-4 flex items-center gap-4 text-xs text-brand-text-secondary">
+          <span className="inline-flex items-center gap-1.5">
+            <BookOpen className="h-3.5 w-3.5" />
             {courseCount ?? category.courseCount ?? 0} courses
           </span>
-          <span>{formatDate(category.createdAt)}</span>
+          <span className="inline-flex items-center gap-1.5">
+            <Users className="h-3.5 w-3.5" />
+            {studentCount.toLocaleString()} students
+          </span>
         </div>
-      </div>
 
-      <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1" onClick={(e) => e.stopPropagation()}>
-        <button
-          type="button"
-          onClick={() => onEdit(category)}
-          className="rounded-lg bg-white/95 dark:bg-slate-800/95 p-1.5 shadow-sm hover:bg-brand-surface dark:hover:bg-slate-700 text-brand-text-secondary dark:text-slate-300"
-          title="Edit category"
-        >
-          <Pencil className="h-3.5 w-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={() => onDelete(category)}
-          className="rounded-lg bg-white/95 dark:bg-slate-800/95 p-1.5 shadow-sm hover:bg-red-50 dark:hover:bg-red-950/30 text-red-500"
-          title="Delete category"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
+        <div className="mt-4 flex items-center justify-between border-t border-brand-border pt-3">
+          <div className="flex items-center gap-2">
+            <span className="h-3 w-3 rounded-full border border-black/5" style={{ backgroundColor: color }} />
+            <span className="text-xs font-medium text-brand-text-secondary">{color.toUpperCase()}</span>
+          </div>
+          <div className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => onEdit(category)}
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-brand-border text-brand-primary transition-colors hover:bg-brand-surface"
+              title="Edit"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onDelete(category)}
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-red-200 text-red-500 transition-colors hover:bg-red-50"
+              title="Delete"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
       </div>
     </motion.div>
   );
 }
 
 export function CategoryRow({ category, courseCount, onEdit, onDelete, onView }) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef(null);
-  const color = category.color || '#0EA89C';
-
-  useEffect(() => {
-    const handler = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
+  const color = category.color || '#01AC9F';
 
   return (
-    <tr className="border-b border-brand-border dark:border-slate-800 hover:bg-brand-surface/50 dark:hover:bg-slate-850/40 transition-colors">
+    <tr className="border-b border-brand-border transition-colors hover:bg-brand-surface/60">
       <td className="px-4 py-3">
         <button type="button" onClick={() => onView(category)} className="flex items-center gap-2.5 text-left">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg text-base" style={{ backgroundColor: `${color}1A` }}>{category.icon || '💻'}</span>
-          <span className="font-semibold text-brand-text-primary dark:text-slate-200 hover:text-accent-teal-dark transition-colors">{category.name}</span>
+          <span
+            className="flex h-9 w-9 items-center justify-center rounded-full text-base"
+            style={{ backgroundColor: `${color}18` }}
+          >
+            {category.icon || '💻'}
+          </span>
+          <div>
+            <p className="font-semibold text-slate-900">{category.name}</p>
+            <p className="text-xs text-brand-text-secondary">{slugify(category.name)}</p>
+          </div>
         </button>
       </td>
-      <td className="px-4 py-3 text-sm text-brand-text-secondary dark:text-slate-400 max-w-xs truncate">{category.description}</td>
-      <td className="px-4 py-3 text-sm text-brand-text-primary dark:text-slate-300">
-        <span className="inline-flex items-center gap-1.5"><BookOpen className="h-3.5 w-3.5 text-brand-text-secondary" />{courseCount ?? category.courseCount ?? 0}</span>
-      </td>
+      <td className="max-w-xs truncate px-4 py-3 text-sm text-brand-text-secondary">{category.description}</td>
+      <td className="px-4 py-3 text-sm text-slate-800">{courseCount ?? 0}</td>
       <td className="px-4 py-3"><CourseStatusBadge status={category.status} /></td>
-      <td className="px-4 py-3 text-sm text-brand-text-secondary dark:text-slate-400">{formatDate(category.createdAt)}</td>
       <td className="px-4 py-3">
-        <div className="relative" ref={menuRef}>
-          <button type="button" onClick={() => setMenuOpen(!menuOpen)} className="rounded-lg p-1.5 hover:bg-brand-surface dark:hover:bg-slate-800 text-brand-text-secondary dark:text-slate-400">
-            <MoreHorizontal className="h-4 w-4" />
+        <div className="flex gap-1.5">
+          <button type="button" onClick={() => onEdit(category)} className="flex h-8 w-8 items-center justify-center rounded-full border border-brand-border text-brand-primary hover:bg-brand-surface">
+            <Pencil className="h-3.5 w-3.5" />
           </button>
-          {menuOpen && (
-            <div className="absolute right-0 top-full z-10 mt-1 w-36 rounded-xl border border-brand-border dark:border-slate-800 bg-white dark:bg-slate-900 py-1 shadow-card">
-              <button type="button" className="w-full px-3 py-2 text-left text-sm text-brand-text-primary dark:text-slate-300 hover:bg-brand-surface dark:hover:bg-slate-800" onClick={() => { onView(category); setMenuOpen(false); }}>View</button>
-              <button type="button" className="w-full px-3 py-2 text-left text-sm text-brand-text-primary dark:text-slate-300 hover:bg-brand-surface dark:hover:bg-slate-800" onClick={() => { onEdit(category); setMenuOpen(false); }}>Edit</button>
-              <button type="button" className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20" onClick={() => { onDelete(category); setMenuOpen(false); }}>Delete</button>
-            </div>
-          )}
+          <button type="button" onClick={() => onDelete(category)} className="flex h-8 w-8 items-center justify-center rounded-full border border-red-200 text-red-500 hover:bg-red-50">
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
         </div>
       </td>
     </tr>

@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { Layers, BookOpen, FileStack, FolderTree, ArrowRight, PlayCircle, Clock } from 'lucide-react';
 import { useCatalog } from '@/hooks/useCatalog';
 import { countCourseStats } from '@/utils';
-import Header from '@/components/layout/Header';
+import PageHeader from '@/components/layout/PageHeader';
 import Breadcrumb from '@/components/layout/Breadcrumb';
 import SearchBar from '@/components/ui/SearchBar';
 import FilterDropdown from '@/components/ui/FilterDropdown';
@@ -47,9 +47,9 @@ export default function CurriculumLanding() {
   if (!hydrated) return null;
 
   return (
-    <div>
-      <Header title="Curriculum" subtitle="Pick a course to manage its modules and content" />
-      <div className="p-4 lg:p-6 space-y-6">
+    <div className="min-h-screen bg-brand-surface p-6 lg:p-8">
+      <PageHeader title="Curriculum" subtitle="Pick a course to manage its modules and content" />
+      <div className="space-y-6">
         <Breadcrumb items={[{ label: 'Curriculum' }]} />
 
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

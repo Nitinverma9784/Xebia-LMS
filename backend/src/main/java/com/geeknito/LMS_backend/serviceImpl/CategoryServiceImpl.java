@@ -50,8 +50,11 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     @Transactional(readOnly = true)
     public CategoryWiseCourseResponseDTO getCategoryCourses(Long categoryId) {
-        CategoryEntity category = categoryRepository.findByIdWithCourses(categoryId)
+        CategoryEntity category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + categoryId));
+        if (category.getCourses() != null) {
+            category.getCourses().size();
+        }
         return CategoryMapper.toCategoryWiseCourseResponseDTO(category);
     }
 
