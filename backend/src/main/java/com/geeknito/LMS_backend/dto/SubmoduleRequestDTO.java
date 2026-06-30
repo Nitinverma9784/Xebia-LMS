@@ -45,6 +45,11 @@ public class SubmoduleRequestDTO {
     @NotNull(message = "Module ID is required")
     private Long moduleId;
 
+    private String logo;
+    private String banner;
+    private String backgroundImage;
+    private String thumbnail;
+
     @NotBlank(message = "Submodule slug is required")
     @Size(max = 250, message = "Submodule slug must be at most 250 characters")
     private String slug;

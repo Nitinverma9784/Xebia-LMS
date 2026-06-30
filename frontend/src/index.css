@@ -1,0 +1,86 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --brand-primary:      #6C1D5F;
+    --brand-primary-dark: #4A1E47;
+    --brand-secondary:    #84117C;
+    --brand-success:      #01AC9F;
+    --brand-cta:          #01AC9F;
+    --brand-border:       #E5E7EB;
+    --brand-surface:      #F7F8FC;
+    --brand-background:   #FFFFFF;
+    --text-primary:       #1A1A2E;
+    --text-secondary:     #6B7280;
+
+    --accent-teal:        #01AC9F;
+    --accent-teal-dark:   #0B7F76;
+    --accent-orange:      #FF6200;
+    --accent-purple:      #84117C;
+    --accent-pink:        #DB2777;
+    --accent-plum:        #6C1D5F;
+  }
+
+  .dark {
+    --brand-border: #4D254B;
+    --brand-surface: #260A24;
+    --brand-background: #170316;
+    --text-primary: #F8FAFC;
+    --text-secondary: #C8ADC6;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    background-color: var(--brand-surface);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  *:focus-visible {
+    outline: none;
+    box-shadow: none;
+  }
+
+  input,
+  input:focus,
+  input:focus-visible,
+  textarea,
+  textarea:focus,
+  textarea:focus-visible,
+  select,
+  select:focus,
+  select:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #e5e7eb transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: #e5e7eb;
+    border-radius: 9999px;
+  }
+
+  .font-mono {
+    font-family: 'Courier New', Courier, monospace;
+  }
+}

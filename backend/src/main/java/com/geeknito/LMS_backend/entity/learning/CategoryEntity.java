@@ -36,6 +36,18 @@ public class CategoryEntity {
     @Builder.Default
     private Boolean isActive = true;
 
+    @Column(length = 1000)
+    private String logo;
+
+    @Column(length = 1000)
+    private String bannerImage;
+
+    @Column(length = 1000)
+    private String backgroundImage;
+
+    @Column(length = 1000)
+    private String thumbnail;
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;

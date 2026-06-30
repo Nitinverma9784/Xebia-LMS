@@ -105,6 +105,7 @@ public class CourseMapper {
                 .icon(entity.getIcon())
                 .thumbnail(entity.getThumbnail())
                 .bannerImage(entity.getBannerImage())
+                .backgroundImage(entity.getBackgroundImage())
                 .isActive(entity.getIsActive())
                 .isFeatured(entity.getIsFeatured())
                 .metaTitle(entity.getMetaTitle())
@@ -175,6 +176,7 @@ public class CourseMapper {
                 .icon(dto.getIcon())
                 .thumbnail(dto.getThumbnail())
                 .bannerImage(dto.getBannerImage())
+                .backgroundImage(dto.getBackgroundImage())
                 .isActive(dto.getIsActive() != null ? dto.getIsActive() : true)
                 .isFeatured(dto.getIsFeatured() != null ? dto.getIsFeatured() : false)
                 .metaTitle(dto.getMetaTitle())
@@ -239,6 +241,7 @@ public class CourseMapper {
         entity.setIcon(dto.getIcon());
         entity.setThumbnail(dto.getThumbnail());
         entity.setBannerImage(dto.getBannerImage());
+        entity.setBackgroundImage(dto.getBackgroundImage());
         if (dto.getIsActive() != null) {
             entity.setIsActive(dto.getIsActive());
         }

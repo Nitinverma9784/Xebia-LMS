@@ -44,6 +44,8 @@ public class CourseRequestDTO {
     @Size(max = 1000, message = "Course banner image must be at most 1000 characters")
     private String bannerImage;
 
+    private String backgroundImage;
+
     private Boolean isActive;
 
     private Boolean isFeatured;

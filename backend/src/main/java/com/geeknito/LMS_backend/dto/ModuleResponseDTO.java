@@ -18,6 +18,10 @@ public class ModuleResponseDTO {
     private String description;
     private Integer moduleOrder;
     private Boolean isActive;
+    private String logo;
+    private String banner;
+    private String backgroundImage;
+    private String thumbnail;
     
     private CourseResponseDTO course;
     private List<SubmoduleResponseDTO> submodules;

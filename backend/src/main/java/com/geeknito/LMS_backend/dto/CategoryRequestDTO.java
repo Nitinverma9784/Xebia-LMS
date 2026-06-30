@@ -26,4 +26,9 @@ public class CategoryRequestDTO {
     private String color;
 
     private Boolean isActive;
+
+    private String logo;
+    private String bannerImage;
+    private String backgroundImage;
+    private String thumbnail;
 }

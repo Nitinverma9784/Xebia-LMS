@@ -1,27 +1,33 @@
-# Frontend Dependencies & Build files
+# IDE
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+# Environment files
+.env
+.env*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependencies
+node_modules/
 frontend/node_modules/
+backend/target/
+
+# Build outputs
+frontend/dist/
+frontend/build/
 frontend/.next/
 frontend/out/
-frontend/build/
-frontend/coverage/
-frontend/.env*.local
-frontend/npm-debug.log*
-frontend/yarn-debug.log*
-frontend/yarn-error.log*
 
-# Backend Dependencies & Build files
-backend/target/
-backend/.settings/
-backend/.classpath
-backend/.project
-backend/.factorypath
-backend/logs/
-backend/*.log
+# Database
+*.db
 
-# IDE and System Files
+# OS
 .DS_Store
-*.pem
-.env
-.env.local
-.vscode/
-.idea/
+Thumbs.db

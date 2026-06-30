@@ -1,6 +1,7 @@
 package com.geeknito.LMS_backend.repository;
 
 import com.geeknito.LMS_backend.entity.learning.CourseEntity;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,10 +14,11 @@ import java.util.Optional;
 public interface CourseRepository extends JpaRepository<CourseEntity, Long> {
     Optional<CourseEntity> findBySlug(String slug);
 
-    @Query("SELECT c FROM CourseEntity c LEFT JOIN FETCH c.modules WHERE c.id = :id")
+    @EntityGraph(attributePaths = {"modules", "modules.submodules", "modules.submodules.contents"})
+    @Query("SELECT c FROM CourseEntity c WHERE c.id = :id")
     Optional<CourseEntity> findByIdWithModules(@Param("id") Long id);
 
-    @Query("SELECT c FROM CourseEntity c JOIN FETCH c.category")
+    @EntityGraph(attributePaths = {"category"})
+    @Query("SELECT c FROM CourseEntity c")
     List<CourseEntity> findAllWithCategory();
 }
-

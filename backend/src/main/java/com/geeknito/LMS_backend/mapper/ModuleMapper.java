@@ -32,6 +32,10 @@ public class ModuleMapper {
                 .description(entity.getDescription())
                 .moduleOrder(entity.getModuleOrder())
                 .isActive(entity.getIsActive())
+                .logo(entity.getLogo())
+                .banner(entity.getBanner())
+                .backgroundImage(entity.getBackgroundImage())
+                .thumbnail(entity.getThumbnail())
                 .course(courseDTO)
                 .build();
     }
@@ -69,6 +73,10 @@ public class ModuleMapper {
                 .description(dto.getDescription())
                 .moduleOrder(dto.getModuleOrder() != null ? dto.getModuleOrder() : 0)
                 .isActive(dto.getIsActive() != null ? dto.getIsActive() : true)
+                .logo(dto.getLogo())
+                .banner(dto.getBanner())
+                .backgroundImage(dto.getBackgroundImage())
+                .thumbnail(dto.getThumbnail())
                 .course(course)
                 .build();
     }
@@ -85,6 +93,10 @@ public class ModuleMapper {
         if (dto.getIsActive() != null) {
             entity.setIsActive(dto.getIsActive());
         }
+        entity.setLogo(dto.getLogo());
+        entity.setBanner(dto.getBanner());
+        entity.setBackgroundImage(dto.getBackgroundImage());
+        entity.setThumbnail(dto.getThumbnail());
         entity.setCourse(course);
     }
 }

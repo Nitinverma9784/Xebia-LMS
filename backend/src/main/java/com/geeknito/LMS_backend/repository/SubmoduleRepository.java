@@ -1,6 +1,7 @@
 package com.geeknito.LMS_backend.repository;
 
 import com.geeknito.LMS_backend.entity.learning.SubmoduleEntity;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,10 +14,11 @@ import java.util.Optional;
 public interface SubmoduleRepository extends JpaRepository<SubmoduleEntity, Long> {
     Optional<SubmoduleEntity> findBySlug(String slug);
 
-    @Query("SELECT s FROM SubmoduleEntity s LEFT JOIN FETCH s.contents WHERE s.id = :id")
+    @EntityGraph(attributePaths = {"contents"})
+    @Query("SELECT s FROM SubmoduleEntity s WHERE s.id = :id")
     Optional<SubmoduleEntity> findByIdWithContents(@Param("id") Long id);
 
-    @Query("SELECT s FROM SubmoduleEntity s JOIN FETCH s.module")
+    @EntityGraph(attributePaths = {"module"})
+    @Query("SELECT s FROM SubmoduleEntity s")
     List<SubmoduleEntity> findAllWithModule();
 }
-

@@ -2,8 +2,7 @@
 INSERT INTO categories (name, icon, description, color, is_active, created_at, updated_at)
 VALUES 
 ('Programming', '💻', 'Software engineering, coding, and backend development courses.', '#007ACC', true, NOW(), NOW()),
-('Design', '🎨', 'UI/UX Design, Figma, and creative arts.', '#FF5733', true, NOW(), NOW())
-ON CONFLICT (name) DO NOTHING;
+('Design', '🎨', 'UI/UX Design, Figma, and creative arts.', '#FF5733', true, NOW(), NOW());
 
 -- 2. Insert Courses
 INSERT INTO courses (
@@ -47,7 +46,7 @@ INSERT INTO courses (
     'UI/UX Designer, Product Designer, Interaction Designer',
     0, 0, 0.0, 80, true, true, true,
     NOW(), NOW()
-) ON CONFLICT (slug) DO NOTHING;
+);
 
 -- 3. Insert Modules
 INSERT INTO modules (title, description, module_order, is_active, course_id, created_at, updated_at)
@@ -73,7 +72,7 @@ INSERT INTO submodules (
     'Learn super keyword, method overriding, inheritance types, and dynamic binding.',
     2, true, 
     (SELECT id FROM modules WHERE title = 'Object-Oriented Programming (OOP) in Java' LIMIT 1), NOW(), NOW()
-) ON CONFLICT (slug) DO NOTHING;
+);
 
 -- 5. Insert Contents
 INSERT INTO contents (

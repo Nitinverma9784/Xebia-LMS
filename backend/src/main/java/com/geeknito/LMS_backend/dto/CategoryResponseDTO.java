@@ -19,5 +19,9 @@ public class CategoryResponseDTO {
     private String description;
     private String color;
     private Boolean isActive;
+    private String logo;
+    private String bannerImage;
+    private String backgroundImage;
+    private String thumbnail;
     private List<CourseResponseDTO> courses;
 }

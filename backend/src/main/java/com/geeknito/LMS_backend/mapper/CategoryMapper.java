@@ -23,6 +23,10 @@ public class CategoryMapper {
                 .description(entity.getDescription())
                 .color(entity.getColor())
                 .isActive(entity.getIsActive())
+                .logo(entity.getLogo())
+                .bannerImage(entity.getBannerImage())
+                .backgroundImage(entity.getBackgroundImage())
+                .thumbnail(entity.getThumbnail())
                 .build();
     }
 
@@ -97,6 +101,10 @@ public class CategoryMapper {
                 .description(dto.getDescription())
                 .color(dto.getColor())
                 .isActive(dto.getIsActive() != null ? dto.getIsActive() : true)
+                .logo(dto.getLogo())
+                .bannerImage(dto.getBannerImage())
+                .backgroundImage(dto.getBackgroundImage())
+                .thumbnail(dto.getThumbnail())
                 .build();
     }
 
@@ -111,5 +119,9 @@ public class CategoryMapper {
         if (dto.getIsActive() != null) {
             entity.setIsActive(dto.getIsActive());
         }
+        entity.setLogo(dto.getLogo());
+        entity.setBannerImage(dto.getBannerImage());
+        entity.setBackgroundImage(dto.getBackgroundImage());
+        entity.setThumbnail(dto.getThumbnail());
     }
 }

@@ -1,9 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    './app/**/*.{js,jsx}',
-    './components/**/*.{js,jsx}',
-    './features/**/*.{js,jsx}',
+    './index.html',
+    './src/**/*.{js,jsx}',
   ],
   darkMode: 'class',
   theme: {
@@ -20,6 +19,14 @@ module.exports = {
           border: 'var(--brand-border)',
           'text-primary': 'var(--text-primary)',
           'text-secondary': 'var(--text-secondary)',
+        },
+        accent: {
+          teal: 'var(--accent-teal)',
+          'teal-dark': 'var(--accent-teal-dark)',
+          orange: 'var(--accent-orange)',
+          purple: 'var(--accent-purple)',
+          pink: 'var(--accent-pink)',
+          plum: 'var(--accent-plum)',
         },
       },
       boxShadow: {

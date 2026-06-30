@@ -37,11 +37,9 @@ public class CourseEntity {
     @Column(nullable = false, unique = true, length = 250)
     private String slug;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String shortDescription;
 
@@ -63,6 +61,9 @@ public class CourseEntity {
     @Column(length = 1000)
     private String bannerImage;
 
+    @Column(length = 1000)
+    private String backgroundImage;
+
     @Builder.Default
     @Column(nullable = false)
     private Boolean isActive = true;
@@ -76,7 +77,6 @@ public class CourseEntity {
     @Column(length = 320)
     private String metaDescription;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String metaKeywords;
 
@@ -86,11 +86,9 @@ public class CourseEntity {
     @Column(length = 300)
     private String primaryKeyword;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String secondaryKeywords;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String focusKeywords;
 
@@ -104,7 +102,6 @@ public class CourseEntity {
     @Column(length = 200)
     private String seoCategory;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String seoTags;
 
@@ -135,15 +132,12 @@ public class CourseEntity {
     @Builder.Default
     private String twitterCard = "summary_large_image";
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String schemaMarkup;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String faqSchema;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String breadcrumbSchema;
 
@@ -153,51 +147,39 @@ public class CourseEntity {
     @Column(length = 1000)
     private String previewVideoUrl;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String learningOutcomes;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String prerequisites;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String targetAudience;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String courseHighlights;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String careerOpportunities;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String searchIntent;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String semanticKeywords;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String relatedTopics;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String searchSynonyms;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String faqContent;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String customHeadScript;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String customBodyScript;
 

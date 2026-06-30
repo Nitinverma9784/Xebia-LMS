@@ -40,16 +40,33 @@ public class CourseServiceImpl implements CourseService {
     @Override
     @Transactional(readOnly = true)
     public List<CourseResponseDTO> getAll() {
-        return courseRepository.findAllWithCategory().stream()
-                .map(CourseMapper::toResponseDTO)
+        return courseRepository.findAll().stream()
+                .map(course -> {
+                    // Initialize lazy associations inside the read-only transaction
+                    if (course.getCategory() != null) {
+                        course.getCategory().getName();
+                    }
+                    return CourseMapper.toResponseDTO(course);
+                })
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
     public CourseResponseDTO getById(Long id) {
-        CourseEntity course = courseRepository.findByIdWithModules(id)
+        CourseEntity course = courseRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + id));
+        if (course.getModules() != null) {
+            course.getModules().forEach(module -> {
+                if (module.getSubmodules() != null) {
+                    module.getSubmodules().forEach(submodule -> {
+                        if (submodule.getContents() != null) {
+                            submodule.getContents().size();
+                        }
+                    });
+                }
+            });
+        }
         return CourseMapper.toResponseDTOWithModules(course);
     }
 

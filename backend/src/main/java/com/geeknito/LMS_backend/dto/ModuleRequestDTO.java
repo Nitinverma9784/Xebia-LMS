@@ -26,4 +26,9 @@ public class ModuleRequestDTO {
 
     @NotNull(message = "Course ID is required")
     private Long courseId;
+
+    private String logo;
+    private String banner;
+    private String backgroundImage;
+    private String thumbnail;
 }

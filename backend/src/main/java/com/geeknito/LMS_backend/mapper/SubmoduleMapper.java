@@ -39,6 +39,10 @@ public class SubmoduleMapper {
                 .submoduleOrder(entity.getSubmoduleOrder())
                 .isActive(entity.getIsActive())
                 .slug(entity.getSlug())
+                .logo(entity.getLogo())
+                .banner(entity.getBanner())
+                .backgroundImage(entity.getBackgroundImage())
+                .thumbnail(entity.getThumbnail())
                 .module(moduleDTO)
                 .build();
     }
@@ -92,6 +96,10 @@ public class SubmoduleMapper {
                 .ogImage(dto.getOgImage())
                 .submoduleOrder(dto.getSubmoduleOrder() != null ? dto.getSubmoduleOrder() : 0)
                 .isActive(dto.getIsActive() != null ? dto.getIsActive() : true)
+                .logo(dto.getLogo())
+                .banner(dto.getBanner())
+                .backgroundImage(dto.getBackgroundImage())
+                .thumbnail(dto.getThumbnail())
                 .module(module)
                 .slug(dto.getSlug())
                 .build();
@@ -115,6 +123,10 @@ public class SubmoduleMapper {
         if (dto.getIsActive() != null) {
             entity.setIsActive(dto.getIsActive());
         }
+        entity.setLogo(dto.getLogo());
+        entity.setBanner(dto.getBanner());
+        entity.setBackgroundImage(dto.getBackgroundImage());
+        entity.setThumbnail(dto.getThumbnail());
         entity.setModule(module);
         entity.setSlug(dto.getSlug());
     }

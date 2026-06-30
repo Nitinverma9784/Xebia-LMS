@@ -26,6 +26,11 @@ public class SubmoduleResponseDTO {
     private Boolean isActive;
     private String slug;
 
+    private String logo;
+    private String banner;
+    private String backgroundImage;
+    private String thumbnail;
+
     private ModuleResponseDTO module;
     private List<ContentResponseDTO> contents;
 }

@@ -24,6 +24,7 @@ public class CourseResponseDTO {
     private String icon;
     private String thumbnail;
     private String bannerImage;
+    private String backgroundImage;
     private Boolean isActive;
     private Boolean isFeatured;
 
