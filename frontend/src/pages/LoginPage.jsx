@@ -21,7 +21,7 @@ export default function LoginPage() {
   const [serverError, setServerError] = useState('');
 
   // Redirect target
-  const from = location.state?.from?.pathname || '/catalog/dashboard';
+  const from = location.state?.from?.pathname || '/admin/dashboard';
 
   const validate = () => {
     const e = {};

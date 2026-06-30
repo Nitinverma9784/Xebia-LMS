@@ -259,7 +259,7 @@ export default function UploadContentPage() {
       );
 
       showToast('Content item published successfully', 'success');
-      navigate('/catalog/media');
+      navigate('/admin/media');
     } catch (err) {
       showToast('Failed to save content', 'error');
     } finally {
@@ -277,7 +277,7 @@ export default function UploadContentPage() {
           <Button variant="outline" size="sm" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4 mr-2" /> Back
           </Button>
-          <Breadcrumb items={[{ label: 'Media Library', href: '/catalog/media' }, { label: 'Upload Content' }]} />
+          <Breadcrumb items={[{ label: 'Media Library', href: '/admin/media' }, { label: 'Upload Content' }]} />
         </div>
 
         <motion.div 
@@ -528,7 +528,7 @@ export default function UploadContentPage() {
 
           {/* 5. Save action bar */}
           <div className="flex justify-end gap-3 pt-2">
-            <Button variant="outline" onClick={() => navigate('/catalog/media')} disabled={saving}>Cancel</Button>
+            <Button variant="outline" onClick={() => navigate('/admin/media')} disabled={saving}>Cancel</Button>
             <Button onClick={handleSave} disabled={saving || uploading} variant="cta">
               {saving ? 'Publishing...' : 'Save & Publish'}
             </Button>

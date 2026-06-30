@@ -1,71 +1,137 @@
-'use client';
-
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BookOpen, FolderTree, Layers, LayoutDashboard, LogOut, Image, Settings } from 'lucide-react';
+import { BookOpen, Tag, Layers, LayoutDashboard, LogOut, Image, Settings, Sun, Moon } from 'lucide-react';
+import Logo from '@/components/ui/Logo';
 import { cn } from '@/utils';
 import { useAuth } from '@/hooks/useAuth';
-import Logo from '@/components/ui/Logo';
 
 const NAV_ITEMS = [
-  { href: '/catalog/courses', label: 'Courses', icon: BookOpen },
-  { href: '/catalog/categories', label: 'Categories', icon: FolderTree },
-  { href: '/catalog/curriculum', label: 'Curriculum', icon: Layers },
-  { href: '/catalog/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/catalog/media', label: 'Media Library', icon: Image },
-  { href: '/catalog/branding', label: 'Branding', icon: Settings },
+  { href: '/admin/courses',    label: 'Courses',      icon: BookOpen },
+  { href: '/admin/categories', label: 'Categories',   icon: Tag },
+  { href: '/admin/curriculum', label: 'Curriculum',   icon: Layers },
+  { href: '/admin/dashboard',  label: 'Dashboard',    icon: LayoutDashboard },
+  { href: '/admin/media',      label: 'Media Library',icon: Image },
+  { href: '/admin/branding',   label: 'Branding',     icon: Settings },
 ];
 
 export default function Sidebar() {
   const { pathname } = useLocation();
   const { user, logout } = useAuth();
+  const [theme, setTheme] = useState('light');
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    const activeTheme = savedTheme || systemTheme;
+    setTheme(activeTheme);
+    if (activeTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(nextTheme);
+    localStorage.setItem('theme', nextTheme);
+    if (nextTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };
 
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-60 flex-col bg-brand-primary-dark">
-      <div className="flex h-16 items-center gap-3 border-b border-white/10 px-5">
+    <aside
+      className="fixed left-0 top-0 z-40 flex h-screen flex-col"
+      style={{ width: 220, backgroundColor: '#4a1e47' }}
+    >
+      {/* Logo */}
+      <div
+        className="flex items-center gap-3 px-5 py-5"
+        style={{ borderBottom: '1px solid rgba(255,255,255,0.10)' }}
+      >
         <Logo variant="dark" />
       </div>
 
-      <p className="px-5 pb-2 pt-5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/35">Main Menu</p>
+      {/* Nav label */}
+      <p
+        className="px-5 pb-2 pt-4 text-[10px] font-semibold uppercase tracking-widest"
+        style={{ color: 'rgba(255,255,255,0.35)' }}
+      >
+        Main Menu
+      </p>
 
-      <nav className="flex-1 space-y-0.5 px-3 overflow-y-auto scrollbar-thin">
+      {/* Navigation */}
+      <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 pb-4 scrollbar-thin">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || pathname.startsWith(`${href}/`);
+          let active = false;
+          if (label === 'Curriculum') {
+            active = pathname === href || (pathname.startsWith('/admin/courses/') && !pathname.includes('/edit') && !pathname.includes('/new'));
+          } else if (label === 'Courses') {
+            active = pathname === href || (pathname.startsWith('/admin/courses/') && (pathname.includes('/edit') || pathname.includes('/new')));
+          } else {
+            active = pathname === href || pathname.startsWith(`${href}/`);
+          }
           return (
             <Link
               key={href}
               to={href}
               className={cn(
-                'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all',
+                'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all',
                 active
-                  ? 'border-l-[3px] border-accent-teal bg-white/10 text-white pl-[9px]'
-                  : 'border-l-[3px] border-transparent text-white/60 hover:bg-white/5 hover:text-white'
+                  ? 'bg-white/10 text-white'
+                  : 'text-white/65 hover:bg-white/5 hover:text-white'
               )}
+              style={active ? { backgroundColor: '#01ac9f22' } : {}}
             >
-              <Icon className="h-[18px] w-[18px] shrink-0" />
+              <Icon className="h-[15px] w-[15px] shrink-0" strokeWidth={active ? 2.5 : 2} />
               <span>{label}</span>
             </Link>
           );
         })}
       </nav>
 
+      {/* User footer */}
       {user && (
-        <div className="border-t border-white/10 p-4">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex min-w-0 items-center gap-2.5">
-              <img
-                src={user.avatar}
-                alt={user.fullName}
-                className="h-9 w-9 shrink-0 rounded-full border border-white/15 bg-white/10"
-              />
-              <div className="min-w-0">
-                <p className="truncate text-xs font-semibold text-white">{user.fullName}</p>
-                <p className="truncate text-[10px] text-white/45">{user.email}</p>
-              </div>
+        <div
+          className="px-4 py-4"
+          style={{ borderTop: '1px solid rgba(255,255,255,0.10)' }}
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
+              style={{ backgroundColor: '#6c1d5f' }}
+            >
+              {(user.fullName || 'A')[0].toUpperCase()}
             </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-white">{user.fullName || 'Admin User'}</p>
+              <p className="truncate text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                {user.email || 'admin@xebia.com'}
+              </p>
+            </div>
+            {/* Theme Toggle */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="shrink-0 rounded-md p-1.5 transition-colors hover:bg-white/10"
+              style={{ color: 'rgba(255,255,255,0.40)' }}
+              title="Toggle theme"
+            >
+              {theme === 'dark' ? (
+                <Sun className="h-4 w-4 text-amber-400" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
+            </button>
+
             <button
               type="button"
               onClick={logout}
-              className="shrink-0 rounded-lg p-2 text-white/45 transition-colors hover:bg-white/10 hover:text-white"
+              className="shrink-0 rounded-md p-1.5 transition-colors hover:bg-white/10"
+              style={{ color: 'rgba(255,255,255,0.40)' }}
               title="Log out"
             >
               <LogOut className="h-4 w-4" />

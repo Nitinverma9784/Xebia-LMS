@@ -96,10 +96,10 @@ export default function Dashboard() {
         subtitle="Real-time statistics and course catalog operations"
         action={
           <div className="flex gap-2">
-            <Link to="/catalog/courses">
+            <Link to="/admin/courses">
               <Button size="sm" variant="outline"><BookOpen className="h-4 w-4 mr-2" /> View Catalog</Button>
             </Link>
-            <Link to="/catalog/courses/new">
+            <Link to="/admin/courses/new">
               <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Add Course</Button>
             </Link>
           </div>
@@ -302,7 +302,7 @@ export default function Dashboard() {
               <h3 className="text-base font-bold">Recent Indian Enrollments</h3>
               <p className="text-xs text-brand-text-secondary">Latest students registered in system</p>
             </div>
-            <Link to="/catalog/courses">
+            <Link to="/admin/courses">
               <Button size="xs" variant="outline">View All <ArrowUpRight className="h-3 w-3 ml-1" /></Button>
             </Link>
           </div>
@@ -394,7 +394,7 @@ export default function Dashboard() {
               <h3 className="text-base font-bold">Recent Uploads</h3>
               <p className="text-xs text-brand-text-secondary">Quick access to media assets</p>
             </div>
-            <Link to="/catalog/media">
+            <Link to="/admin/media">
               <Button size="xs" variant="outline">Media Library <ArrowUpRight className="h-3 w-3 ml-1" /></Button>
             </Link>
           </div>

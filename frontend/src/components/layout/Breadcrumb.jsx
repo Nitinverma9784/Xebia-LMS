@@ -8,11 +8,11 @@ export default function Breadcrumb({ items = [] }) {
   return (
     <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm overflow-x-auto scrollbar-thin">
       <Link
-        to="/catalog/categories"
+        to="/admin/dashboard"
         className="flex shrink-0 items-center gap-1 text-brand-text-secondary hover:text-brand-primary transition-colors"
       >
         <Home className="h-3.5 w-3.5" />
-        <span className="hidden sm:inline">Categories</span>
+        <span className="hidden sm:inline">Home</span>
       </Link>
       {items.map((item, i) => (
         <span key={i} className="flex shrink-0 items-center gap-1">

@@ -58,7 +58,7 @@ export default function MediaLibrary() {
             <h2 className="text-2xl font-bold">Enterprise Media Library</h2>
             <p className="text-sm text-brand-text-secondary">{sortedAndFiltered.length} assets</p>
           </div>
-          <Link to="/catalog/upload-content">
+          <Link to="/admin/upload-content">
             <Button size="sm" variant="cta">Upload Content</Button>
           </Link>
         </motion.div>

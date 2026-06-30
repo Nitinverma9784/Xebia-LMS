@@ -130,7 +130,7 @@ export default function Header({ title, subtitle }) {
             type: 'category',
             title: cat.name,
             subtitle: cat.description,
-            link: `/catalog/categories/${cat.id}`,
+            link: `/admin/categories/${cat.id}`,
             icon: FolderTree,
             badge: 'Category'
           });
@@ -150,7 +150,7 @@ export default function Header({ title, subtitle }) {
             type: 'course',
             title: course.title,
             subtitle: `${course.technology} · ${course.difficulty}`,
-            link: `/catalog/courses/${course.id}`,
+            link: `/admin/courses/${course.id}`,
             icon: BookOpen,
             badge: 'Course'
           });
@@ -170,7 +170,7 @@ export default function Header({ title, subtitle }) {
             type: 'student',
             title: student.fullName,
             subtitle: `${student.department} · ${student.city}`,
-            link: `/catalog/dashboard`, // Jump to dashboard where student list is visible
+            link: `/admin/dashboard`, // Jump to dashboard where student list is visible
             icon: Users,
             badge: 'Student'
           });
@@ -189,7 +189,7 @@ export default function Header({ title, subtitle }) {
             type: 'instructor',
             title: inst.fullName,
             subtitle: `${inst.department} · ${inst.email}`,
-            link: `/catalog/dashboard`,
+            link: `/admin/dashboard`,
             icon: Landmark,
             badge: 'Instructor'
           });
@@ -212,7 +212,7 @@ export default function Header({ title, subtitle }) {
           type: 'media',
           title: file.title,
           subtitle: `File inside Course: ${file.courseName}`,
-          link: `/catalog/courses/${file.courseId}`,
+          link: `/admin/courses/${file.courseId}`,
           icon: FileText,
           badge: file.type.toUpperCase()
         });

@@ -39,7 +39,7 @@ function mapBackendCategory(cat) {
 
 function mapBackendContent(ct) {
   let extraMeta = {};
-  if (ct.text && !['text', 'notes', 'code'].includes(ct.type)) {
+  if (ct.text && !['text', 'notes', 'code', 'heading', 'callout', 'table'].includes(ct.type)) {
     try {
       extraMeta = JSON.parse(ct.text);
     } catch {
@@ -59,9 +59,12 @@ function mapBackendContent(ct) {
     duration: extraMeta.duration || ct.caption || null,
     pageCount: extraMeta.pageCount || null,
     slideCount: extraMeta.slideCount || null,
-    markdown: ct.type === 'notes' ? ct.text : (extraMeta.markdown || ''),
+    markdown: ['notes', 'text', 'heading', 'callout', 'table'].includes(ct.type) ? ct.text : (extraMeta.markdown || ''),
     code: ct.code || '',
     language: ct.language || '',
+    alt: ct.alt || '',
+    caption: ct.caption || '',
+    headingLevel: ct.headingLevel || 2,
     status: ct.isActive ? 'active' : 'inactive',
     createdAt: ct.createdAt || new Date().toISOString(),
     updatedAt: ct.updatedAt || new Date().toISOString(),
@@ -82,6 +85,9 @@ function mapBackendSubmodule(sub) {
     slug: sub.slug || '',
     metaTitle: sub.metaTitle || '',
     metaDescription: sub.metaDescription || '',
+    canonicalUrl: sub.canonicalUrl || '',
+    ogTitle: sub.ogTitle || '',
+    ogImage: sub.ogImage || '',
     submoduleOrder: sub.submoduleOrder || 1,
     status: sub.isActive ? 'active' : 'inactive',
     logo,
@@ -124,7 +130,6 @@ function mapBackendCourse(course) {
 
   const logo = course.icon || getAIPlaceholderImage(course.title, 'logo');
   const bannerImage = course.bannerImage || getAIPlaceholderImage(course.title, 'banner');
-  const backgroundImage = course.backgroundImage || getAIPlaceholderImage(course.title, 'background');
   const thumbnail = course.thumbnail || getAIPlaceholderImage(course.title, 'thumbnail');
 
   return {
@@ -137,15 +142,47 @@ function mapBackendCourse(course) {
     technology: course.seoCategory || 'Python', // Map seoCategory to technology
     difficulty: course.level || 'Intermediate', // Map level to difficulty
     duration: course.duration || '8 weeks',
+    language: course.language || 'English',
     status,
     logo,
     bannerImage,
-    backgroundImage,
     thumbnail,
+    youtubeVideoUrl: course.youtubeVideoUrl || '',
+    previewVideoUrl: course.previewVideoUrl || '',
     createdAt: course.createdAt || new Date().toISOString(),
     updatedAt: course.updatedAt || new Date().toISOString(),
     modules: (course.modules || []).map(mapBackendModule),
     enrolledStudents: course.totalClicks || 0, // Map clicks/views
+
+    // SEO Details
+    metaTitle: course.metaTitle || '',
+    metaDescription: course.metaDescription || '',
+    metaKeywords: course.metaKeywords || '',
+    canonicalUrl: course.canonicalUrl || '',
+    primaryKeyword: course.primaryKeyword || '',
+    secondaryKeywords: course.secondaryKeywords || '',
+    focusKeywords: course.focusKeywords || '',
+    robots: course.robots || 'index, follow',
+    ogTitle: course.ogTitle || '',
+    ogDescription: course.ogDescription || '',
+    ogImage: course.ogImage || '',
+    ogUrl: course.ogUrl || '',
+    ogType: course.ogType || 'website',
+    twitterTitle: course.twitterTitle || '',
+    twitterDescription: course.twitterDescription || '',
+    twitterImage: course.twitterImage || '',
+    twitterCard: course.twitterCard || 'summary_large_image',
+    schemaMarkup: course.schemaMarkup || '',
+    faqSchema: course.faqSchema || '',
+    breadcrumbSchema: course.breadcrumbSchema || '',
+    learningOutcomes: course.learningOutcomes || '',
+    prerequisites: course.prerequisites || '',
+    targetAudience: course.targetAudience || '',
+    courseHighlights: course.courseHighlights || '',
+    careerOpportunities: course.careerOpportunities || '',
+    seoScore: course.seoScore || 0,
+    allowIndexing: course.allowIndexing !== false,
+    showInSearch: course.showInSearch !== false,
   };
 }
 
@@ -174,8 +211,39 @@ function mapCourseToBackendPayload(form) {
     isPublished,
     icon: form.logo || form.icon || '',
     bannerImage: form.bannerImage || '',
-    backgroundImage: form.backgroundImage || '',
     thumbnail: form.thumbnail || '',
+    youtubeVideoUrl: form.youtubeVideoUrl || '',
+    previewVideoUrl: form.previewVideoUrl || '',
+
+    // SEO Details
+    metaTitle: form.metaTitle || '',
+    metaDescription: form.metaDescription || '',
+    metaKeywords: form.metaKeywords || '',
+    canonicalUrl: form.canonicalUrl || '',
+    primaryKeyword: form.primaryKeyword || '',
+    secondaryKeywords: form.secondaryKeywords || '',
+    focusKeywords: form.focusKeywords || '',
+    robots: form.robots || 'index, follow',
+    ogTitle: form.ogTitle || '',
+    ogDescription: form.ogDescription || '',
+    ogImage: form.ogImage || '',
+    ogUrl: form.ogUrl || '',
+    ogType: form.ogType || 'website',
+    twitterTitle: form.twitterTitle || '',
+    twitterDescription: form.twitterDescription || '',
+    twitterImage: form.twitterImage || '',
+    twitterCard: form.twitterCard || 'summary_large_image',
+    schemaMarkup: form.schemaMarkup || '',
+    faqSchema: form.faqSchema || '',
+    breadcrumbSchema: form.breadcrumbSchema || '',
+    learningOutcomes: form.learningOutcomes || '',
+    prerequisites: form.prerequisites || '',
+    targetAudience: form.targetAudience || '',
+    courseHighlights: form.courseHighlights || '',
+    careerOpportunities: form.careerOpportunities || '',
+    seoScore: Number(form.seoScore) || 0,
+    allowIndexing: form.allowIndexing !== false,
+    showInSearch: form.showInSearch !== false,
   };
 }
 
@@ -217,6 +285,9 @@ function mapSubmoduleToBackendPayload(moduleId, form) {
     slug: cleanSlug,
     metaTitle: form.metaTitle || '',
     metaDescription: form.metaDescription || '',
+    canonicalUrl: form.canonicalUrl || '',
+    ogTitle: form.ogTitle || '',
+    ogImage: form.ogImage || form.ogImageUrl || '',
     submoduleOrder: form.submoduleOrder || 1,
     isActive: form.status !== 'inactive',
     moduleId: Number(moduleId),
@@ -229,7 +300,7 @@ function mapSubmoduleToBackendPayload(moduleId, form) {
 
 function mapContentToBackendPayload(submoduleId, form) {
   let text = form.markdown || '';
-  if (!['text', 'notes', 'code'].includes(form.type)) {
+  if (!['text', 'notes', 'code', 'heading', 'callout', 'table'].includes(form.type)) {
     text = JSON.stringify({
       fileSize: form.fileSize || 0,
       fileUrl: form.fileUrl || '',
@@ -246,6 +317,9 @@ function mapContentToBackendPayload(submoduleId, form) {
     language: form.language || '',
     videoUrl: form.type === 'video' ? (form.fileUrl || '') : '',
     imageUrl: form.type === 'image' ? (form.fileUrl || '') : (form.thumbnail || ''),
+    alt: form.alt || '',
+    caption: form.caption || '',
+    headingLevel: form.headingLevel || 2,
     title: form.title || 'Untitled Content',
     contentOrder: form.contentOrder || 1,
     isActive: form.status !== 'inactive',

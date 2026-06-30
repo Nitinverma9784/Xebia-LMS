@@ -84,6 +84,9 @@ export default function ImageUploader({
     try {
       // 1. Client-Side Mock Compression & Canvas Render
       const img = new Image();
+      if (preview && (preview.startsWith('http') || preview.startsWith('//'))) {
+        img.crossOrigin = 'anonymous';
+      }
       img.src = preview;
       await new Promise((resolve) => {
         img.onload = resolve;
@@ -104,7 +107,17 @@ export default function ImageUploader({
 
       // Convert to blob (compression level: 0.8)
       const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
-      const resBlob = await fetch(compressedDataUrl).then(r => r.blob());
+      
+      // Convert data URL to Blob synchronously to avoid fetch() errors on data: URLs
+      const parts = compressedDataUrl.split(',');
+      const mime = parts[0].match(/:(.*?);/)[1];
+      const bstr = atob(parts[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      const resBlob = new Blob([u8arr], { type: mime });
 
       setProgress(40);
 
