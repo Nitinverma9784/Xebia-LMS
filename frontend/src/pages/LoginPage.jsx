@@ -83,8 +83,8 @@ export default function LoginPage() {
         transition={{ duration: 0.5 }}
         className="w-full max-w-md space-y-8 rounded-2xl border border-white/10 bg-white p-8 shadow-2xl"
       >
-        <div className="flex flex-col items-center justify-center text-center">
-          <Logo className="mb-2 h-12 w-auto" variant="light" />
+        <div className="flex flex-col items-center justify-center text-center font-semibold">
+          <Logo className="mb-2" variant="light" size="lg" />
           <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-slate-900">
             Welcome Back
           </h2>

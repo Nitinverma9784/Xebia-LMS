@@ -1,89 +1,206 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Users, BookOpen, FolderOpen, HardDrive, Percent, Bell, ArrowUpRight,
-  TrendingUp, Calendar, CheckCircle, FileText, ChevronRight, Clock, Plus
+  Users, BookOpen, FolderOpen, HardDrive, Percent, ArrowUpRight,
+  TrendingUp, Calendar, CheckCircle, Clock, Plus, BarChart2,
+  Filter, Award, Download, Zap, Brain, Shield, ChevronDown
 } from 'lucide-react';
-import { useCatalog } from '@/hooks/useCatalog';
+import api from '@/services/api';
 import { useToast } from '@/hooks/useToast';
-import { formatFileSize, formatDate, getTechLogoUrl } from '@/utils';
 import Button from '@/components/ui/Button';
 import PageHeader from '@/components/layout/PageHeader';
 import { Link } from 'react-router-dom';
 import Badge from '@/components/ui/Badge';
-import ContentPreviewDrawer from '@/components/builder/ContentPreviewDrawer';
 
 export default function Dashboard() {
-  const { courses, categories, students, mediaLibrary, notifications, hydrated } = useCatalog();
   const { showToast } = useToast();
-  const [hoveredDataPoint, setHoveredDataPoint] = useState(null);
-  const [previewFile, setPreviewFile] = useState(null);
+  
+  // Tab states
+  const [activeTab, setActiveTab] = useState('summary');
 
-  // Statistics calculation
-  const stats = useMemo(() => {
-    const totalCourses = courses.filter(c => !c.deletedAt).length;
-    const totalCategories = categories.filter(c => !c.deletedAt).length;
-    const totalStudents = students.length;
-    const totalAssets = mediaLibrary.length;
+  // Filter states
+  const [filters, setFilters] = useState({
+    year: '2026',
+    quarter: 'all',
+    region: 'all',
+    location: 'all',
+    businessUnit: 'all',
+    department: 'all',
+    practice: 'all',
+    employeeGrade: 'all',
+  });
+
+  // Data states
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch dashboard metrics
+  const fetchDashboardData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = {};
+      Object.keys(filters).forEach(k => {
+        if (filters[k] !== 'all') {
+          params[k] = filters[k];
+        }
+      });
+      const response = await api.get('/analytics/dashboard', { params });
+      setData(response.data);
+    } catch (err) {
+      console.error('Error fetching analytics:', err);
+      setError('Could not connect to Spring Boot backend. Please check the backend console.');
+    } finally {
+      setLoading(false);
+    }
+  }, [filters]);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  // CSV Export logic
+  const handleExportCSV = () => {
+    if (!data) return;
     
-    // Average completion percentage from enrolled students
-    const avgCompletion = students.length 
-      ? Math.round(students.reduce((acc, s) => acc + s.progress, 0) / students.length)
-      : 0;
+    let csvContent = "data:text/csv;charset=utf-8,";
+    let filename = `Xebia_LMS_${activeTab}_Report.csv`;
+    
+    if (activeTab === 'summary') {
+      const s = data.executiveSummary;
+      csvContent += "Metric,Value\n";
+      csvContent += `Total Employees,${s.totalEmployees}\n`;
+      csvContent += `Employees Nominated,${s.employeesNominated}\n`;
+      csvContent += `Employees Trained,${s.employeesTrained}\n`;
+      csvContent += `Learning Coverage %,${s.learningCoveragePct}%\n`;
+      csvContent += `Sessions Conducted,${s.totalSessionsConducted}\n`;
+      csvContent += `Learning Hours,${s.totalLearningHours}\n`;
+      csvContent += `Certifications Completed,${s.totalCertificationsCompleted}\n`;
+      csvContent += `AI Trained,${s.employeesTrainedInAI}\n`;
+    } else if (activeTab === 'coverage') {
+      csvContent += "Dimension,Name,Coverage %\n";
+      Object.entries(data.learningCoverage.regionCoverage).forEach(([k, v]) => {
+        csvContent += `Region,${k},${v}%\n`;
+      });
+      Object.entries(data.learningCoverage.locationCoverage).forEach(([k, v]) => {
+        csvContent += `Location,${k},${v}%\n`;
+      });
+      Object.entries(data.learningCoverage.gradeCoverage).forEach(([k, v]) => {
+        csvContent += `Grade,${k},${v}%\n`;
+      });
+    } else if (activeTab === 'hours') {
+      csvContent += "Learner Name,Total Hours\n";
+      data.learningHoursAnalytics.topLearners.forEach(l => {
+        csvContent += `"${l.name}",${l.hours}\n`;
+      });
+    } else if (activeTab === 'pillars') {
+      csvContent += "Pillar Name,Hours,Trained Employees\n";
+      data.learningPillars.forEach(p => {
+        csvContent += `"${p.pillar}",${p.hours},${p.trained}\n`;
+      });
+    } else if (activeTab === 'ai') {
+      const ai = data.aiTransformation;
+      csvContent += "AI Metric,Value\n";
+      csvContent += `AI Readiness Index,${ai.aiReadinessIndex}%\n`;
+      csvContent += `Trained on AI,${ai.employeesTrainedOnAI}\n`;
+      csvContent += `Certified on AI,${ai.employeesCertifiedOnAI}\n`;
+      csvContent += `AI Learning Hours,${ai.aiLearningHours}\n`;
+    } else if (activeTab === 'certifications') {
+      csvContent += "Technology,Completed Certifications\n";
+      Object.entries(data.certificationTracker.certificationsByTechnology).forEach(([k, v]) => {
+        csvContent += `"${k}",${v}\n`;
+      });
+    } else if (activeTab === 'flagship') {
+      csvContent += "Program Name,Participants,Hours,Feedback Rating\n";
+      data.flagshipPrograms.forEach(p => {
+        csvContent += `"${p.program}",${p.participants},${p.learningHours},${p.feedback}\n`;
+      });
+    } else if (activeTab === 'trends') {
+      csvContent += "Month,Sessions,Trained,Hours,Certs\n";
+      data.learningTrends.forEach(t => {
+        csvContent += `"${t.label}",${t.sessions},${t.trained},${t.hours},${t.certs}\n`;
+      });
+    } else if (activeTab === 'effectiveness') {
+      const e = data.trainingEffectiveness;
+      csvContent += "Effectiveness Metric,Score\n";
+      csvContent += `Feedback Rating,${e.feedbackScore}/5\n`;
+      csvContent += `Trainer Rating,${e.trainerRating}/5\n`;
+      csvContent += `Recommendation %,${e.recommendationPct}%\n`;
+      csvContent += `Completion %,${e.completionRate}%\n`;
+    } else if (activeTab === 'champions') {
+      csvContent += "Champion Category,Name\n";
+      csvContent += `Top Learner of Quarter,${data.learningChampions.topLearnerOfTheQuarter}\n`;
+      csvContent += `Top AI Learner,${data.learningChampions.topAILearner}\n`;
+      csvContent += `Top Certified,${data.learningChampions.topCertifiedEmployee}\n`;
+    } else if (activeTab === 'investment') {
+      csvContent += "Project,Trained Employees,Hours,Certs,AI Score,Coverage\n";
+      data.projectInvestment.forEach(p => {
+        csvContent += `"${p.project}",${p.trained},${p.hours},${p.certs},${p.aiScore},${p.coverage}%\n`;
+      });
+    } else if (activeTab === 'fresher') {
+      csvContent += "Freshers Hired,Training Completion %,Deployment %\n";
+      csvContent += `${data.fresherJourney.freshersHired},${data.fresherJourney.trainingCompletionRate}%,${data.fresherJourney.deploymentRate}%\n`;
+    } else {
+      csvContent += "Skill,Current Level,Required Level\n";
+      data.futureEnhancements.skillGapAnalysis.forEach(sg => {
+        csvContent += `"${sg.skill}",${sg.current}%,${sg.required}%\n`;
+      });
+    }
 
-    return { totalCourses, totalCategories, totalStudents, totalAssets, avgCompletion };
-  }, [courses, categories, students, mediaLibrary]);
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast(`Successfully exported ${filename}`, 'success');
+  };
 
-  // Student Growth mock monthly data (Jan - Jun)
-  const growthData = [
-    { month: 'Jan', count: 45, x: 50, y: 150 },
-    { month: 'Feb', count: 62, x: 130, y: 120 },
-    { month: 'Mar', count: 95, x: 210, y: 80 },
-    { month: 'Apr', count: 110, x: 290, y: 70 },
-    { month: 'May', count: 145, x: 370, y: 40 },
-    { month: 'Jun', count: 185, x: 450, y: 15 }
+  const handleFilterChange = (key, value) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  // Predefined options matching Spring Boot Controller mappings
+  const yearOptions = ['2026', '2025'];
+  const quarterOptions = [
+    { label: 'All Quarters', value: 'all' },
+    { label: 'Q1 (Jan - Mar)', value: 'q1' },
+    { label: 'Q2 (Apr - Jun)', value: 'q2' },
+    { label: 'Q3 (Jul - Sep)', value: 'q3' },
+    { label: 'Q4 (Oct - Dec)', value: 'q4' }
   ];
+  const regionOptions = ['all', 'India', 'US', 'UK'];
+  const locationOptions = ['all', 'Delhi', 'Gurgaon', 'Bangalore', 'Pune', 'Noida', 'Mumbai'];
+  const buOptions = ['all', 'Digital', 'Cloud & Infra', 'Data & AI', 'Advisory'];
+  const deptOptions = ['all', 'Computer Science', 'Information Technology', 'DevOps & Cloud', 'AI & Analytics'];
+  const practiceOptions = ['all', 'Java', 'Python', 'Cloud Native', 'GenAI', 'Security'];
+  const gradeOptions = ['all', 'E1', 'E2', 'E3', 'M1', 'M2'];
 
-  // Course Completion mock department data
-  const completionData = [
-    { dept: 'CSE', rate: 78, height: 120 },
-    { dept: 'ECE', rate: 64, height: 100 },
-    { dept: 'IT', rate: 82, height: 130 },
-    { dept: 'Data Sci', rate: 88, height: 140 },
-    { dept: 'AI-ML', rate: 92, height: 148 },
-    { dept: 'Software', rate: 71, height: 110 }
-  ];
-
-  // Recent 5 Indian student enrollments
-  const recentEnrollments = useMemo(() => {
-    return [...students]
-      .sort((a, b) => new Date(b.enrollmentDate) - new Date(a.enrollmentDate))
-      .slice(0, 5);
-  }, [students]);
-
-  // Recent 4 media uploads
-  const recentUploads = useMemo(() => {
-    return [...mediaLibrary]
-      .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt))
-      .slice(0, 4);
-  }, [mediaLibrary]);
-
-  // Recent 4 activity events
-  const activityLogs = [
-    { id: 1, user: 'Dr. Priya Sharma', action: 'added content to', target: 'Python Masterclass', type: 'upload', time: '10 mins ago' },
-    { id: 2, user: 'System Agent', action: 'registered student', target: 'Aarav Sharma', type: 'student', time: '1 hour ago' },
-    { id: 3, user: 'Amit Patel', action: 'updated description of', target: 'React Advanced Patterns', type: 'edit', time: '3 hours ago' },
-    { id: 4, user: 'Dr. Sarah Chen', action: 'created new course', target: 'DevOps Pipeline Mastery', type: 'create', time: '1 day ago' },
-  ];
-
-  if (!hydrated) {
+  if (loading && !data) {
     return (
-      <div className="flex h-screen items-center justify-center bg-brand-background">
+      <div className="flex h-screen items-center justify-center bg-brand-surface">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-brand-primary border-t-transparent" />
-          <p className="text-sm font-medium text-brand-text-secondary">Loading Workspace...</p>
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#01ac9f] border-t-transparent" />
+          <p className="text-sm font-medium text-brand-text-secondary">Connecting to Backend Analytics...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-brand-surface p-6">
+        <div className="text-center space-y-4 max-w-md">
+          <div className="text-red-500 text-5xl">⚠️</div>
+          <h2 className="text-xl font-bold text-brand-text-primary">Analytics Connection Offline</h2>
+          <p className="text-sm text-brand-text-secondary">{error}</p>
+          <Button onClick={fetchDashboardData} className="w-full">
+            Retry Connection
+          </Button>
         </div>
       </div>
     );
@@ -92,370 +209,778 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-brand-surface p-6 lg:p-8">
       <PageHeader
-        title="Dashboard"
-        subtitle="Real-time statistics and course catalog operations"
+        title="Admin Analytics Panel"
+        subtitle="Real-time reporting, learning trends, and transformation metrics"
         action={
           <div className="flex gap-2">
-            <Link to="/admin/courses">
-              <Button size="sm" variant="outline"><BookOpen className="h-4 w-4 mr-2" /> View Catalog</Button>
-            </Link>
+            <button
+              onClick={handleExportCSV}
+              className="flex items-center gap-1.5 rounded-lg border border-brand-border bg-brand-background px-3 py-1.5 text-xs font-semibold text-brand-text-primary hover:bg-brand-surface transition-colors cursor-pointer"
+            >
+              <Download className="h-3.5 w-3.5" /> Export Report (CSV)
+            </button>
             <Link to="/admin/courses/new">
               <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Add Course</Button>
             </Link>
           </div>
         }
       />
-      <div className="space-y-6">
 
-      {/* Stats Cards Row */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+      {/* ── Dynamic Filters Toolbar ── */}
+      <div className="mb-6 rounded-2xl border border-brand-border bg-brand-background p-4 shadow-sm">
+        <div className="flex items-center gap-2 mb-3 border-b border-brand-border/60 pb-2 select-none">
+          <Filter className="h-4 w-4 text-[#01ac9f]" />
+          <span className="text-xs font-bold uppercase tracking-wider text-brand-text-primary">Organizational Filters</span>
+        </div>
+        <div className="grid gap-3 grid-cols-2 md:grid-cols-4 lg:grid-cols-8">
+          {/* Year */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-semibold text-brand-text-secondary uppercase">Year</label>
+            <select
+              value={filters.year}
+              onChange={e => handleFilterChange('year', e.target.value)}
+              className="rounded-lg border border-brand-border bg-brand-surface px-2.5 py-1.5 text-xs text-brand-text-primary focus:outline-none cursor-pointer"
+            >
+              {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+
+          {/* Quarter */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-semibold text-brand-text-secondary uppercase">Quarter</label>
+            <select
+              value={filters.quarter}
+              onChange={e => handleFilterChange('quarter', e.target.value)}
+              className="rounded-lg border border-brand-border bg-brand-surface px-2.5 py-1.5 text-xs text-brand-text-primary focus:outline-none cursor-pointer"
+            >
+              {quarterOptions.map(q => <option key={q.value} value={q.value}>{q.label}</option>)}
+            </select>
+          </div>
+
+          {/* Region */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-semibold text-brand-text-secondary uppercase">Region</label>
+            <select
+              value={filters.region}
+              onChange={e => handleFilterChange('region', e.target.value)}
+              className="rounded-lg border border-brand-border bg-brand-surface px-2.5 py-1.5 text-xs text-brand-text-primary focus:outline-none cursor-pointer"
+            >
+              {regionOptions.map(r => <option key={r} value={r}>{r === 'all' ? 'All Regions' : r}</option>)}
+            </select>
+          </div>
+
+          {/* Location */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-semibold text-brand-text-secondary uppercase">Location</label>
+            <select
+              value={filters.location}
+              onChange={e => handleFilterChange('location', e.target.value)}
+              className="rounded-lg border border-brand-border bg-brand-surface px-2.5 py-1.5 text-xs text-brand-text-primary focus:outline-none cursor-pointer"
+            >
+              {locationOptions.map(l => <option key={l} value={l}>{l === 'all' ? 'All Locations' : l}</option>)}
+            </select>
+          </div>
+
+          {/* Business Unit */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-semibold text-brand-text-secondary uppercase">BU</label>
+            <select
+              value={filters.businessUnit}
+              onChange={e => handleFilterChange('businessUnit', e.target.value)}
+              className="rounded-lg border border-brand-border bg-brand-surface px-2.5 py-1.5 text-xs text-brand-text-primary focus:outline-none cursor-pointer"
+            >
+              {buOptions.map(bu => <option key={bu} value={bu}>{bu === 'all' ? 'All BUs' : bu}</option>)}
+            </select>
+          </div>
+
+          {/* Department */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-semibold text-brand-text-secondary uppercase">Department</label>
+            <select
+              value={filters.department}
+              onChange={e => handleFilterChange('department', e.target.value)}
+              className="rounded-lg border border-brand-border bg-brand-surface px-2.5 py-1.5 text-xs text-brand-text-primary focus:outline-none cursor-pointer"
+            >
+              {deptOptions.map(d => <option key={d} value={d}>{d === 'all' ? 'All Depts' : d}</option>)}
+            </select>
+          </div>
+
+          {/* Practice */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-semibold text-brand-text-secondary uppercase">Practice</label>
+            <select
+              value={filters.practice}
+              onChange={e => handleFilterChange('practice', e.target.value)}
+              className="rounded-lg border border-brand-border bg-brand-surface px-2.5 py-1.5 text-xs text-brand-text-primary focus:outline-none cursor-pointer"
+            >
+              {practiceOptions.map(p => <option key={p} value={p}>{p === 'all' ? 'All Practices' : p}</option>)}
+            </select>
+          </div>
+
+          {/* Employee Grade */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-semibold text-brand-text-secondary uppercase">Grade</label>
+            <select
+              value={filters.employeeGrade}
+              onChange={e => handleFilterChange('employeeGrade', e.target.value)}
+              className="rounded-lg border border-brand-border bg-brand-surface px-2.5 py-1.5 text-xs text-brand-text-primary focus:outline-none cursor-pointer"
+            >
+              {gradeOptions.map(g => <option key={g} value={g}>{g === 'all' ? 'All Grades' : g}</option>)}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Tabs Navigation ── */}
+      <div className="mb-6 flex flex-wrap gap-1 border-b border-brand-border pb-px select-none">
         {[
-          { label: 'Total Enrolled', value: stats.totalStudents, icon: Users, desc: 'Students across batches', color: 'from-blue-500/10 to-indigo-500/10 text-indigo-600' },
-          { label: 'Active Courses', value: stats.totalCourses, icon: BookOpen, desc: 'Active in catalog', color: 'from-purple-500/10 to-pink-500/10 text-purple-600' },
-          { label: 'Categories', value: stats.totalCategories, icon: FolderOpen, desc: 'Structured streams', color: 'from-amber-500/10 to-orange-500/10 text-amber-600' },
-          { label: 'Media Library', value: stats.totalAssets, icon: HardDrive, desc: 'Learning assets in cloud', color: 'from-emerald-500/10 to-teal-500/10 text-emerald-600' },
-          { label: 'Avg Progress', value: `${stats.avgCompletion}%`, icon: Percent, desc: 'Course completion rate', color: 'from-rose-500/10 to-red-500/10 text-rose-600' },
-          { 
-            label: 'Cloud Storage', 
-            value: '72.4%', 
-            icon: HardDrive, 
-            desc: '3.62 GB of 5.0 GB used', 
-            color: 'from-teal-500/10 to-brand-primary/10 text-brand-primary dark:text-brand-secondary',
-            gauge: true 
-          }
-        ].map((item, idx) => (
-          <motion.div
-            key={idx}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.05 }}
-            className="rounded-2xl border border-brand-border dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-card hover:shadow-card-hover transition-all flex flex-col justify-between"
-          >
-            <div className="flex justify-between items-start">
-              <span className="text-xs font-semibold text-brand-text-secondary dark:text-slate-450 uppercase tracking-wider">{item.label}</span>
-              <div className={`p-2 rounded-xl bg-gradient-to-br ${item.color} border border-black/5`}>
-                <item.icon className="h-5 w-5" />
-              </div>
-            </div>
-            <div className="mt-3 space-y-1">
-              <h2 className="text-2xl font-extrabold tracking-tight">{item.value}</h2>
-              {item.gauge ? (
-                <div className="w-full bg-slate-100 dark:bg-slate-950 h-2 rounded-full overflow-hidden my-1">
-                  <div className="h-full bg-gradient-to-r from-accent-teal to-brand-primary" style={{ width: '72.4%' }} />
+          { id: 'summary', label: 'Executive Summary', icon: BarChart2 },
+          { id: 'coverage', label: 'Learning Coverage', icon: Users },
+          { id: 'hours', label: 'Learning Hours', icon: Clock },
+          { id: 'pillars', label: 'Training Pillars', icon: FolderOpen },
+          { id: 'ai', label: 'AI Transformation', icon: Brain },
+          { id: 'certifications', label: 'Certifications', icon: Award },
+          { id: 'flagship', label: 'Flagship Programs', icon: Zap },
+          { id: 'trends', label: 'Trends', icon: TrendingUp },
+          { id: 'effectiveness', label: 'Effectiveness', icon: CheckCircle },
+          { id: 'champions', label: 'Champions', icon: Award },
+          { id: 'investment', label: 'Project Investment', icon: HardDrive },
+          { id: 'fresher', label: 'Fresher Journey', icon: Users },
+          { id: 'future', label: 'Future Analytics', icon: Shield },
+        ].map(tab => {
+          const Icon = tab.icon;
+          const active = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-xs font-semibold transition-all cursor-pointer ${
+                active
+                  ? 'border-[#01ac9f] text-[#01ac9f]'
+                  : 'border-transparent text-brand-text-secondary hover:text-brand-text-primary'
+              }`}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Content View ── */}
+      {loading ? (
+        <div className="flex py-20 justify-center items-center">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#01ac9f] border-t-transparent" />
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* TAB 1: EXECUTIVE SUMMARY */}
+          {activeTab === 'summary' && (
+            <div className="space-y-6 animate-fade-in">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm">
+                  <div className="flex justify-between items-start text-brand-text-secondary">
+                    <span className="text-xs font-bold uppercase">Learning Reach</span>
+                    <Users className="h-5 w-5 text-blue-500" />
+                  </div>
+                  <h2 className="text-2xl font-extrabold text-brand-text-primary mt-2">
+                    {data.executiveSummary.employeesTrained} / {data.executiveSummary.totalEmployees}
+                  </h2>
+                  <p className="text-[11px] text-brand-text-secondary mt-1">Employees Trained (Coverage: {data.executiveSummary.learningCoveragePct}%)</p>
                 </div>
-              ) : null}
-              <p className="text-[10px] text-brand-text-secondary dark:text-slate-450 mt-0.5 line-clamp-1">{item.desc}</p>
-            </div>
-          </motion.div>
-        ))}
-      </div>
 
-      {/* Analytics Charts Grid */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Student Growth Area Chart */}
-        <div className="rounded-2xl border border-brand-border bg-brand-surface p-5 shadow-card flex flex-col justify-between relative overflow-hidden">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h3 className="text-base font-bold flex items-center gap-1.5"><TrendingUp className="h-4 w-4 text-brand-primary dark:text-brand-secondary" /> Student Growth</h3>
-              <p className="text-xs text-brand-text-secondary">Monthly student signups (Jan - Jun)</p>
-            </div>
-            <Badge color="blue">+42% Growth</Badge>
-          </div>
-
-          {/* SVG Line / Area Chart */}
-          <div className="h-48 w-full mt-2 relative">
-            <svg viewBox="0 0 500 180" className="w-full h-full overflow-visible">
-              <defs>
-                <linearGradient id="growthGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--brand-primary)" stopOpacity="0.25" />
-                  <stop offset="100%" stopColor="var(--brand-primary)" stopOpacity="0.0" />
-                </linearGradient>
-              </defs>
-
-              {/* Grid Lines */}
-              <line x1="50" y1="15" x2="450" y2="15" stroke="var(--brand-border)" strokeDasharray="3 3" strokeWidth="0.8" />
-              <line x1="50" y1="50" x2="450" y2="50" stroke="var(--brand-border)" strokeDasharray="3 3" strokeWidth="0.8" />
-              <line x1="50" y1="90" x2="450" y2="90" stroke="var(--brand-border)" strokeDasharray="3 3" strokeWidth="0.8" />
-              <line x1="50" y1="130" x2="450" y2="130" stroke="var(--brand-border)" strokeDasharray="3 3" strokeWidth="0.8" />
-              <line x1="50" y1="160" x2="450" y2="160" stroke="var(--brand-border)" strokeWidth="1" />
-
-              {/* Area path */}
-              <path
-                d="M 50 160 L 50 150 C 70 140, 110 125, 130 120 C 150 115, 190 85, 210 80 C 230 75, 270 72, 290 70 C 310 68, 350 48, 370 40 C 390 32, 430 20, 450 15 L 450 160 Z"
-                fill="url(#growthGradient)"
-              />
-
-              {/* Line path */}
-              <path
-                d="M 50 150 C 70 140, 110 125, 130 120 C 150 115, 190 85, 210 80 C 230 75, 270 72, 290 70 C 310 68, 350 48, 370 40 C 390 32, 430 20, 450 15"
-                fill="none"
-                stroke="var(--brand-primary)"
-                strokeWidth="3.5"
-                strokeLinecap="round"
-              />
-
-              {/* Interaction Points */}
-              {growthData.map((pt, idx) => (
-                <g key={idx}>
-                  <circle
-                    cx={pt.x}
-                    cy={pt.y}
-                    r={hoveredDataPoint === idx ? '6' : '4'}
-                    fill="var(--brand-background)"
-                    stroke="var(--brand-primary)"
-                    strokeWidth="3"
-                    className="cursor-pointer transition-all duration-150"
-                    onMouseEnter={() => setHoveredDataPoint(idx)}
-                    onMouseLeave={() => setHoveredDataPoint(null)}
-                  />
-                  {/* Axis labels */}
-                  <text x={pt.x} y="175" textAnchor="middle" fontSize="10" fill="var(--text-secondary)" className="font-semibold">{pt.month}</text>
-                </g>
-              ))}
-            </svg>
-
-            {/* Interactive Tooltip Overlay */}
-            {hoveredDataPoint !== null && (
-              <div
-                className="absolute bg-white dark:bg-slate-900 border border-brand-border px-2.5 py-1 rounded-xl shadow-modal text-xs font-semibold"
-                style={{
-                  left: `${(growthData[hoveredDataPoint].x / 500) * 100}%`,
-                  top: `${(growthData[hoveredDataPoint].y / 180) * 100 - 30}%`,
-                  transform: 'translateX(-50%)'
-                }}
-              >
-                {growthData[hoveredDataPoint].count} Students
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Course Completion Rates Bar Chart */}
-        <div className="rounded-2xl border border-brand-border bg-brand-surface p-5 shadow-card flex flex-col justify-between">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h3 className="text-base font-bold flex items-center gap-1.5"><CheckCircle className="h-4 w-4 text-brand-success" /> Completion Rate</h3>
-              <p className="text-xs text-brand-text-secondary">Average completion % by stream</p>
-            </div>
-            <Badge color="green">High Performers</Badge>
-          </div>
-
-          {/* SVG Bar Chart */}
-          <div className="h-48 w-full mt-2">
-            <svg viewBox="0 0 500 180" className="w-full h-full overflow-visible">
-              {/* Grid Lines */}
-              <line x1="40" y1="15" x2="470" y2="15" stroke="var(--brand-border)" strokeDasharray="3 3" strokeWidth="0.8" />
-              <line x1="40" y1="55" x2="470" y2="55" stroke="var(--brand-border)" strokeDasharray="3 3" strokeWidth="0.8" />
-              <line x1="40" y1="95" x2="470" y2="95" stroke="var(--brand-border)" strokeDasharray="3 3" strokeWidth="0.8" />
-              <line x1="40" y1="135" x2="470" y2="135" stroke="var(--brand-border)" strokeDasharray="3 3" strokeWidth="0.8" />
-              <line x1="40" y1="160" x2="470" y2="160" stroke="var(--brand-border)" strokeWidth="1" />
-
-              {/* Bars rendering */}
-              {completionData.map((pt, idx) => {
-                const xPos = 65 + idx * 68;
-                const barHeight = pt.height;
-                const yPos = 160 - barHeight;
-
-                return (
-                  <g key={idx} className="group">
-                    {/* Background Bar track */}
-                    <rect x={xPos - 12} y="15" width="24" height="145" fill="var(--brand-border)" opacity="0.15" rx="6" />
-
-                    {/* Value Bar with gradient fill */}
-                    <defs>
-                      <linearGradient id={`barGrad-${idx}`} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#01AC9F" />
-                        <stop offset="100%" stopColor="#6C1D5F" />
-                      </linearGradient>
-                    </defs>
-                    <rect
-                      x={xPos - 12}
-                      y={yPos}
-                      width="24"
-                      height={barHeight}
-                      fill={`url(#barGrad-${idx})`}
-                      rx="6"
-                      className="transition-all duration-300 hover:brightness-105 cursor-pointer"
-                    />
-
-                    {/* Rate text */}
-                    <text x={xPos} y={yPos - 6} textAnchor="middle" fontSize="10" fontWeight="bold" fill="var(--text-primary)" className="opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                      {pt.rate}%
-                    </text>
-
-                    {/* Label */}
-                    <text x={xPos} y="175" textAnchor="middle" fontSize="10" fill="var(--text-secondary)" className="font-semibold">{pt.dept}</text>
-                  </g>
-                );
-              })}
-            </svg>
-          </div>
-        </div>
-      </div>
-
-      {/* Dynamic Data & Activity Feeds */}
-      <div className="grid gap-6 xl:grid-cols-3">
-        {/* Left: Recent Enrollments (2 columns inside feed grid) */}
-        <div className="xl:col-span-2 rounded-2xl border border-brand-border bg-brand-surface p-5 shadow-card space-y-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-base font-bold">Recent Indian Enrollments</h3>
-              <p className="text-xs text-brand-text-secondary">Latest students registered in system</p>
-            </div>
-            <Link to="/admin/courses">
-              <Button size="xs" variant="outline">View All <ArrowUpRight className="h-3 w-3 ml-1" /></Button>
-            </Link>
-          </div>
-
-          <div className="overflow-x-auto rounded-xl border border-brand-border bg-brand-background">
-            <table className="w-full text-xs">
-              <thead className="bg-brand-surface border-b border-brand-border text-left font-semibold">
-                <tr>
-                  <th className="px-4 py-3">Student</th>
-                  <th className="px-4 py-3">Location & Phone</th>
-                  <th className="px-4 py-3">Batch & Dept</th>
-                  <th className="px-4 py-3 text-center">Progress</th>
-                  <th className="px-4 py-3 text-right">Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentEnrollments.map((student) => (
-                  <tr key={student.id} className="border-b border-brand-border last:border-0 hover:bg-brand-surface/40 transition-colors">
-                    <td className="px-4 py-3 font-semibold">
-                      <div className="flex items-center gap-2.5">
-                        <img src={student.avatar} alt="" className="h-8 w-8 rounded-full border border-brand-border bg-brand-surface" />
-                        <div>
-                          <p className="font-semibold">{student.fullName}</p>
-                          <p className="text-[10px] text-brand-text-secondary truncate max-w-[120px]">{student.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-brand-text-secondary">
-                      <p className="font-medium text-brand-text-primary">{student.city}</p>
-                      <p className="text-[10px]">{student.phone}</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="font-semibold text-brand-primary dark:text-brand-secondary">{student.department}</p>
-                      <p className="text-[10px] text-brand-text-secondary">{student.batch}</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="h-1.5 w-16 rounded-full bg-brand-border overflow-hidden">
-                          <div className="h-full bg-brand-success" style={{ width: `${student.progress}%` }} />
-                        </div>
-                        <span className="font-bold">{student.progress}%</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right text-brand-text-secondary font-medium">
-                      {formatDate(student.enrollmentDate)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Right: Activity & Recent Notifications feed (1 column) */}
-        <div className="rounded-2xl border border-brand-border bg-brand-surface p-5 shadow-card space-y-5">
-          <div>
-            <h3 className="text-base font-bold">Audit Log & Timeline</h3>
-            <p className="text-xs text-brand-text-secondary">Live events track</p>
-          </div>
-
-          <div className="relative border-l border-brand-border ml-2 pl-4 space-y-4 text-xs">
-            {activityLogs.map((log) => (
-              <div key={log.id} className="relative group">
-                {/* Timeline node */}
-                <div className="absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-brand-background bg-brand-primary" />
-                
-                <div className="bg-brand-background p-3 rounded-xl border border-brand-border hover:shadow-sm transition-all">
-                  <p className="text-brand-text-secondary">
-                    <span className="font-semibold text-brand-text-primary">{log.user}</span> {log.action}{' '}
-                    <span className="font-semibold text-brand-primary dark:text-brand-secondary">{log.target}</span>
+                <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm">
+                  <div className="flex justify-between items-start text-brand-text-secondary">
+                    <span className="text-xs font-bold uppercase">Total Learning Hours</span>
+                    <Clock className="h-5 w-5 text-amber-500" />
+                  </div>
+                  <h2 className="text-2xl font-extrabold text-brand-text-primary mt-2">
+                    {data.executiveSummary.totalLearningHours} hrs
+                  </h2>
+                  <p className="text-[11px] text-brand-text-secondary mt-1">
+                    Avg {data.executiveSummary.avgHoursPerSession} hrs across {data.executiveSummary.totalSessionsConducted} sessions
                   </p>
-                  <div className="mt-1 flex items-center gap-2 text-[10px] text-brand-text-secondary">
-                    <Clock className="h-3 w-3" />
-                    <span>{log.time}</span>
+                </div>
+
+                <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm">
+                  <div className="flex justify-between items-start text-brand-text-secondary">
+                    <span className="text-xs font-bold uppercase">AI readiness funnel</span>
+                    <Brain className="h-5 w-5 text-[#84117C]" />
+                  </div>
+                  <h2 className="text-2xl font-extrabold text-brand-text-primary mt-2">
+                    {data.executiveSummary.employeesTrainedInAI} Trained
+                  </h2>
+                  <p className="text-[11px] text-brand-text-secondary mt-1">
+                    {data.executiveSummary.aiCertificationsAchieved} AI Certs ({data.executiveSummary.aiLearningHours} AI Hours)
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm">
+                  <div className="flex justify-between items-start text-brand-text-secondary">
+                    <span className="text-xs font-bold uppercase">Average Feedback</span>
+                    <CheckCircle className="h-5 w-5 text-[#01ac9f]" />
+                  </div>
+                  <h2 className="text-2xl font-extrabold text-brand-text-primary mt-2">
+                    {data.executiveSummary.avgFeedbackRating} / 5.0
+                  </h2>
+                  <p className="text-[11px] text-brand-text-secondary mt-1">
+                    {data.executiveSummary.recommendationPct}% Recommendation score
+                  </p>
+                </div>
+              </div>
+
+              {/* Quick Summary list */}
+              <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm">
+                <h3 className="text-sm font-bold text-brand-text-primary mb-4">Summary Dashboard Overview</h3>
+                <div className="grid gap-6 md:grid-cols-3 text-xs text-brand-text-secondary">
+                  <div className="space-y-2 border-r border-brand-border pr-4">
+                    <p className="font-semibold text-brand-text-primary">Reach & Delivery</p>
+                    <p>Total Nominations: <strong>{data.executiveSummary.totalNominations}</strong></p>
+                    <p>Attendees Trained: <strong>{data.executiveSummary.totalAttendees}</strong></p>
+                    <p>Sessions Conducted: <strong>{data.executiveSummary.totalSessionsConducted}</strong></p>
+                  </div>
+                  <div className="space-y-2 border-r border-brand-border pr-4">
+                    <p className="font-semibold text-brand-text-primary">Certifications Status</p>
+                    <p>Total Completed: <strong>{data.executiveSummary.totalCertificationsCompleted}</strong></p>
+                    <p>Zoho Approved: <strong>{data.executiveSummary.totalCertificationsCompleted}</strong></p>
+                    <p>Estimated Growth: <strong className="text-green-500">+{data.executiveSummary.certificationGrowthPct}% MoM</strong></p>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="font-semibold text-brand-text-primary">Satisfaction Metrics</p>
+                    <p>Training Satisfaction: <strong>{data.executiveSummary.trainingSatisfactionScore}%</strong></p>
+                    <p>Recommendation Index: <strong>{data.executiveSummary.recommendationPct}%</strong></p>
+                    <p>Avg Rating Score: <strong>{data.executiveSummary.avgFeedbackRating} / 5</strong></p>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Grid for Media Uploads and Quick Shortcuts */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Recent Media Assets */}
-        <div className="lg:col-span-2 rounded-2xl border border-brand-border bg-brand-surface p-5 shadow-card space-y-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-base font-bold">Recent Uploads</h3>
-              <p className="text-xs text-brand-text-secondary">Quick access to media assets</p>
             </div>
-            <Link to="/admin/media">
-              <Button size="xs" variant="outline">Media Library <ArrowUpRight className="h-3 w-3 ml-1" /></Button>
-            </Link>
-          </div>
+          )}
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            {recentUploads.map((file) => (
-              <div
-                key={file.id}
-                className="group relative rounded-xl border border-brand-border bg-brand-background p-4 hover:shadow-card-hover transition-all flex items-start gap-3 cursor-pointer"
-                onClick={() => setPreviewFile(file)}
-              >
-                {/* Thumbnail Preview Area */}
-                <div className="h-12 w-12 rounded-lg bg-brand-surface border border-brand-border flex items-center justify-center shrink-0 overflow-hidden relative">
-                  {file.type === 'video' ? (
-                    <div className="w-full h-full bg-red-500/10 flex items-center justify-center text-red-500 font-bold text-[10px] uppercase">MP4</div>
-                  ) : file.type === 'pdf' ? (
-                    <div className="w-full h-full bg-orange-500/10 flex items-center justify-center text-orange-500 font-bold text-[10px] uppercase">PDF</div>
-                  ) : file.type === 'ppt' ? (
-                    <div className="w-full h-full bg-amber-500/10 flex items-center justify-center text-amber-500 font-bold text-[10px] uppercase">PPT</div>
-                  ) : (
-                    <div className="w-full h-full bg-blue-500/10 flex items-center justify-center text-blue-500 font-bold text-[10px] uppercase">DOC</div>
-                  )}
+          {/* TAB 2: LEARNING COVERAGE */}
+          {activeTab === 'coverage' && (
+            <div className="grid gap-6 md:grid-cols-2 animate-fade-in">
+              <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm space-y-4">
+                <h3 className="text-sm font-bold text-brand-text-primary">Coverage by Region & Location</h3>
+                <div className="space-y-3">
+                  {Object.entries(data.learningCoverage.locationCoverage).map(([loc, val]) => (
+                    <div key={loc} className="space-y-1">
+                      <div className="flex justify-between text-xs font-semibold">
+                        <span>{loc} location</span>
+                        <span>{val}%</span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-brand-surface overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-blue-500 to-[#01ac9f]" style={{ width: `${val}%` }} />
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <h4 className="font-semibold truncate text-xs">{file.title}</h4>
-                  <p className="text-[10px] text-brand-text-secondary truncate mt-0.5">{file.courseName}</p>
-                  <div className="mt-1 flex items-center justify-between text-[9px] text-brand-text-secondary">
-                    <Badge color="purple">{file.type}</Badge>
-                    <span>{formatFileSize(file.fileSize)}</span>
+              </div>
+
+              <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm space-y-4">
+                <h3 className="text-sm font-bold text-brand-text-primary">Coverage by Employee Grade & BU</h3>
+                <div className="space-y-3">
+                  {Object.entries(data.learningCoverage.gradeCoverage).map(([grade, val]) => (
+                    <div key={grade} className="space-y-1">
+                      <div className="flex justify-between text-xs font-semibold">
+                        <span>Grade {grade}</span>
+                        <span>{val}%</span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-brand-surface overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-purple-500 to-[#6c1d5f]" style={{ width: `${val}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                  <div className="border-t border-brand-border/60 my-4 pt-3" />
+                  {Object.entries(data.learningCoverage.businessUnitCoverage).map(([bu, val]) => (
+                    <div key={bu} className="space-y-1">
+                      <div className="flex justify-between text-xs font-semibold">
+                        <span>BU: {bu}</span>
+                        <span>{val}%</span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-brand-surface overflow-hidden">
+                        <div className="h-full bg-[#01ac9f]" style={{ width: `${val}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: LEARNING HOURS */}
+          {activeTab === 'hours' && (
+            <div className="space-y-6 animate-fade-in">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="rounded-xl border border-brand-border bg-brand-background p-4 text-center">
+                  <p className="text-xs font-semibold text-brand-text-secondary">TOTAL LEARNING HOURS</p>
+                  <p className="text-3xl font-extrabold mt-1 text-[#01ac9f]">{data.learningHoursAnalytics.totalLearningHours} hrs</p>
+                </div>
+                <div className="rounded-xl border border-brand-border bg-brand-background p-4 text-center">
+                  <p className="text-xs font-semibold text-brand-text-secondary">AVG HOURS PER EMPLOYEE</p>
+                  <p className="text-3xl font-extrabold mt-1 text-brand-primary">{data.learningHoursAnalytics.avgLearningHoursPerEmployee} hrs</p>
+                </div>
+                <div className="rounded-xl border border-brand-border bg-brand-background p-4 text-center">
+                  <p className="text-xs font-semibold text-brand-text-secondary">AVG HOURS PER ACTIVE LEARNER</p>
+                  <p className="text-3xl font-extrabold mt-1 text-[#84117C]">{data.learningHoursAnalytics.avgLearningHoursPerActiveLearner} hrs</p>
+                </div>
+              </div>
+
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm space-y-4">
+                  <h3 className="text-sm font-bold text-brand-text-primary">Top 10 Learners</h3>
+                  <div className="overflow-x-auto rounded-lg border border-brand-border bg-brand-surface">
+                    <table className="w-full text-xs text-left">
+                      <thead>
+                        <tr className="bg-brand-background border-b border-brand-border font-bold">
+                          <th className="px-4 py-2">Learner</th>
+                          <th className="px-4 py-2 text-right">Hours</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.learningHoursAnalytics.topLearners.map((l, idx) => (
+                          <tr key={idx} className="border-b border-brand-border last:border-0">
+                            <td className="px-4 py-2 font-medium">{l.name}</td>
+                            <td className="px-4 py-2 text-right font-bold text-[#01ac9f]">{l.hours} hrs</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm space-y-4">
+                  <h3 className="text-sm font-bold text-brand-text-primary">Hours by Project & Region</h3>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <p className="text-xs font-bold uppercase text-brand-text-secondary">Projects Investment</p>
+                      {data.learningHoursAnalytics.topProjects.map((p, idx) => (
+                        <div key={idx} className="flex justify-between items-center text-xs">
+                          <span>{p.project}</span>
+                          <span className="font-semibold text-brand-text-primary">{p.hours} hrs</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="border-t border-brand-border/60 my-4" />
+                    <div className="space-y-2">
+                      <p className="text-xs font-bold uppercase text-brand-text-secondary">Regions Distribution</p>
+                      {data.learningHoursAnalytics.topRegions.map((r, idx) => (
+                        <div key={idx} className="flex justify-between items-center text-xs">
+                          <span>{r.region}</span>
+                          <span className="font-semibold text-brand-text-primary">{r.hours} hrs</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
+          )}
 
-        {/* Quick Utilities & Technology list */}
-        <div className="rounded-2xl border border-brand-border bg-brand-surface p-5 shadow-card space-y-4">
-          <div>
-            <h3 className="text-base font-bold">Technology Matrix</h3>
-            <p className="text-xs text-brand-text-secondary">Core courses by topic</p>
-          </div>
+          {/* TAB 4: TRAINING PILLARS */}
+          {activeTab === 'pillars' && (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 animate-fade-in">
+              {data.learningPillars.map((p, idx) => (
+                <div key={idx} className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm space-y-3">
+                  <div className="flex justify-between items-center border-b border-brand-border/60 pb-2">
+                    <h4 className="text-xs font-bold text-brand-text-primary">{p.pillar}</h4>
+                    <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                  </div>
+                  <div className="flex justify-between text-xs text-brand-text-secondary">
+                    <span>Trained Employees:</span>
+                    <strong className="text-brand-text-primary">{p.trained}</strong>
+                  </div>
+                  <div className="flex justify-between text-xs text-brand-text-secondary">
+                    <span>Total Learning Hours:</span>
+                    <strong className="text-[#01ac9f]">{p.hours} hrs</strong>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            {['Python', 'Java', 'JavaScript', 'React', 'AI', 'DevOps', 'AWS', 'Azure'].map((tech) => (
-              <div
-                key={tech}
-                className="flex items-center gap-2 p-2.5 rounded-xl border border-brand-border bg-brand-background hover:bg-brand-surface/40 transition-colors cursor-pointer"
-                onClick={() => showToast(`Opening catalog filter for: ${tech}`, 'info')}
-              >
-                <img src={getTechLogoUrl(tech)} alt="" className="h-5 w-5 object-contain" />
-                <span className="font-semibold text-brand-text-primary truncate">{tech}</span>
+          {/* TAB 5: AI TRANSFORMATION */}
+          {activeTab === 'ai' && (
+            <div className="space-y-6 animate-fade-in">
+              <div className="grid gap-4 sm:grid-cols-4">
+                <div className="rounded-xl border border-brand-border bg-brand-background p-4 text-center">
+                  <p className="text-xs font-semibold text-brand-text-secondary">AI READINESS INDEX</p>
+                  <p className="text-3xl font-extrabold mt-1 text-[#84117C]">{data.aiTransformation.aiReadinessIndex}%</p>
+                </div>
+                <div className="rounded-xl border border-brand-border bg-brand-background p-4 text-center">
+                  <p className="text-xs font-semibold text-brand-text-secondary">TRAINED ON AI</p>
+                  <p className="text-3xl font-extrabold mt-1 text-brand-primary">{data.aiTransformation.employeesTrainedOnAI}</p>
+                </div>
+                <div className="rounded-xl border border-brand-border bg-brand-background p-4 text-center">
+                  <p className="text-xs font-semibold text-brand-text-secondary">AI CERTIFICATIONS</p>
+                  <p className="text-3xl font-extrabold mt-1 text-[#01ac9f]">{data.aiTransformation.employeesCertifiedOnAI}</p>
+                </div>
+                <div className="rounded-xl border border-brand-border bg-brand-background p-4 text-center">
+                  <p className="text-xs font-semibold text-brand-text-secondary">AI MATURITY SCORE</p>
+                  <p className="text-3xl font-extrabold mt-1 text-amber-500">{data.aiTransformation.aiMaturityScore} / 100</p>
+                </div>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
 
-      {/* Dynamic Content Preview Drawer */}
-      <ContentPreviewDrawer content={previewFile} open={!!previewFile} onClose={() => setPreviewFile(null)} />
-      </div>
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm space-y-4">
+                  <h3 className="text-sm font-bold text-brand-text-primary">Adoption Funnel</h3>
+                  <div className="space-y-3">
+                    {[
+                      { label: 'Registered Pool', val: data.aiTransformation.funnel.registered, pct: 100, color: 'bg-slate-500' },
+                      { label: 'Nominated Pool', val: data.aiTransformation.funnel.attended, pct: Math.round((data.aiTransformation.funnel.attended / data.aiTransformation.funnel.registered) * 100), color: 'bg-blue-500' },
+                      { label: 'Trained Pool', val: data.aiTransformation.funnel.completed, pct: Math.round((data.aiTransformation.funnel.completed / data.aiTransformation.funnel.registered) * 100), color: 'bg-purple-500' },
+                      { label: 'Certified Pool', val: data.aiTransformation.funnel.certified, pct: Math.round((data.aiTransformation.funnel.certified / data.aiTransformation.funnel.registered) * 100), color: 'bg-green-500' },
+                      { label: 'Active Tool Usage', val: data.aiTransformation.funnel.usingAITools, pct: Math.round((data.aiTransformation.funnel.usingAITools / data.aiTransformation.funnel.registered) * 100), color: 'bg-amber-500' }
+                    ].map((step, idx) => (
+                      <div key={idx} className="space-y-1 text-xs">
+                        <div className="flex justify-between font-semibold">
+                          <span>{step.label}</span>
+                          <span>{step.val} ({step.pct}%)</span>
+                        </div>
+                        <div className="h-3 w-full rounded-lg bg-brand-surface overflow-hidden">
+                          <div className={`h-full ${step.color}`} style={{ width: `${step.pct}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm space-y-4">
+                  <h3 className="text-sm font-bold text-brand-text-primary">Tools Adoption</h3>
+                  <div className="space-y-4">
+                    {data.aiTransformation.toolsAdoption.map((ta, idx) => (
+                      <div key={idx} className="flex justify-between items-center text-xs border-b border-brand-border/60 pb-2 last:border-0">
+                        <span className="font-semibold">{ta.tool}</span>
+                        <Badge color="blue">{ta.count} active developers</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 6: CERTIFICATIONS */}
+          {activeTab === 'certifications' && (
+            <div className="space-y-6 animate-fade-in">
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm space-y-4">
+                  <h3 className="text-sm font-bold text-brand-text-primary">Certification Pipeline Funnel</h3>
+                  <div className="space-y-3">
+                    {[
+                      { label: 'Assigned Certifications', count: data.certificationTracker.funnel.assigned, color: '#f59e0b' },
+                      { label: 'Enrolled & Started', count: data.certificationTracker.funnel.enrolled, color: '#3b82f6' },
+                      { label: 'Completed & Submitted', count: data.certificationTracker.funnel.completed, color: '#8b5cf6' },
+                      { label: 'Zoho Approved', count: data.certificationTracker.funnel.approvedInZoho, color: '#10b981' }
+                    ].map((item, idx) => (
+                      <div key={idx} className="flex justify-between items-center text-xs border-b border-brand-border/60 pb-2.5">
+                        <span className="font-medium text-brand-text-secondary">{item.label}</span>
+                        <span className="font-bold px-3 py-1 rounded-full text-white" style={{ backgroundColor: item.color }}>
+                          {item.count}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm space-y-4">
+                  <h3 className="text-sm font-bold text-brand-text-primary">Certifications by Technology</h3>
+                  <div className="space-y-3">
+                    {Object.entries(data.certificationTracker.certificationsByTechnology).map(([tech, count]) => (
+                      <div key={tech} className="flex justify-between items-center text-xs">
+                        <span>{tech}</span>
+                        <strong className="text-[#01ac9f]">{count}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 7: FLAGSHIP PROGRAMS */}
+          {activeTab === 'flagship' && (
+            <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm space-y-4 animate-fade-in">
+              <h3 className="text-sm font-bold text-brand-text-primary">Flagship Programs Analytics</h3>
+              <div className="overflow-x-auto rounded-lg border border-brand-border bg-brand-surface">
+                <table className="w-full text-xs text-left">
+                  <thead>
+                    <tr className="bg-brand-background border-b border-brand-border font-bold">
+                      <th className="px-4 py-3">Program Name</th>
+                      <th className="px-4 py-3">Participants</th>
+                      <th className="px-4 py-3">Completion Rate</th>
+                      <th className="px-4 py-3">Total Learning Hours</th>
+                      <th className="px-4 py-3 text-right">Feedback Rating</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.flagshipPrograms.map((p, idx) => (
+                      <tr key={idx} className="border-b border-brand-border last:border-0">
+                        <td className="px-4 py-3 font-semibold text-brand-text-primary">{p.program}</td>
+                        <td className="px-4 py-3">{p.participants} members</td>
+                        <td className="px-4 py-3 font-semibold text-green-600">{p.completionRate}%</td>
+                        <td className="px-4 py-3 font-semibold text-[#01ac9f]">{p.learningHours} hrs</td>
+                        <td className="px-4 py-3 text-right font-bold text-amber-500">⭐ {p.feedback}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 8: TRENDS */}
+          {activeTab === 'trends' && (
+            <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm space-y-4 animate-fade-in">
+              <h3 className="text-sm font-bold text-brand-text-primary">Month-over-Month Learning Progress</h3>
+              <div className="overflow-x-auto rounded-lg border border-brand-border bg-brand-surface">
+                <table className="w-full text-xs text-left">
+                  <thead>
+                    <tr className="bg-brand-background border-b border-brand-border font-bold">
+                      <th className="px-4 py-3">Month</th>
+                      <th className="px-4 py-3">Sessions Conducted</th>
+                      <th className="px-4 py-3">Employees Trained</th>
+                      <th className="px-4 py-3">Total Learning Hours</th>
+                      <th className="px-4 py-3 text-right">Certifications Achieved</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.learningTrends.map((t, idx) => (
+                      <tr key={idx} className="border-b border-brand-border last:border-0">
+                        <td className="px-4 py-3 font-semibold">{t.label}</td>
+                        <td className="px-4 py-3">{t.sessions} sessions</td>
+                        <td className="px-4 py-3">{t.trained} trainees</td>
+                        <td className="px-4 py-3 font-bold text-brand-primary">{t.hours} hrs</td>
+                        <td className="px-4 py-3 text-right font-semibold text-[#01ac9f]">{t.certs} certs</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 9: TRAINING EFFECTIVENESS */}
+          {activeTab === 'effectiveness' && (
+            <div className="space-y-6 animate-fade-in">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="rounded-xl border border-brand-border bg-brand-background p-4 text-center">
+                  <p className="text-xs font-semibold text-brand-text-secondary">FEEDBACK SCORE</p>
+                  <p className="text-3xl font-extrabold mt-1 text-[#01ac9f]">{data.trainingEffectiveness.feedbackScore} / 5.0</p>
+                </div>
+                <div className="rounded-xl border border-brand-border bg-brand-background p-4 text-center">
+                  <p className="text-xs font-semibold text-brand-text-secondary">TRAINER RATING</p>
+                  <p className="text-3xl font-extrabold mt-1 text-brand-primary">{data.trainingEffectiveness.trainerRating} / 5.0</p>
+                </div>
+                <div className="rounded-xl border border-brand-border bg-brand-background p-4 text-center">
+                  <p className="text-xs font-semibold text-brand-text-secondary">RECOMMENDATION %</p>
+                  <p className="text-3xl font-extrabold mt-1 text-[#84117C]">{data.trainingEffectiveness.recommendationPct}%</p>
+                </div>
+              </div>
+
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm space-y-4">
+                  <h3 className="text-sm font-bold text-brand-text-primary">Best Rated Courses</h3>
+                  <div className="space-y-3">
+                    {data.trainingEffectiveness.bestRatedTrainings.map((br, idx) => (
+                      <div key={idx} className="flex justify-between items-center text-xs border-b border-brand-border/60 pb-2 last:border-0">
+                        <span className="font-semibold">{br.title}</span>
+                        <span className="text-amber-500 font-bold">⭐ {br.rating}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm space-y-4">
+                  <h3 className="text-sm font-bold text-brand-text-primary">Top Trainers</h3>
+                  <div className="space-y-3">
+                    {data.trainingEffectiveness.bestRatedTrainers.map((br, idx) => (
+                      <div key={idx} className="flex justify-between items-center text-xs border-b border-brand-border/60 pb-2 last:border-0">
+                        <span className="font-semibold">{br.name}</span>
+                        <span className="text-[#01ac9f] font-bold">⭐ {br.rating}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 10: LEARNING CHAMPIONS */}
+          {activeTab === 'champions' && (
+            <div className="space-y-6 animate-fade-in">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm space-y-2">
+                  <p className="text-xs font-bold text-brand-text-secondary uppercase">Top Learner of Quarter</p>
+                  <h4 className="text-lg font-bold text-[#01ac9f]">{data.learningChampions.topLearnerOfTheQuarter}</h4>
+                  <p className="text-[10px] text-brand-text-secondary">Highest study hours recorded</p>
+                </div>
+                <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm space-y-2">
+                  <p className="text-xs font-bold text-brand-text-secondary uppercase">Top AI Transformation Learner</p>
+                  <h4 className="text-lg font-bold text-[#84117C]">{data.learningChampions.topAILearner}</h4>
+                  <p className="text-[10px] text-brand-text-secondary">Top scorer in AI certifications</p>
+                </div>
+                <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm space-y-2">
+                  <p className="text-xs font-bold text-brand-text-secondary uppercase">Top Certified Pioneer</p>
+                  <h4 className="text-lg font-bold text-brand-primary">{data.learningChampions.topCertifiedEmployee}</h4>
+                  <p className="text-[10px] text-brand-text-secondary">Completed multiple certifications</p>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm space-y-4">
+                <h3 className="text-sm font-bold text-brand-text-primary">Executive Learning Champions List</h3>
+                <div className="grid gap-3 sm:grid-cols-5 text-center">
+                  {data.learningChampions.learningChampionsList.map((champ, idx) => (
+                    <div key={idx} className="bg-brand-surface p-3 rounded-lg border border-brand-border">
+                      <span className="text-xl">🏆</span>
+                      <p className="text-xs font-bold text-brand-text-primary mt-1">{champ}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 11: PROJECT INVESTMENT */}
+          {activeTab === 'investment' && (
+            <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm space-y-4 animate-fade-in">
+              <h3 className="text-sm font-bold text-brand-text-primary">Project learning investments</h3>
+              <div className="overflow-x-auto rounded-lg border border-brand-border bg-brand-surface">
+                <table className="w-full text-xs text-left">
+                  <thead>
+                    <tr className="bg-brand-background border-b border-brand-border font-bold">
+                      <th className="px-4 py-3">Project Code</th>
+                      <th className="px-4 py-3">Employees Trained</th>
+                      <th className="px-4 py-3">Total Hours Invested</th>
+                      <th className="px-4 py-3">Certifications Achieved</th>
+                      <th className="px-4 py-3">AI Readiness Score</th>
+                      <th className="px-4 py-3 text-right">Coverage Rate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.projectInvestment.map((p, idx) => (
+                      <tr key={idx} className="border-b border-brand-border last:border-0">
+                        <td className="px-4 py-3 font-semibold text-brand-text-primary">{p.project}</td>
+                        <td className="px-4 py-3">{p.trained} trainees</td>
+                        <td className="px-4 py-3 font-semibold text-[#01ac9f]">{p.hours} hrs</td>
+                        <td className="px-4 py-3">{p.certs} completed</td>
+                        <td className="px-4 py-3 font-bold text-[#84117C]">{p.aiScore} pts</td>
+                        <td className="px-4 py-3 text-right font-bold text-green-600">{p.coverage}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 12: FRESHER JOURNEY */}
+          {activeTab === 'fresher' && (
+            <div className="space-y-6 animate-fade-in">
+              <div className="grid gap-4 sm:grid-cols-4">
+                <div className="rounded-xl border border-brand-border bg-brand-background p-4 text-center">
+                  <p className="text-xs font-semibold text-brand-text-secondary">CAMPUS RECRUITS</p>
+                  <p className="text-3xl font-extrabold mt-1 text-[#01ac9f]">{data.fresherJourney.freshersHired}</p>
+                </div>
+                <div className="rounded-xl border border-brand-border bg-brand-background p-4 text-center">
+                  <p className="text-xs font-semibold text-brand-text-secondary">TRAINING COMPLETION</p>
+                  <p className="text-3xl font-extrabold mt-1 text-green-600">{data.fresherJourney.trainingCompletionRate}%</p>
+                </div>
+                <div className="rounded-xl border border-brand-border bg-brand-background p-4 text-center">
+                  <p className="text-xs font-semibold text-brand-text-secondary">DEPLOYMENT RATE</p>
+                  <p className="text-3xl font-extrabold mt-1 text-brand-primary">{data.fresherJourney.deploymentRate}%</p>
+                </div>
+                <div className="rounded-xl border border-brand-border bg-brand-background p-4 text-center">
+                  <p className="text-xs font-semibold text-brand-text-secondary">AVG TIME TO DEPLOY</p>
+                  <p className="text-3xl font-extrabold mt-1 text-amber-500">{data.fresherJourney.avgTimeToDeploymentDays} Days</p>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm space-y-4">
+                <h3 className="text-sm font-bold text-brand-text-primary">Campus to Deployment Funnel Tracker</h3>
+                <div className="space-y-3">
+                  {[
+                    { label: 'Hired & Inducted', count: data.fresherJourney.funnel.campusHiring, color: 'bg-slate-400' },
+                    { label: 'Enrolled in Technical Training', count: data.fresherJourney.funnel.trainingEnrollment, color: 'bg-blue-400' },
+                    { label: 'Completed Learning Journey', count: data.fresherJourney.funnel.trainingCompletion, color: 'bg-purple-400' },
+                    { label: 'Acquired Certification', count: data.fresherJourney.funnel.certificationCompletion, color: 'bg-pink-400' },
+                    { label: 'Project Allocated', count: data.fresherJourney.funnel.projectAllocation, color: 'bg-amber-400' },
+                    { label: 'Billably Deployed', count: data.fresherJourney.funnel.billableDeployment, color: 'bg-green-500' }
+                  ].map((step, idx) => {
+                    const maxCount = data.fresherJourney.funnel.campusHiring;
+                    const pct = maxCount > 0 ? Math.round((step.count / maxCount) * 100) : 0;
+                    return (
+                      <div key={idx} className="space-y-1 text-xs">
+                        <div className="flex justify-between font-semibold">
+                          <span>{step.label}</span>
+                          <span>{step.count} candidates ({pct}%)</span>
+                        </div>
+                        <div className="h-2.5 w-full rounded-lg bg-brand-surface overflow-hidden">
+                          <div className={`h-full ${step.color}`} style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* FUTURE ANALYTICS */}
+          {activeTab === 'future' && (
+            <div className="space-y-6 animate-fade-in">
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm space-y-4">
+                  <h3 className="text-sm font-bold text-brand-text-primary flex items-center gap-1.5">
+                    <Shield className="h-4 w-4 text-[#84117C]" /> Skill Gap Analysis Matrix
+                  </h3>
+                  <div className="space-y-4">
+                    {data.futureEnhancements.skillGapAnalysis.map((sg, idx) => (
+                      <div key={idx} className="space-y-1 text-xs">
+                        <div className="flex justify-between font-semibold">
+                          <span>{sg.skill}</span>
+                          <span>Current: {sg.current}% / Target: {sg.required}%</span>
+                        </div>
+                        <div className="relative h-3 w-full rounded-lg bg-brand-surface overflow-hidden">
+                          {/* target indicator */}
+                          <div className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10" style={{ left: `${sg.required}%` }} title="Target Required" />
+                          <div className="h-full bg-gradient-to-r from-[#01ac9f] to-[#84117C]" style={{ width: `${sg.current}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm space-y-4">
+                  <h3 className="text-sm font-bold text-brand-text-primary">Predictive Forecasts & Risk Indicators</h3>
+                  <div className="space-y-3">
+                    <div className="bg-green-500/10 border border-green-500/30 text-green-700 p-3 rounded-lg text-xs">
+                      <strong>🔮 Certification Forecast:</strong> {data.futureEnhancements.predictiveForecasts.certificationCompletionPrediction}
+                    </div>
+                    <div className="bg-red-500/10 border border-red-500/30 text-red-700 p-3 rounded-lg text-xs">
+                      <strong>⚠️ Risk Warning:</strong> {data.futureEnhancements.predictiveForecasts.learningRiskIndicators}
+                    </div>
+                    <div className="bg-blue-500/10 border border-blue-500/30 text-blue-700 p-3 rounded-lg text-xs">
+                      <strong>🚀 AI Readiness Forecast:</strong> {data.futureEnhancements.predictiveForecasts.aiReadinessForecast}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm space-y-3">
+                <h3 className="text-sm font-bold text-brand-text-primary">Suggested Skills Mitigation Courses</h3>
+                <div className="grid gap-3 sm:grid-cols-2 text-xs">
+                  {data.futureEnhancements.suggestedCourses.map((sc, idx) => (
+                    <div key={idx} className="bg-brand-surface p-3.5 rounded-lg border border-brand-border space-y-1">
+                      <p className="font-bold text-brand-text-primary">{sc.title}</p>
+                      <p className="text-brand-text-secondary">{sc.reason}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

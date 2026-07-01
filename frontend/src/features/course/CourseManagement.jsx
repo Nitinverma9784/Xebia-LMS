@@ -2,12 +2,12 @@
 
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, ChevronDown } from 'lucide-react';
+import { Plus, Search, ChevronDown, Grid, List } from 'lucide-react';
 import { useCatalog } from '@/hooks/useCatalog';
 import { useToast } from '@/hooks/useToast';
-import { paginate } from '@/utils';
+import { paginate, cn } from '@/utils';
 import { ConfirmationDialog } from '@/components/ui/Modal';
-import CourseCard from '@/components/catalog/CourseCard';
+import CourseCard, { CourseRow } from '@/components/catalog/CourseCard';
 import Pagination from '@/components/ui/Pagination';
 import EmptyState from '@/components/ui/EmptyState';
 import { DEFAULT_PAGE_SIZE, DIFFICULTY_LEVELS, COURSE_STATUSES } from '@/constants';
@@ -43,6 +43,7 @@ export default function CourseManagement({ categoryId = null }) {
   const [page, setPage]                       = useState(1);
   const [pageSize, setPageSize]               = useState(DEFAULT_PAGE_SIZE);
   const [deleteTarget, setDeleteTarget]       = useState(null);
+  const [viewMode, setViewMode]               = useState('card');
 
   const baseCourses = useMemo(() => {
     let list = courses.filter((c) => !c.deletedAt);
@@ -180,12 +181,38 @@ export default function CourseManagement({ categoryId = null }) {
             ]}
           />
 
-          <span className="ml-auto whitespace-nowrap text-xs font-medium text-brand-text-secondary">
-            {filtered.length} courses
-          </span>
+          <div className="ml-auto flex items-center gap-2">
+            <span className="whitespace-nowrap text-xs font-medium text-brand-text-secondary mr-2">
+              {filtered.length} courses
+            </span>
+            <div className="flex items-center gap-1 rounded-lg border border-brand-border bg-brand-background p-1 select-none">
+              <button
+                type="button"
+                onClick={() => setViewMode('card')}
+                className={cn(
+                  "p-1.5 rounded-md hover:bg-brand-surface transition-colors cursor-pointer",
+                  viewMode === 'card' ? "bg-brand-primary/10 text-brand-primary font-bold" : "text-brand-text-secondary"
+                )}
+                title="Card View"
+              >
+                <Grid className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                className={cn(
+                  "p-1.5 rounded-md hover:bg-brand-surface transition-colors cursor-pointer",
+                  viewMode === 'list' ? "bg-brand-primary/10 text-brand-primary font-bold" : "text-brand-text-secondary"
+                )}
+                title="List View"
+              >
+                <List className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* Course grid */}
+        {/* Course Content */}
         {data.length === 0 ? (
           <EmptyState
             icon={Plus}
@@ -194,8 +221,41 @@ export default function CourseManagement({ categoryId = null }) {
             actionLabel="Create Course"
             onAction={handleCreate}
           />
+        ) : viewMode === 'list' ? (
+          <div className="overflow-x-auto rounded-xl border border-brand-border bg-brand-background shadow-sm">
+            <table className="w-full border-collapse text-left">
+              <thead>
+                <tr className="border-b border-brand-border bg-brand-surface/50 text-[11px] font-bold uppercase tracking-wider text-brand-text-secondary select-none">
+                  <th className="px-4 py-3.5">#</th>
+                  <th className="px-4 py-3.5">Course Name / Slug</th>
+                  <th className="px-4 py-3.5">Category</th>
+                  <th className="px-4 py-3.5">Difficulty</th>
+                  <th className="px-4 py-3.5">Curriculum Stats</th>
+                  <th className="px-4 py-3.5">Language / Duration</th>
+                  <th className="px-4 py-3.5">Last Updated</th>
+                  <th className="px-4 py-3.5">Status</th>
+                  <th className="px-4 py-3.5">Featured</th>
+                  <th className="px-4 py-3.5">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-brand-border bg-brand-background">
+                {data.map((course, idx) => (
+                  <CourseRow
+                    key={course.id}
+                    course={course}
+                    index={(page - 1) * pageSize + idx + 1}
+                    categoryName={getCategoryName(course.categoryId)}
+                    categoryColor={getCategoryColor(course.categoryId)}
+                    onEdit={(c)      => navigate(`/admin/courses/${c.id}/edit`)}
+                    onDelete={setDeleteTarget}
+                    onDuplicate={(c) => duplicateCourse(c.id)}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
-          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
             {data.map((course) => (
               <CourseCard
                 key={course.id}

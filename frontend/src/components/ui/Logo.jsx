@@ -1,10 +1,8 @@
-'use client';
-
 import { motion } from 'framer-motion';
 import { cn } from '@/utils';
 import { useCatalog } from '@/hooks/useCatalog';
 
-export default function Logo({ className, iconOnly = false, variant = 'light' }) {
+export default function Logo({ className, iconOnly = false, variant = 'light', size = 'md' }) {
   const isDark = variant === 'dark';
   let branding = null;
 
@@ -26,17 +24,26 @@ export default function Logo({ className, iconOnly = false, variant = 'light' })
     logoUrl = isDark ? '/assets/Logo-White.png' : '/assets/Logo-Purple.png';
   }
 
+  const heightClasses = {
+    sm: 'h-8',
+    md: 'h-10',
+    lg: 'h-12',
+    xl: 'h-16'
+  };
+
+  const heightClass = heightClasses[size] || heightClasses.md;
+
   return (
     <div className={cn('flex items-center gap-3 select-none', className)}>
       <motion.div
         whileHover={{ scale: 1.02 }}
         transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-        className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden cursor-pointer"
+        className={cn('relative flex shrink-0 items-center justify-center cursor-pointer', heightClass)}
       >
         <img 
           src={logoUrl} 
           alt="Xebia" 
-          className="h-full w-full object-contain bg-transparent" 
+          className={cn('w-auto object-contain bg-transparent', heightClass)} 
         />
       </motion.div>
 
@@ -44,7 +51,8 @@ export default function Logo({ className, iconOnly = false, variant = 'light' })
         <div className="flex flex-col">
           <span
             className={cn(
-              'text-sm font-bold tracking-tight transition-colors truncate',
+              'font-bold tracking-tight transition-colors truncate',
+              size === 'lg' || size === 'xl' ? 'text-base' : 'text-sm',
               isDark ? 'text-white' : 'text-brand-text-primary dark:text-slate-50'
             )}
             style={{ fontFamily: 'Inter, sans-serif' }}
@@ -52,7 +60,10 @@ export default function Logo({ className, iconOnly = false, variant = 'light' })
             {companyName}
           </span>
           <span 
-            className="text-[10px]" 
+            className={cn(
+              'font-medium',
+              size === 'lg' || size === 'xl' ? 'text-[11px]' : 'text-[10px]'
+            )} 
             style={{ color: isDark ? 'rgba(255, 255, 255, 0.45)' : '#6b7280' }}
           >
             Admin Panel

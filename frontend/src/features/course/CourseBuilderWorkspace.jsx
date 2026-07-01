@@ -616,7 +616,10 @@ export default function CourseBuilderWorkspace({ course, catalog, showToast }) {
       <div className="sticky top-0 z-20 border-b border-brand-border dark:border-slate-800 bg-white dark:bg-slate-900">
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2 text-sm font-semibold text-brand-text-secondary dark:text-slate-400">
-            <span className="text-brand-text-secondary">Curriculum</span>
+            <Link to="/admin/courses" className="flex items-center gap-1 hover:text-brand-primary transition-colors cursor-pointer">
+              <ArrowLeft className="h-4 w-4" />
+              <span>Courses</span>
+            </Link>
             <ChevronRight className="h-3.5 w-3.5 text-brand-text-secondary" />
             <span className="text-brand-text-secondary truncate max-w-[150px]">
               {course.title}
@@ -1918,7 +1921,7 @@ export default function CourseBuilderWorkspace({ course, catalog, showToast }) {
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5">
-                        isActive <span className="text-brand-text-secondary font-normal">default ON</span>
+                        Active Status <span className="text-brand-text-secondary font-normal">default ON</span>
                       </label>
                       <div className="flex items-center gap-2.5 pt-2">
                         <button

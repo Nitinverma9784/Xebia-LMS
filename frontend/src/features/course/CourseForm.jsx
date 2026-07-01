@@ -366,6 +366,46 @@ export default function CourseForm() {
   const [form, setForm]     = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
   const [slugLocked, setSlugLocked] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleGenerateDescription = () => {
+    if (!form.title.trim()) {
+      showToast('Please enter a course title first to generate a relevant description.', 'error');
+      return;
+    }
+    setIsGenerating(true);
+    setTimeout(() => {
+      try {
+        const categoryNameSelected = categories.find(c => String(c.id) === String(form.categoryId))?.name || 'Technology';
+        
+        const generatedText = `Welcome to the comprehensive course on **${form.title}**! 
+
+This program is specifically designed to take you from a foundational understanding to advanced implementation strategies in **${categoryNameSelected}**. 
+
+### Course Highlights:
+- **Comprehensive Coverage**: Learn the fundamentals, syntax, libraries, and advanced techniques of ${form.title}.
+- **Real-World Scenarios**: Solve industry-relevant case studies and practical laboratory exercises.
+- **Best Practices**: Master performance optimization, debugging, and production-ready deployments.
+
+### Who Should Enroll:
+- Developers and developers-in-training seeking practical mastery of ${form.title}.
+- Solutions Architects looking to leverage ${categoryNameSelected} within enterprise applications.
+- Technology enthusiasts interested in modern engineering best practices.
+
+By the end of this course, you will have built several real-world projects and developed the confidence to write, debug, and architect high-quality systems.`;
+
+        setForm(prev => ({
+          ...prev,
+          description: generatedText
+        }));
+        showToast('Description generated successfully! You can now edit it.', 'success');
+      } catch (err) {
+        showToast('Failed to generate description', 'error');
+      } finally {
+        setIsGenerating(false);
+      }
+    }, 1500);
+  };
 
   // Lists
   const [outcomeInput, setOutcomeInput] = useState('');
@@ -660,10 +700,9 @@ export default function CourseForm() {
                 </div>
               </Card>
 
-              {/* Descriptions */}
               <Card title="Descriptions" titleIcon={AlignLeft} accentColor="#793b74">
                 <div>
-                  <FieldLabel>shortDescription</FieldLabel>
+                  <FieldLabel>Short Description</FieldLabel>
                   <textarea rows={3} placeholder="A brief summary shown in course cards and search results..."
                     value={form.shortDescription}
                     onChange={e => setF({ shortDescription: e.target.value })}
@@ -673,7 +712,26 @@ export default function CourseForm() {
                   {errors.shortDescription && <p className="mt-1 text-xs" style={{ color: '#ef4444' }}>{errors.shortDescription}</p>}
                 </div>
                 <div>
-                  <FieldLabel><span>description</span> <span className="font-normal text-xs" style={{ color: C.mutedFg }}>(LONGTEXT)</span></FieldLabel>
+                  <div className="flex justify-between items-center mb-1">
+                    <FieldLabel>
+                      <span>Description</span> <span className="font-normal text-xs" style={{ color: C.mutedFg }}>(Markdown Supported)</span>
+                    </FieldLabel>
+                    <button
+                      type="button"
+                      onClick={handleGenerateDescription}
+                      disabled={isGenerating}
+                      className="text-xs font-semibold text-accent-teal hover:text-accent-teal-dark disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 select-none cursor-pointer"
+                    >
+                      {isGenerating ? (
+                        <>
+                          <div className="h-3 w-3 animate-spin rounded-full border-2 border-accent-teal border-t-transparent" />
+                          <span>Generating...</span>
+                        </>
+                      ) : (
+                        <span>✨ Generate Description</span>
+                      )}
+                    </button>
+                  </div>
                   <textarea rows={6} placeholder="Full course description — markdown supported..."
                     value={form.description}
                     onChange={e => setF({ description: e.target.value })}
@@ -793,11 +851,11 @@ export default function CourseForm() {
               {/* Course Flags */}
               <Card title="Course Flags" titleIcon={Settings2} accentColor="#4a1e47">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Toggle label="isActive"      value={form.isActive}      onChange={v => setF({ isActive: v })} />
-                  <Toggle label="isPublished"   value={form.status === 'published'} onChange={v => setF({ status: v ? 'published' : 'draft' })} />
-                  <Toggle label="isFeatured"    value={form.isFeatured}    onChange={v => setF({ isFeatured: v })} />
-                  <Toggle label="allowIndexing" value={form.allowIndexing} onChange={v => setF({ allowIndexing: v })} />
-                  <Toggle label="showInSearch"  value={form.showInSearch}  onChange={v => setF({ showInSearch: v })} />
+                  <Toggle label="Active Status"      value={form.isActive}      onChange={v => setF({ isActive: v })} />
+                  <Toggle label="Published Status"   value={form.status === 'published'} onChange={v => setF({ status: v ? 'published' : 'draft' })} />
+                  <Toggle label="Featured Status"    value={form.isFeatured}    onChange={v => setF({ isFeatured: v })} />
+                  <Toggle label="Allow Indexing" value={form.allowIndexing} onChange={v => setF({ allowIndexing: v })} />
+                  <Toggle label="Show in Search"  value={form.showInSearch}  onChange={v => setF({ showInSearch: v })} />
                 </div>
               </Card>
             </>

@@ -7,6 +7,7 @@ import {
   Upload, Link2, ImageIcon, X,
 } from 'lucide-react';
 import { useCatalog } from '@/hooks/useCatalog';
+import { useToast } from '@/hooks/useToast';
 
 /* ─── Design-token palette (matches createcategory.html) ─── */
 const SWATCH_PALETTE = [
@@ -397,6 +398,7 @@ export default function CategoryForm() {
   const { categoryId } = useParams();
   const navigate       = useNavigate();
   const { categories, createCategory, updateCategory, hydrated } = useCatalog();
+  const { showToast }  = useToast();
 
   const isEdit   = !!categoryId;
   const existing = isEdit ? categories.find((c) => String(c.id) === String(categoryId)) : null;
@@ -405,6 +407,26 @@ export default function CategoryForm() {
   const [errors, setErrors] = useState({});
   const [saved,  setSaved]  = useState(false);
   const [media,  setMedia]  = useState('emoji'); // emoji | url
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleGenerateDescription = async () => {
+    if (!form.name.trim()) {
+      showToast('Please enter a Category Name first.', 'warning');
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      const generated = `Explore a comprehensive collection of resources and training paths in ${form.name}. Designed to help you master core concepts, build real-world practical skills, and stay up-to-date with industry standards and expert guidance at Xebia.`;
+      setForm(prev => ({ ...prev, description: generated }));
+      showToast('Successfully generated category description!', 'success');
+    } catch (error) {
+      console.error(error);
+      showToast('Failed to generate description.', 'error');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   useEffect(() => {
     if (existing) {
@@ -590,6 +612,14 @@ export default function CategoryForm() {
               }
               <span className="text-xs" style={{ color: '#5a5a5a' }}>{form.name.length}/100</span>
             </div>
+
+            {/* Slug Preview */}
+            <div className="mt-3 rounded-lg border border-brand-border bg-brand-surface p-3 flex items-center justify-between select-none">
+              <span className="text-xs font-semibold text-brand-text-secondary uppercase">slug</span>
+              <span className="font-mono text-xs text-brand-text-primary">
+                /{form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'category-slug'}
+              </span>
+            </div>
           </div>
 
           {/* ── Icon / Thumbnail ────────────────────────── */}
@@ -613,9 +643,26 @@ export default function CategoryForm() {
 
           {/* ── Description ─────────────────────────────── */}
           <div className="mb-6">
-            <label className="block text-sm font-semibold mb-1.5" style={{ color: '#000' }}>
-              Description <span style={{ color: '#ff6200' }}>*</span>
-            </label>
+            <div className="flex justify-between items-center mb-1.5">
+              <label className="block text-sm font-semibold" style={{ color: '#000' }}>
+                Description <span style={{ color: '#ff6200' }}>*</span>
+              </label>
+              <button
+                type="button"
+                onClick={handleGenerateDescription}
+                disabled={isGenerating}
+                className="text-xs font-semibold text-accent-teal hover:text-accent-teal-dark disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 select-none cursor-pointer"
+              >
+                {isGenerating ? (
+                  <>
+                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-[#01ac9f] border-t-transparent" />
+                    <span>Generating...</span>
+                  </>
+                ) : (
+                  <span>✨ Generate Description</span>
+                )}
+              </button>
+            </div>
             <textarea
               rows={4}
               placeholder="Describe what this category covers..."

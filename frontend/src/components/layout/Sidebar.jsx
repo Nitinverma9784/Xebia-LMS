@@ -6,10 +6,9 @@ import { cn } from '@/utils';
 import { useAuth } from '@/hooks/useAuth';
 
 const NAV_ITEMS = [
-  { href: '/admin/courses',    label: 'Courses',      icon: BookOpen },
-  { href: '/admin/categories', label: 'Categories',   icon: Tag },
-  { href: '/admin/curriculum', label: 'Curriculum',   icon: Layers },
   { href: '/admin/dashboard',  label: 'Dashboard',    icon: LayoutDashboard },
+  { href: '/admin/categories', label: 'Categories',   icon: Tag },
+  { href: '/admin/courses',    label: 'Courses',      icon: BookOpen },
 ];
 
 export default function Sidebar() {
@@ -50,7 +49,7 @@ export default function Sidebar() {
         className="flex items-center gap-3 px-5 py-5"
         style={{ borderBottom: '1px solid rgba(255,255,255,0.10)' }}
       >
-        <Logo variant="dark" />
+        <Logo variant="dark" size="lg" />
       </div>
 
       {/* Nav label */}
@@ -65,10 +64,8 @@ export default function Sidebar() {
       <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 pb-4 scrollbar-thin">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
           let active = false;
-          if (label === 'Curriculum') {
-            active = pathname === href || pathname.startsWith('/admin/curriculum/');
-          } else if (label === 'Courses') {
-            active = pathname === href || pathname.startsWith('/admin/courses/');
+          if (label === 'Courses') {
+            active = pathname === href || pathname.startsWith('/admin/courses/') || pathname.startsWith('/admin/curriculum/');
           } else {
             active = pathname === href || pathname.startsWith(`${href}/`);
           }
@@ -77,14 +74,13 @@ export default function Sidebar() {
               key={href}
               to={href}
               className={cn(
-                'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all',
+                'flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-all cursor-pointer mx-2 my-0.5',
                 active
-                  ? 'bg-white/10 text-white'
-                  : 'text-white/65 hover:bg-white/5 hover:text-white'
+                  ? 'bg-[#01ac9f] text-white shadow-md font-semibold'
+                  : 'text-white/70 hover:bg-white/5 hover:text-white'
               )}
-              style={active ? { backgroundColor: '#01ac9f22' } : {}}
             >
-              <Icon className="h-[15px] w-[15px] shrink-0" strokeWidth={active ? 2.5 : 2} />
+              <Icon className={cn("h-4 w-4 shrink-0", active ? "text-white" : "text-white/70")} strokeWidth={active ? 2.5 : 2} />
               <span>{label}</span>
             </Link>
           );
