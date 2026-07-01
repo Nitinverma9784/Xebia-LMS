@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BookOpen, Tag, Layers, LayoutDashboard, LogOut, Image, Settings, Sun, Moon } from 'lucide-react';
+import { BookOpen, Tag, Layers, LayoutDashboard, LogOut, Sun, Moon } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
 import { cn } from '@/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -10,7 +10,6 @@ const NAV_ITEMS = [
   { href: '/admin/categories', label: 'Categories',   icon: Tag },
   { href: '/admin/curriculum', label: 'Curriculum',   icon: Layers },
   { href: '/admin/dashboard',  label: 'Dashboard',    icon: LayoutDashboard },
-  { href: '/admin/branding',   label: 'Branding',     icon: Settings },
 ];
 
 export default function Sidebar() {

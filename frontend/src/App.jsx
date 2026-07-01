@@ -9,7 +9,6 @@ import CategoryManagement from '@/features/category/CategoryManagement';
 import CategoryForm from '@/features/category/CategoryForm';
 import CurriculumLanding from '@/features/curriculum/CurriculumLanding';
 import MediaLibrary from '@/features/content/MediaLibrary';
-import BrandingSettings from '@/features/content/BrandingSettings';
 
 // Pages
 import CategoryCoursesPage from './pages/CategoryCoursesPage';
@@ -113,12 +112,6 @@ export default function App() {
                   <Route path="/admin/upload-content" element={
                     <RouteTitle title="Upload Content">
                       <UploadContentPage />
-                    </RouteTitle>
-                  } />
-                  
-                  <Route path="/admin/branding" element={
-                    <RouteTitle title="Branding">
-                      <BrandingSettings />
                     </RouteTitle>
                   } />
 
