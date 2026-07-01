@@ -1,5 +1,6 @@
 package com.geeknito.LMS_backend.serviceImpl;
 
+import com.geeknito.LMS_backend.cache.RedisService;
 import com.geeknito.LMS_backend.dto.CategoryRequestDTO;
 import com.geeknito.LMS_backend.dto.CategoryResponseDTO;
 import com.geeknito.LMS_backend.dto.CategoryWiseCourseResponseDTO;
@@ -19,43 +20,77 @@ import java.util.stream.Collectors;
 public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final RedisService redisService;
 
-    public CategoryServiceImpl(CategoryRepository categoryRepository) {
+    public CategoryServiceImpl(CategoryRepository categoryRepository, RedisService redisService) {
         this.categoryRepository = categoryRepository;
+        this.redisService = redisService;
     }
 
     @Override
     public CategoryResponseDTO create(CategoryRequestDTO request) {
         CategoryEntity category = CategoryMapper.toEntity(request);
         CategoryEntity savedCategory = categoryRepository.save(category);
+        
+        // Invalidate categories list cache
+        redisService.delete("categories_all");
+        
         return CategoryMapper.toResponseDTO(savedCategory);
     }
 
     @Override
     @Transactional(readOnly = true)
+    @SuppressWarnings("unchecked")
     public List<CategoryResponseDTO> getAll() {
-        return categoryRepository.findAll().stream()
+        String cacheKey = "categories_all";
+        Object cached = redisService.get(cacheKey);
+        if (cached instanceof List) {
+            return (List<CategoryResponseDTO>) cached;
+        }
+
+        List<CategoryResponseDTO> result = categoryRepository.findAll().stream()
                 .map(CategoryMapper::toResponseDTO)
                 .collect(Collectors.toList());
+
+        redisService.set(cacheKey, result, 30L);
+        return result;
     }
 
     @Override
     @Transactional(readOnly = true)
     public CategoryResponseDTO getById(Long id) {
+        String cacheKey = "category_" + id;
+        Object cached = redisService.get(cacheKey);
+        if (cached instanceof CategoryResponseDTO) {
+            return (CategoryResponseDTO) cached;
+        }
+
         CategoryEntity category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
-        return CategoryMapper.toResponseDTO(category);
+        CategoryResponseDTO result = CategoryMapper.toResponseDTO(category);
+
+        redisService.set(cacheKey, result, 30L);
+        return result;
     }
 
     @Override
     @Transactional(readOnly = true)
     public CategoryWiseCourseResponseDTO getCategoryCourses(Long categoryId) {
+        String cacheKey = "category_courses_" + categoryId;
+        Object cached = redisService.get(cacheKey);
+        if (cached instanceof CategoryWiseCourseResponseDTO) {
+            return (CategoryWiseCourseResponseDTO) cached;
+        }
+
         CategoryEntity category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + categoryId));
         if (category.getCourses() != null) {
             category.getCourses().size();
         }
-        return CategoryMapper.toCategoryWiseCourseResponseDTO(category);
+        CategoryWiseCourseResponseDTO result = CategoryMapper.toCategoryWiseCourseResponseDTO(category);
+
+        redisService.set(cacheKey, result, 30L);
+        return result;
     }
 
     @Override
@@ -64,6 +99,12 @@ public class CategoryServiceImpl implements CategoryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
         CategoryMapper.updateEntity(category, request);
         CategoryEntity updatedCategory = categoryRepository.save(category);
+
+        // Invalidate cache
+        redisService.delete("categories_all");
+        redisService.delete("category_" + id);
+        redisService.delete("category_courses_" + id);
+
         return CategoryMapper.toResponseDTO(updatedCategory);
     }
 
@@ -72,5 +113,10 @@ public class CategoryServiceImpl implements CategoryService {
         CategoryEntity category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
         categoryRepository.delete(category);
+
+        // Invalidate cache
+        redisService.delete("categories_all");
+        redisService.delete("category_" + id);
+        redisService.delete("category_courses_" + id);
     }
 }
