@@ -63,7 +63,7 @@ export default function CourseCard({ course, categoryName, categoryColor = '#6c1
       className="group flex flex-col overflow-hidden rounded-xl border bg-brand-background border-brand-border h-full shadow-sm hover:shadow-md transition-all cursor-pointer relative"
     >
       {/* Thumbnail */}
-      <div className="relative block overflow-hidden" style={{ aspectRatio: '16/9', backgroundColor: '#e8e8e8' }}>
+      <div className="relative block overflow-hidden" style={{ aspectRatio: '16/9', backgroundColor: 'var(--brand-muted)' }}>
         {course.thumbnail ? (
           <img
             src={course.thumbnail}
@@ -80,7 +80,7 @@ export default function CourseCard({ course, categoryName, categoryColor = '#6c1
         {(course.isFeatured || isPublished) && (
           <div
             className="absolute top-3 right-3 flex h-7 w-7 items-center justify-center rounded-full text-sm shadow-md"
-            style={{ backgroundColor: '#ff6200' }}
+            style={{ backgroundColor: 'var(--brand-cta)' }}
           >
             ⭐
           </div>

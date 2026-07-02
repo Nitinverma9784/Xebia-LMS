@@ -1,9 +1,9 @@
 import { cn } from '@/utils';
 
 const colors = {
-  green: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  gray: 'bg-gray-100 text-gray-600 border-gray-200',
-  amber: 'bg-amber-50 text-amber-700 border-amber-200',
+  green: 'bg-brand-success/10 text-brand-success border-brand-success/20',
+  gray: 'bg-brand-muted text-brand-muted-fg border-brand-border',
+  amber: 'bg-brand-warning/10 text-brand-warning border-brand-warning/20',
   slate: 'bg-slate-100 text-slate-600 border-slate-200',
   purple: 'bg-brand-primary/10 text-brand-primary border-brand-primary/20',
   red: 'bg-red-50 text-red-700 border-red-200',

@@ -10,7 +10,10 @@ const api = axios.create({
 // Request Interceptor: Attach access token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('xebia-lms-token');
+    const isStudentPath = window.location.pathname.startsWith('/student');
+    const token = isStudentPath
+      ? localStorage.getItem('xebia-student-token')
+      : localStorage.getItem('xebia-lms-token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -24,11 +27,14 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const isStudentPath = window.location.pathname.startsWith('/student');
     
     // Check if error is 401 and we haven't retried yet
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      const refreshToken = localStorage.getItem('xebia-lms-refresh-token');
+      const refreshToken = isStudentPath
+        ? localStorage.getItem('xebia-student-refresh-token')
+        : localStorage.getItem('xebia-lms-refresh-token');
       
       if (refreshToken) {
         try {
@@ -36,24 +42,42 @@ api.interceptors.response.use(
           const res = await axios.post(`${api.defaults.baseURL}/auth/refresh`, { refreshToken });
           const { accessToken } = res.data.data;
           
-          localStorage.setItem('xebia-lms-token', accessToken);
+          if (isStudentPath) {
+            localStorage.setItem('xebia-student-token', accessToken);
+          } else {
+            localStorage.setItem('xebia-lms-token', accessToken);
+          }
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
           
           return api(originalRequest);
         } catch (refreshError) {
           // Refresh failed: clear storage and redirect
-          localStorage.removeItem('xebia-lms-token');
-          localStorage.removeItem('xebia-lms-refresh-token');
-          localStorage.removeItem('xebia-lms-user');
-          window.location.href = '/login';
+          if (isStudentPath) {
+            localStorage.removeItem('xebia-student-token');
+            localStorage.removeItem('xebia-student-refresh-token');
+            localStorage.removeItem('xebia-student-user');
+            window.location.href = '/student/login';
+          } else {
+            localStorage.removeItem('xebia-lms-token');
+            localStorage.removeItem('xebia-lms-refresh-token');
+            localStorage.removeItem('xebia-lms-user');
+            window.location.href = '/admin/login';
+          }
           return Promise.reject(refreshError);
         }
       } else {
         // No refresh token: clear storage and redirect
-        localStorage.removeItem('xebia-lms-token');
-        localStorage.removeItem('xebia-lms-refresh-token');
-        localStorage.removeItem('xebia-lms-user');
-        window.location.href = '/login';
+        if (isStudentPath) {
+          localStorage.removeItem('xebia-student-token');
+          localStorage.removeItem('xebia-student-refresh-token');
+          localStorage.removeItem('xebia-student-user');
+          window.location.href = '/student/login';
+        } else {
+          localStorage.removeItem('xebia-lms-token');
+          localStorage.removeItem('xebia-lms-refresh-token');
+          localStorage.removeItem('xebia-lms-user');
+          window.location.href = '/admin/login';
+        }
       }
     }
     

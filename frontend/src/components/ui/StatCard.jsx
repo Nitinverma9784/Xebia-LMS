@@ -3,11 +3,11 @@
 import { motion } from 'framer-motion';
 
 const ICON_COLORS = {
-  purple: { bg: '#6c1d5f15', text: '#6c1d5f' },
-  teal:   { bg: '#01ac9f15', text: '#01ac9f' },
-  orange: { bg: '#ff620015', text: '#ff6200' },
-  plum:   { bg: '#84117c15', text: '#84117c' },
-  pink:   { bg: '#db277715', text: '#db2777' },
+  purple: { bg: 'var(--brand-primary-10)', text: 'var(--brand-primary)' },
+  teal:   { bg: 'var(--brand-success-10)', text: 'var(--brand-success)' },
+  orange: { bg: 'var(--brand-cta-10)', text: 'var(--brand-cta)' },
+  plum:   { bg: 'var(--accent-purple-10)', text: 'var(--accent-purple)' },
+  pink:   { bg: 'var(--accent-pink-10)', text: 'var(--accent-pink)' },
 };
 
 export default function StatCard({ icon: Icon, label, value, color = 'teal', index = 0, className }) {
@@ -19,7 +19,7 @@ export default function StatCard({ icon: Icon, label, value, color = 'teal', ind
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04 }}
       className={`flex items-center gap-4 rounded-lg border bg-white p-4 ${className || ''}`}
-      style={{ borderColor: '#e5e7eb', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}
+      style={{ borderColor: 'var(--brand-border)', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}
     >
       <div
         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"

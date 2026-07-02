@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { CatalogProvider } from '@/hooks/useCatalog';
 import { ToastProvider } from '@/hooks/useToast';
 import { AuthProvider } from '@/hooks/useAuth';
+import { StudentAuthProvider } from '@/auth/student/StudentAuthProvider';
 
 export function Providers({ children }) {
   const [queryClient] = useState(
@@ -20,7 +21,9 @@ export function Providers({ children }) {
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
         <AuthProvider>
-          <CatalogProvider>{children}</CatalogProvider>
+          <StudentAuthProvider>
+            <CatalogProvider>{children}</CatalogProvider>
+          </StudentAuthProvider>
         </AuthProvider>
       </ToastProvider>
     </QueryClientProvider>

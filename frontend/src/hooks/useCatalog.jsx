@@ -337,7 +337,7 @@ function loadNotifications() {
   }
   return [
     { id: 'notif-1', type: 'student_registered', title: 'Student Registered', message: 'Aarav Sharma registered for Python Masterclass', read: false, createdAt: new Date(Date.now() - 3600 * 2000).toISOString() },
-    { id: 'notif-2', type: 'course_updated', title: 'Course Updated', message: 'DevOps Pipeline Mastery course was updated by Admin', read: false, createdAt: new Date(Date.now() - 3600 * 8000).toISOString() },
+    { id: 'notif-2', type: 'course_updated', title: 'Course Updated', message: 'DevOps Pipeline Mastery course was updated by Student', read: false, createdAt: new Date(Date.now() - 3600 * 8000).toISOString() },
     { id: 'notif-3', type: 'content_uploaded', title: 'Content Uploaded', message: 'Lab Manual.pdf (12.4 MB) added to AWS Solutions Architect', read: true, createdAt: new Date(Date.now() - 3600 * 24000).toISOString() },
     { id: 'notif-4', type: 'course_created', title: 'New Course Added', message: 'New Course: Azure AI Engineer created as Draft', read: true, createdAt: new Date(Date.now() - 3600 * 48000).toISOString() },
   ];

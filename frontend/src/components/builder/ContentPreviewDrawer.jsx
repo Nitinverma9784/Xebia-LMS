@@ -78,7 +78,7 @@ export default function ContentPreviewDrawer({ content, open, onClose }) {
                   </div>
                   <div className="flex justify-between border-b border-brand-border/40 dark:border-slate-800/40 pb-1.5">
                     <dt className="text-brand-text-secondary dark:text-slate-400">Uploaded By</dt>
-                    <dd className="font-semibold flex items-center gap-1"><User className="h-3 w-3" /> {content.createdBy || 'Admin'}</dd>
+                    <dd className="font-semibold flex items-center gap-1"><User className="h-3 w-3" /> {content.createdBy || 'Student'}</dd>
                   </div>
                   <div className="flex justify-between">
                     <dt className="text-brand-text-secondary dark:text-slate-400">Last Modified</dt>

@@ -173,7 +173,7 @@ export default function ContentManager({ content, submoduleId, moduleId, courseI
             </span>
           </div>
           <p className="text-xs text-brand-text-secondary dark:text-slate-400 mt-1">
-            Last modified {formatDate(content.updatedAt)} · Created by {content.createdBy || 'Admin'}
+            Last modified {formatDate(content.updatedAt)} · Created by {content.createdBy || 'Student'}
           </p>
         </div>
         <Button size="sm" variant="outline" onClick={() => onPreview(content)}>

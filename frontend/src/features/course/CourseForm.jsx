@@ -16,14 +16,14 @@ import api from '@/services/api';
 
 /* ─── colours that match the design tokens ─── */
 const C = {
-  primary:  '#6c1d5f',
-  secondary:'#01ac9f',
-  accent:   '#ff6200',
-  border:   '#dadcea',
-  muted:    '#f7f8fc',
-  mutedFg:  '#5a5a5a',
-  card:     '#ffffff',
-  fg:       '#000000',
+  primary:  'var(--brand-primary)',
+  secondary:'var(--brand-success)',
+  accent:   'var(--brand-cta)',
+  border:   'var(--brand-border)',
+  muted:    'var(--brand-muted)',
+  mutedFg:  'var(--brand-muted-fg)',
+  card:     'var(--brand-background)',
+  fg:       'var(--text-primary)',
 };
 
 const EMPTY_FORM = {

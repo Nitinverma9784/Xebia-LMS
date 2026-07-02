@@ -1,13 +1,14 @@
 'use client';
 
-import { Bell, Search, User, Sun, Moon, SlidersHorizontal, Check, X, BookOpen, Users, FolderTree, FileText, Landmark } from 'lucide-react';
+import { Bell, Search, User, Sun, Moon, SlidersHorizontal, Check, X, BookOpen, Users, FolderTree, FileText, Landmark, ChevronRight, Home } from 'lucide-react';
 import { useCatalog } from '@/hooks/useCatalog';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { cn, formatDateTime } from '@/utils';
 import Button from '@/components/ui/Button';
 import { useAuth } from '@/hooks/useAuth';
+import { useStudentAuth } from '@/auth/student/studentAuthHooks';
 
 // Highlight helper
 function highlightText(text, query) {
@@ -34,9 +35,12 @@ export default function Header({ title, subtitle }) {
     courses, categories, students, mediaLibrary, instructors,
     notifications, markAllNotificationsAsRead, clearNotifications, branding
   } = useCatalog();
-  const { user } = useAuth();
-  
   const navigate = useNavigate();
+  const location = useLocation();
+  const isStudentView = location.pathname.startsWith('/student');
+  const adminAuth = useAuth();
+  const studentAuth = useStudentAuth();
+  const { user } = isStudentView ? studentAuth : adminAuth;
   const [theme, setTheme] = useState('light');
   
   // Search & Filter state
@@ -230,6 +234,21 @@ export default function Header({ title, subtitle }) {
     navigate(link);
   };
 
+  const breadcrumbItems = useMemo(() => {
+    const parts = location.pathname.split('/').filter(Boolean);
+    const crumbs = [];
+    let acc = '';
+    parts.forEach((part, index) => {
+      acc += `/${part}`;
+      if (part === 'student' || part === 'admin') {
+        crumbs.push({ label: part === 'student' ? 'Student' : 'Student', href: acc });
+      } else if (part !== 'dashboard') {
+        crumbs.push({ label: part.replace(/-/g, ' '), href: acc });
+      }
+    });
+    return crumbs;
+  }, [location.pathname]);
+
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-brand-border dark:border-slate-800 bg-white/90 dark:bg-slate-900/80 backdrop-blur-md px-6 transition-colors duration-200">
       <div>
@@ -238,7 +257,23 @@ export default function Header({ title, subtitle }) {
             {title}
           </h1>
         )}
-        {subtitle && <p className="text-xs text-brand-text-secondary dark:text-slate-400">{subtitle}</p>}
+        {!isStudentView && (
+          <nav aria-label="Breadcrumb" className="mt-1 flex items-center gap-1 text-xs text-brand-text-secondary dark:text-slate-400">
+            <Link to={location.pathname.startsWith('/student') ? '/student/dashboard' : '/admin/dashboard'} className="flex items-center gap-1 hover:text-brand-primary">
+              <Home className="h-3 w-3" />
+              <span>Home</span>
+            </Link>
+            {breadcrumbItems.map((item, index) => (
+              <span key={item.href} className="flex items-center gap-1">
+                <ChevronRight className="h-3 w-3" />
+                <Link to={item.href} className="capitalize hover:text-brand-primary">
+                  {item.label}
+                </Link>
+              </span>
+            ))}
+          </nav>
+        )}
+        {!isStudentView && subtitle && <p className="text-xs text-brand-text-secondary dark:text-slate-400">{subtitle}</p>}
       </div>
 
       <div className="flex items-center gap-3">
@@ -500,11 +535,11 @@ export default function Header({ title, subtitle }) {
         {/* User profile dropdown indicator */}
         <div className="flex items-center gap-2 rounded-full border border-brand-border dark:border-slate-800 px-3 py-1.5 bg-white dark:bg-slate-900 transition-colors">
           <img
-            src={user?.avatar || "https://api.dicebear.com/7.x/initials/svg?seed=Admin"}
-            alt={user?.fullName || "Admin"}
+            src={user?.avatar || "https://api.dicebear.com/7.x/initials/svg?seed=Student"}
+            alt={user?.fullName || "Student"}
             className="h-7 w-7 rounded-full border border-black/5 bg-slate-100 shrink-0"
           />
-          <span className="hidden sm:inline text-sm font-medium text-brand-text-primary dark:text-slate-350">{user?.fullName || 'Admin'}</span>
+          <span className="hidden sm:inline text-sm font-medium text-brand-text-primary dark:text-slate-350">{user?.fullName || 'Student'}</span>
         </div>
       </div>
     </header>

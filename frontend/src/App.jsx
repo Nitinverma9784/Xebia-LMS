@@ -9,6 +9,18 @@ import CategoryManagement from '@/features/category/CategoryManagement';
 import CategoryForm from '@/features/category/CategoryForm';
 import CurriculumLanding from '@/features/curriculum/CurriculumLanding';
 import MediaLibrary from '@/features/content/MediaLibrary';
+import StudentPortal from '@/features/student/StudentPortal';
+import StudentCoursesPage from '@/features/student/StudentCoursesPage';
+import StudentCourseDetailsPage from '@/features/student/StudentCourseDetailsPage';
+import StudentLearningContentPage from '@/features/student/StudentLearningContentPage';
+import StudentAssignmentsPage from '@/features/student/StudentAssignmentsPage';
+import StudentAssessmentsPage from '@/features/student/StudentAssessmentsPage';
+import StudentProgressPage from '@/features/student/StudentProgressPage';
+import StudentNotificationsPage from '@/features/student/StudentNotificationsPage';
+import StudentProfilePage from '@/features/student/StudentProfilePage';
+import StudentSettingsPage from '@/features/student/StudentSettingsPage';
+import StudentDiscussionPage from '@/features/student/StudentDiscussionPage';
+import StudentLeaderboardPage from '@/features/student/StudentLeaderboardPage';
 
 // Pages
 import CategoryCoursesPage from './pages/CategoryCoursesPage';
@@ -16,8 +28,16 @@ import AllCoursesPage from './pages/AllCoursesPage';
 import CourseBuilderPage from './pages/CourseBuilderPage';
 import CourseFormPage from './pages/CourseFormPage';
 import LoginPage from './pages/LoginPage';
+import LoginSelectorPage from './pages/LoginSelectorPage';
 import UploadContentPage from './pages/UploadContentPage';
 import ProtectedRoute from '@/components/layout/ProtectedRoute';
+
+// Student Auth & Pages
+import StudentProtectedRoute from '@/auth/student/StudentProtectedRoute';
+import StudentLoginPage from '@/pages/student/Login';
+import StudentRegisterPage from '@/pages/student/Register';
+import StudentForgotPasswordPage from '@/pages/student/ForgotPassword';
+import StudentResetPasswordPage from '@/pages/student/ResetPassword';
 
 function RouteTitle({ title, children }) {
   React.useEffect(() => {
@@ -31,12 +51,124 @@ export default function App() {
     <Router>
       <Providers>
         <Routes>
-          <Route path="/login" element={
-            <RouteTitle title="Login">
+          <Route path="/admin/login" element={
+            <RouteTitle title="Admin Login">
               <LoginPage />
             </RouteTitle>
           } />
 
+          <Route path="/" element={
+            <RouteTitle title="Welcome to LMS">
+              <LoginSelectorPage />
+            </RouteTitle>
+          } />
+
+          {/* Student Login & Auth Flow (unprotected) */}
+          <Route path="/student/login" element={
+            <RouteTitle title="Student Login">
+              <StudentLoginPage />
+            </RouteTitle>
+          } />
+          <Route path="/student/register" element={
+            <RouteTitle title="Student Registration">
+              <StudentRegisterPage />
+            </RouteTitle>
+          } />
+          <Route path="/student/forgot-password" element={
+            <RouteTitle title="Forgot Password">
+              <StudentForgotPasswordPage />
+            </RouteTitle>
+          } />
+          <Route path="/student/reset-password" element={
+            <RouteTitle title="Reset Password">
+              <StudentResetPasswordPage />
+            </RouteTitle>
+          } />
+
+          {/* Student Protected Routes */}
+          <Route path="/student/*" element={
+            <StudentProtectedRoute>
+              <AppLayout>
+                <Routes>
+                  <Route path="dashboard" element={
+                    <RouteTitle title="Student Dashboard">
+                      <StudentPortal />
+                    </RouteTitle>
+                  } />
+
+                  <Route path="courses" element={
+                    <RouteTitle title="My Courses">
+                      <StudentCoursesPage />
+                    </RouteTitle>
+                  } />
+
+                  <Route path="courses/:courseId" element={
+                    <RouteTitle title="Course Details">
+                      <StudentCourseDetailsPage />
+                    </RouteTitle>
+                  } />
+
+                  <Route path="learning-content" element={
+                    <RouteTitle title="Learning Content">
+                      <StudentLearningContentPage />
+                    </RouteTitle>
+                  } />
+
+                  <Route path="assignments" element={
+                    <RouteTitle title="Assignments">
+                      <StudentAssignmentsPage />
+                    </RouteTitle>
+                  } />
+
+                  <Route path="assessments" element={
+                    <RouteTitle title="Assessments">
+                      <StudentAssessmentsPage />
+                    </RouteTitle>
+                  } />
+
+                  <Route path="progress" element={
+                    <RouteTitle title="Progress Tracker">
+                      <StudentProgressPage />
+                    </RouteTitle>
+                  } />
+
+                  <Route path="notifications" element={
+                    <RouteTitle title="Notifications">
+                      <StudentNotificationsPage />
+                    </RouteTitle>
+                  } />
+
+                  <Route path="profile" element={
+                    <RouteTitle title="Profile">
+                      <StudentProfilePage />
+                    </RouteTitle>
+                  } />
+
+                  <Route path="settings" element={
+                    <RouteTitle title="Settings">
+                      <StudentSettingsPage />
+                    </RouteTitle>
+                  } />
+
+                  <Route path="discussion" element={
+                    <RouteTitle title="Discussion Forum">
+                      <StudentDiscussionPage />
+                    </RouteTitle>
+                  } />
+
+                  <Route path="leaderboard" element={
+                    <RouteTitle title="Leaderboard">
+                      <StudentLeaderboardPage />
+                    </RouteTitle>
+                  } />
+
+                  <Route path="*" element={<Navigate to="dashboard" replace />} />
+                </Routes>
+              </AppLayout>
+            </StudentProtectedRoute>
+          } />
+
+          {/* Admin Protected Routes */}
           <Route path="/*" element={
             <ProtectedRoute>
               <AppLayout>

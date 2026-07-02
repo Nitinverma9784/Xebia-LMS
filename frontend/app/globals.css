@@ -11,6 +11,19 @@
     --brand-cta: #FF6200;
     --brand-border: #E5E7EB;
     --brand-surface: #F7F8FC;
+    --brand-muted: #F3F4F6;
+    --brand-muted-fg: #5A5A5A;
+    --brand-warning: #F59E0B;
+    --accent-teal: #01AC9F;
+    --accent-orange: #FF6200;
+    --accent-purple: #84117C;
+    --accent-pink: #DB2777;
+    --accent-plum: #6C1D5F;
+    --brand-primary-10: rgba(108, 29, 95, 0.1);
+    --brand-primary-15: rgba(108, 29, 95, 0.15);
+    --brand-success-10: rgba(1, 172, 159, 0.12);
+    --brand-cta-10: rgba(255, 98, 0, 0.1);
+    --brand-warning-10: rgba(245, 158, 11, 0.12);
     --brand-background: #FFFFFF;
     --text-primary: #1F2937;
     --text-secondary: #6B7280;
@@ -19,6 +32,12 @@
   .dark {
     --brand-border: #1E293B;
     --brand-surface: #0F172A;
+    --brand-muted: #111827;
+    --brand-muted-fg: #94A3B8;
+    --brand-warning-10: rgba(245, 158, 11, 0.12);
+    --brand-primary-10: rgba(108, 29, 95, 0.1);
+    --brand-success-10: rgba(1, 172, 159, 0.12);
+    --brand-cta-10: rgba(255, 98, 0, 0.1);
     --brand-background: #020617;
     --text-primary: #F8FAFC;
     --text-secondary: #94A3B8;

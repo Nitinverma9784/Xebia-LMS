@@ -2,6 +2,9 @@
 module.exports = {
   content: [
     './index.html',
+    './app/**/*.{js,jsx}',
+    './components/**/*.{js,jsx}',
+    './features/**/*.{js,jsx}',
     './src/**/*.{js,jsx}',
   ],
   darkMode: 'class',
@@ -17,6 +20,9 @@ module.exports = {
           background: 'var(--brand-background)',
           surface: 'var(--brand-surface)',
           border: 'var(--brand-border)',
+          muted: 'var(--brand-muted)',
+          'muted-fg': 'var(--brand-muted-fg)',
+          warning: 'var(--brand-warning)',
           'text-primary': 'var(--text-primary)',
           'text-secondary': 'var(--text-secondary)',
         },

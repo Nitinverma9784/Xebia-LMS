@@ -15,8 +15,8 @@ function StatusBadge({ status }) {
       className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
       style={
         isActive
-          ? { backgroundColor: '#01ac9f18', color: '#01ac9f' }
-          : { backgroundColor: '#f1f1f7', color: '#6b7280' }
+          ? { backgroundColor: 'var(--brand-success-10)', color: 'var(--brand-success)' }
+          : { backgroundColor: 'var(--brand-muted)', color: 'var(--text-secondary)' }
       }
     >
       {isActive ? 'Active' : 'Inactive'}
@@ -100,15 +100,15 @@ export default function CategoryCard({ category, courseCount, onEdit, onDelete, 
               className="flex h-7 w-7 items-center justify-center rounded-md border border-brand-border bg-brand-background transition-colors hover:bg-brand-surface"
               title="Edit"
             >
-              <Pencil className="h-3 w-3" style={{ color: '#6c1d5f' }} />
+              <Pencil className="h-3 w-3" style={{ color: 'var(--brand-primary)' }} />
             </button>
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onDelete(category); }}
-              className="flex h-7 w-7 items-center justify-center rounded-md border border-brand-border bg-brand-background transition-colors hover:bg-red-50 dark:hover:bg-red-950/20"
+              className="flex h-7 w-7 items-center justify-center rounded-md border border-brand-border bg-brand-background transition-colors hover:bg-brand-cta/10"
               title="Delete"
             >
-              <Trash2 className="h-3 w-3" style={{ color: '#ff6200' }} />
+              <Trash2 className="h-3 w-3" style={{ color: 'var(--brand-cta)' }} />
             </button>
           </div>
         </div>

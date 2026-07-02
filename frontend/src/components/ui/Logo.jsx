@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { cn } from '@/utils';
 import { useCatalog } from '@/hooks/useCatalog';
+import { useLocation } from 'react-router-dom';
 
 export default function Logo({ className, iconOnly = false, variant = 'light', size = 'md' }) {
   const isDark = variant === 'dark';
@@ -32,6 +33,14 @@ export default function Logo({ className, iconOnly = false, variant = 'light', s
   };
 
   const heightClass = heightClasses[size] || heightClasses.md;
+
+  let isStudent = false;
+  try {
+    const location = useLocation();
+    isStudent = location.pathname.startsWith('/student');
+  } catch (e) {
+    // router context not ready
+  }
 
   return (
     <div className={cn('flex items-center gap-3 select-none', className)}>
@@ -66,7 +75,7 @@ export default function Logo({ className, iconOnly = false, variant = 'light', s
             )} 
             style={{ color: isDark ? 'rgba(255, 255, 255, 0.45)' : '#6b7280' }}
           >
-            Admin Panel
+            {isStudent ? 'Student Portal' : 'Admin Panel'}
           </span>
         </div>
       )}

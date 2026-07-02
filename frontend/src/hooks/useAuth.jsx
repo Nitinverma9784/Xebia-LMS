@@ -18,7 +18,8 @@ export function AuthProvider({ children }) {
     if (storedToken && storedUser) {
       setToken(storedToken);
       try {
-        setUser(JSON.parse(storedUser));
+        const parsed = JSON.parse(storedUser);
+        setUser({ ...parsed, role: 'admin' });
       } catch {
         localStorage.removeItem('xebia-lms-user');
       }
@@ -32,12 +33,14 @@ export function AuthProvider({ children }) {
       const response = await authService.login(email, password);
       const { accessToken, refreshToken, user: loggedUser } = response.data;
       
+      const userWithRole = { ...loggedUser, role: 'admin' };
+      
       localStorage.setItem('xebia-lms-token', accessToken);
       localStorage.setItem('xebia-lms-refresh-token', refreshToken);
-      localStorage.setItem('xebia-lms-user', JSON.stringify(loggedUser));
+      localStorage.setItem('xebia-lms-user', JSON.stringify(userWithRole));
       
       setToken(accessToken);
-      setUser(loggedUser);
+      setUser(userWithRole);
       
       showToast('Successfully logged in', 'success');
       return loggedUser;

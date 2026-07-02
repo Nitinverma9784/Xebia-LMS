@@ -184,7 +184,7 @@ export default function Dashboard() {
     return (
       <div className="flex h-screen items-center justify-center bg-brand-surface">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#01ac9f] border-t-transparent" />
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-brand-success border-t-transparent" />
           <p className="text-sm font-medium text-brand-text-secondary">Connecting to Backend Analytics...</p>
         </div>
       </div>
@@ -209,7 +209,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-brand-surface p-6 lg:p-8">
       <PageHeader
-        title="Admin Analytics Panel"
+        title="Student Analytics Panel"
         subtitle="Real-time reporting, learning trends, and transformation metrics"
         action={
           <div className="flex gap-2">
@@ -469,7 +469,7 @@ export default function Dashboard() {
                         <span>{val}%</span>
                       </div>
                       <div className="h-2 w-full rounded-full bg-brand-surface overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-blue-500 to-[#01ac9f]" style={{ width: `${val}%` }} />
+                        <div className="h-full" style={{ width: `${val}%`, background: 'linear-gradient(90deg, var(--brand-secondary), var(--brand-success))' }} />
                       </div>
                     </div>
                   ))}
@@ -486,7 +486,7 @@ export default function Dashboard() {
                         <span>{val}%</span>
                       </div>
                       <div className="h-2 w-full rounded-full bg-brand-surface overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-purple-500 to-[#6c1d5f]" style={{ width: `${val}%` }} />
+                        <div className="h-full" style={{ width: `${val}%`, background: 'linear-gradient(90deg, var(--accent-purple), var(--brand-primary))' }} />
                       </div>
                     </div>
                   ))}

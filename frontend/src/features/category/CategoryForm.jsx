@@ -874,7 +874,7 @@ export default function CategoryForm() {
               X
             </div>
             <span className="text-xs font-medium" style={{ color: '#5a5a5a' }}>
-              Xebia LMS · Admin
+              Xebia LMS · Student
             </span>
           </div>
         </div>

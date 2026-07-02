@@ -1,20 +1,36 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BookOpen, Tag, Layers, LayoutDashboard, LogOut, Sun, Moon } from 'lucide-react';
+import { BookOpen, Tag, LayoutDashboard, LogOut, Sun, Moon, PlayCircle, ClipboardList, FileCheck2, BellRing, User, Settings } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
 import { cn } from '@/utils';
 import { useAuth } from '@/hooks/useAuth';
+import { useStudentAuth } from '@/auth/student/studentAuthHooks';
 
-const NAV_ITEMS = [
+const ADMIN_NAV_ITEMS = [
   { href: '/admin/dashboard',  label: 'Dashboard',    icon: LayoutDashboard },
   { href: '/admin/categories', label: 'Categories',   icon: Tag },
   { href: '/admin/courses',    label: 'Courses',      icon: BookOpen },
 ];
 
+const STUDENT_NAV_ITEMS = [
+  { href: '/student/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/student/courses', label: 'My Courses', icon: BookOpen },
+  { href: '/student/learning-content', label: 'Learning Content', icon: PlayCircle },
+  { href: '/student/assignments', label: 'Assignments', icon: ClipboardList },
+  { href: '/student/assessments', label: 'Assessments', icon: FileCheck2 },
+  { href: '/student/notifications', label: 'Notifications', icon: BellRing },
+  { href: '/student/profile', label: 'Profile', icon: User },
+  { href: '/student/settings', label: 'Settings', icon: Settings },
+];
+
 export default function Sidebar() {
   const { pathname } = useLocation();
-  const { user, logout } = useAuth();
+  const isStudentView = pathname.startsWith('/student');
+  const adminAuth = useAuth();
+  const studentAuth = useStudentAuth();
+  const { user, logout } = isStudentView ? studentAuth : adminAuth;
   const [theme, setTheme] = useState('light');
+  const navItems = isStudentView ? STUDENT_NAV_ITEMS : ADMIN_NAV_ITEMS;
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -62,9 +78,11 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 pb-4 scrollbar-thin">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+        {navItems.map(({ href, label, icon: Icon }) => {
           let active = false;
-          if (label === 'Courses') {
+          if (isStudentView) {
+            active = pathname === href || pathname.startsWith(`${href}/`);
+          } else if (label === 'Courses') {
             active = pathname === href || pathname.startsWith('/admin/courses/') || pathname.startsWith('/admin/curriculum/');
           } else {
             active = pathname === href || pathname.startsWith(`${href}/`);
@@ -76,7 +94,7 @@ export default function Sidebar() {
               className={cn(
                 'flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-all cursor-pointer mx-2 my-0.5',
                 active
-                  ? 'bg-[#01ac9f] text-white shadow-md font-semibold'
+                  ? 'bg-brand-primary text-white shadow-md font-semibold'
                   : 'text-white/70 hover:bg-white/5 hover:text-white'
               )}
             >
@@ -96,14 +114,14 @@ export default function Sidebar() {
           <div className="flex items-center gap-3">
             <div
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
-              style={{ backgroundColor: '#6c1d5f' }}
+              style={{ backgroundColor: 'var(--brand-primary)' }}
             >
               {(user.fullName || 'A')[0].toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-white">{user.fullName || 'Admin User'}</p>
+              <p className="truncate text-sm font-medium text-white">{user.fullName || (isStudentView ? 'Student User' : 'Admin User')}</p>
               <p className="truncate text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                {user.email || 'admin@xebia.com'}
+                {user.email || (isStudentView ? 'student@xebia.com' : 'admin@xebia.com')}
               </p>
             </div>
             {/* Theme Toggle */}

@@ -169,13 +169,6 @@ export default function LoginPage() {
             )}
           </Button>
         </form>
-
-        <div className="text-center text-xs text-slate-500 border-t border-white/5 pt-4">
-          <p>Demo Accounts:</p>
-          <p className="mt-1">
-            Admin: <code className="text-slate-400">admin@xebia.com</code> / <code className="text-slate-400">admin123</code>
-          </p>
-        </div>
       </motion.div>
     </div>
   );

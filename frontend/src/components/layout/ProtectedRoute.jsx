@@ -2,7 +2,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function ProtectedRoute({ children }) {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, user, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -16,9 +16,9 @@ export default function ProtectedRoute({ children }) {
     );
   }
 
-  if (!isAuthenticated) {
-    // Redirect to the login page and save the current location they tried to go to
-    return <Navigate to="/login" state={{ from: location }} replace />;
+  if (!isAuthenticated || user?.role !== 'admin') {
+    // Redirect to the admin login page and save the current location
+    return <Navigate to="/admin/login" state={{ from: location }} replace />;
   }
 
   return children;
