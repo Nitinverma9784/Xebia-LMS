@@ -26,21 +26,10 @@ export function StudentAuthProvider({ children }) {
     setLoading(false);
   }, []);
 
-  const sendOtp = useCallback(async (email, fullName) => {
-    try {
-      const data = await studentAuthService.sendOtp(email, fullName);
-      showToast('OTP verification code sent to your email address.', 'info');
-      return data;
-    } catch (error) {
-      showToast(error.message || 'Failed to send OTP.', 'error');
-      throw error;
-    }
-  }, [showToast]);
-
-  const verifyOtp = useCallback(async (email, code, fullName, isGoogleLogin) => {
+  const login = useCallback(async (email, password) => {
     setLoading(true);
     try {
-      const data = await studentAuthService.verifyOtp(email, code, fullName, isGoogleLogin);
+      const data = await studentAuthService.login(email, password);
       const { accessToken, refreshToken, user } = data;
       
       localStorage.setItem('xebia-student-token', accessToken);
@@ -50,10 +39,10 @@ export function StudentAuthProvider({ children }) {
       setStudentToken(accessToken);
       setStudentUser(user);
       
-      showToast('OTP verified. Successfully logged in!', 'success');
+      showToast('Successfully logged in!', 'success');
       return user;
     } catch (error) {
-      showToast(error.message || 'OTP verification failed.', 'error');
+      showToast(error.message || 'Invalid Email or Password.', 'error');
       throw error;
     } finally {
       setLoading(false);
@@ -82,19 +71,18 @@ export function StudentAuthProvider({ children }) {
     setStudentToken(null);
     setStudentUser(null);
     
-    showToast('Logged out of Student Portal successfully', 'info');
+    showToast('Logged out successfully', 'info');
   }, [showToast]);
 
   const value = useMemo(() => ({
     user: studentUser,
     token: studentToken,
     loading,
-    sendOtp,
-    verifyOtp,
+    login,
     register,
     logout,
     isAuthenticated: !!studentToken,
-  }), [studentUser, studentToken, loading, sendOtp, verifyOtp, register, logout]);
+  }), [studentUser, studentToken, loading, login, register, logout]);
 
   return (
     <StudentAuthContext.Provider value={value}>

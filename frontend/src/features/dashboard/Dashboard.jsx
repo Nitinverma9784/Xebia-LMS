@@ -5,7 +5,8 @@ import { motion } from 'framer-motion';
 import {
   Users, BookOpen, FolderOpen, HardDrive, Percent, ArrowUpRight,
   TrendingUp, Calendar, CheckCircle, Clock, Plus, BarChart2,
-  Filter, Award, Download, Zap, Brain, Shield, ChevronDown
+  Filter, Award, Download, Zap, Brain, Shield, ChevronDown,
+  UserPlus, FolderPlus, ClipboardList, CheckSquare, Activity, FileText, Sparkles, Play, ArrowRight
 } from 'lucide-react';
 import api from '@/services/api';
 import { useToast } from '@/hooks/useToast';
@@ -207,132 +208,130 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-brand-surface p-6 lg:p-8">
-      <PageHeader
-        title="Student Analytics Panel"
-        subtitle="Real-time reporting, learning trends, and transformation metrics"
-        action={
-          <div className="flex gap-2">
-            <button
-              onClick={handleExportCSV}
-              className="flex items-center gap-1.5 rounded-lg border border-brand-border bg-brand-background px-3 py-1.5 text-xs font-semibold text-brand-text-primary hover:bg-brand-surface transition-colors cursor-pointer"
-            >
-              <Download className="h-3.5 w-3.5" /> Export Report (CSV)
-            </button>
-            <Link to="/admin/courses/new">
-              <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Add Course</Button>
-            </Link>
-          </div>
-        }
-      />
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0B1120] text-slate-800 dark:text-[#F8FAFC] px-8 pb-8 pt-6 transition-colors duration-300">
+      
+      {/* ── Premium Hero Header ── */}
+      <div
+        style={{ background: 'linear-gradient(135deg, #2E1065 0%, #4C1D95 35%, #5B21B6 70%, #6D28D9 100%)' }}
+        className="mb-8 rounded-[24px] text-white p-9 sm:p-11 lg:p-12 shadow-2xl shadow-purple-950/60 ring-1 ring-white/20 relative overflow-hidden min-h-[320px] lg:min-h-[360px] flex flex-col lg:flex-row lg:items-center justify-between gap-8 lg:gap-12 select-none"
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.18),transparent_60%)]" />
+        <div className="absolute right-[-10%] top-[-20%] h-80 w-80 rounded-full bg-purple-400/15 blur-3xl pointer-events-none" />
+        <div className="absolute left-[-5%] bottom-[-20%] h-64 w-64 rounded-full bg-purple-500/20 blur-2xl pointer-events-none" />
 
-      {/* ── Dynamic Filters Toolbar ── */}
-      <div className="mb-6 rounded-2xl border border-brand-border bg-brand-background p-4 shadow-sm">
-        <div className="flex items-center gap-2 mb-3 border-b border-brand-border/60 pb-2 select-none">
-          <Filter className="h-4 w-4 text-[#01ac9f]" />
-          <span className="text-xs font-bold uppercase tracking-wider text-brand-text-primary">Organizational Filters</span>
+        {/* Left Section (60% width) */}
+        <div className="relative z-10 space-y-6 w-full lg:w-[58%]">
+          <h2 className="text-3xl sm:text-4xl lg:text-[2.75rem] font-black tracking-tight text-white leading-tight">
+            Learning Management Dashboard
+          </h2>
+          <p className="text-sm sm:text-base text-purple-100/95 leading-relaxed font-medium max-w-2xl">
+            Manage courses, categories, learning programs, and training content from a centralized admin workspace. Track platform performance, monitor learner engagement, and streamline your organization's learning experience.
+          </p>
+          <div className="flex flex-wrap gap-3 pt-1">
+            {[
+              '2026',
+              'Q2',
+              'AI Transformation',
+              '120 Employees',
+              '8 Sessions'
+            ].map((badge, idx) => (
+              <span
+                key={idx}
+                className="text-xs font-bold px-4 py-1.5 rounded-full border border-white/25 bg-white/15 text-white backdrop-blur-md shadow-sm"
+              >
+                {badge}
+              </span>
+            ))}
+          </div>
         </div>
-        <div className="grid gap-3 grid-cols-2 md:grid-cols-4 lg:grid-cols-8">
-          {/* Year */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-semibold text-brand-text-secondary uppercase">Year</label>
-            <select
-              value={filters.year}
-              onChange={e => handleFilterChange('year', e.target.value)}
-              className="rounded-lg border border-brand-border bg-brand-surface px-2.5 py-1.5 text-xs text-brand-text-primary focus:outline-none cursor-pointer"
-            >
-              {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
-          </div>
 
-          {/* Quarter */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-semibold text-brand-text-secondary uppercase">Quarter</label>
-            <select
-              value={filters.quarter}
-              onChange={e => handleFilterChange('quarter', e.target.value)}
-              className="rounded-lg border border-brand-border bg-brand-surface px-2.5 py-1.5 text-xs text-brand-text-primary focus:outline-none cursor-pointer"
-            >
-              {quarterOptions.map(q => <option key={q.value} value={q.value}>{q.label}</option>)}
-            </select>
-          </div>
-
-          {/* Region */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-semibold text-brand-text-secondary uppercase">Region</label>
-            <select
-              value={filters.region}
-              onChange={e => handleFilterChange('region', e.target.value)}
-              className="rounded-lg border border-brand-border bg-brand-surface px-2.5 py-1.5 text-xs text-brand-text-primary focus:outline-none cursor-pointer"
-            >
-              {regionOptions.map(r => <option key={r} value={r}>{r === 'all' ? 'All Regions' : r}</option>)}
-            </select>
-          </div>
-
-          {/* Location */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-semibold text-brand-text-secondary uppercase">Location</label>
-            <select
-              value={filters.location}
-              onChange={e => handleFilterChange('location', e.target.value)}
-              className="rounded-lg border border-brand-border bg-brand-surface px-2.5 py-1.5 text-xs text-brand-text-primary focus:outline-none cursor-pointer"
-            >
-              {locationOptions.map(l => <option key={l} value={l}>{l === 'all' ? 'All Locations' : l}</option>)}
-            </select>
-          </div>
-
-          {/* Business Unit */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-semibold text-brand-text-secondary uppercase">BU</label>
-            <select
-              value={filters.businessUnit}
-              onChange={e => handleFilterChange('businessUnit', e.target.value)}
-              className="rounded-lg border border-brand-border bg-brand-surface px-2.5 py-1.5 text-xs text-brand-text-primary focus:outline-none cursor-pointer"
-            >
-              {buOptions.map(bu => <option key={bu} value={bu}>{bu === 'all' ? 'All BUs' : bu}</option>)}
-            </select>
-          </div>
-
-          {/* Department */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-semibold text-brand-text-secondary uppercase">Department</label>
-            <select
-              value={filters.department}
-              onChange={e => handleFilterChange('department', e.target.value)}
-              className="rounded-lg border border-brand-border bg-brand-surface px-2.5 py-1.5 text-xs text-brand-text-primary focus:outline-none cursor-pointer"
-            >
-              {deptOptions.map(d => <option key={d} value={d}>{d === 'all' ? 'All Depts' : d}</option>)}
-            </select>
-          </div>
-
-          {/* Practice */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-semibold text-brand-text-secondary uppercase">Practice</label>
-            <select
-              value={filters.practice}
-              onChange={e => handleFilterChange('practice', e.target.value)}
-              className="rounded-lg border border-brand-border bg-brand-surface px-2.5 py-1.5 text-xs text-brand-text-primary focus:outline-none cursor-pointer"
-            >
-              {practiceOptions.map(p => <option key={p} value={p}>{p === 'all' ? 'All Practices' : p}</option>)}
-            </select>
-          </div>
-
-          {/* Employee Grade */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-semibold text-brand-text-secondary uppercase">Grade</label>
-            <select
-              value={filters.employeeGrade}
-              onChange={e => handleFilterChange('employeeGrade', e.target.value)}
-              className="rounded-lg border border-brand-border bg-brand-surface px-2.5 py-1.5 text-xs text-brand-text-primary focus:outline-none cursor-pointer"
-            >
-              {gradeOptions.map(g => <option key={g} value={g}>{g === 'all' ? 'All Grades' : g}</option>)}
-            </select>
-          </div>
+        {/* Right Section (40% width - Symmetrical 2x2 Stats Cards Grid) */}
+        <div className="relative z-10 grid grid-cols-2 gap-5 lg:gap-6 w-full lg:w-[40%] shrink-0 min-w-[300px] lg:min-w-[460px]">
+          {[
+            { label: 'Total Learners', val: data?.executiveSummary?.employeesTrained || 120, icon: Users, iconBg: 'bg-blue-400/25 text-blue-200' },
+            { label: 'Completion Rate', val: `${data?.executiveSummary?.learningCoveragePct || 88}%`, icon: Percent, iconBg: 'bg-purple-400/25 text-purple-200' },
+            { label: 'Training Hours', val: `${data?.executiveSummary?.totalLearningHours || 2656} hrs`, icon: Clock, iconBg: 'bg-amber-400/25 text-amber-200' },
+            { label: 'AI Certified', val: data?.executiveSummary?.employeesTrainedInAI || 59, icon: Brain, iconBg: 'bg-emerald-400/25 text-emerald-200' }
+          ].map((stat, idx) => {
+            const Icon = stat.icon;
+            return (
+              <motion.div
+                key={idx}
+                whileHover={{ y: -5, scale: 1.02 }}
+                className="bg-white/12 border border-white/20 backdrop-blur-md rounded-[20px] p-6 lg:p-7 shadow-xl hover:shadow-2xl hover:bg-white/18 transition-all duration-300 flex flex-col justify-between min-h-[135px] lg:min-h-[150px] w-full"
+              >
+                <div className="flex items-center justify-between">
+                  <div className={`h-11 w-11 rounded-2xl flex items-center justify-center ${stat.iconBg} backdrop-blur-md shadow-inner`}>
+                    <Icon className="h-6 w-6 lg:h-7 lg:w-7" />
+                  </div>
+                </div>
+                <div>
+                  <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-purple-100/90 block">{stat.label}</span>
+                  <span className="text-2xl sm:text-3xl font-black text-white block mt-1 tracking-tight">{stat.val}</span>
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
 
-      {/* ── Tabs Navigation ── */}
-      <div className="mb-6 flex flex-wrap gap-1 border-b border-brand-border pb-px select-none">
+      {/* ── Dynamic Filters Toolbar ── */}
+      <div className="mb-8 rounded-3xl border border-[#E5E7EB] dark:border-[#334155] bg-white dark:bg-[#1E293B] p-7 shadow-sm text-slate-800 dark:text-[#F8FAFC] transition-colors duration-300">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-5 border-b border-slate-100 dark:border-[#334155] pb-3 select-none">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-[#8B5CF6]" />
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-[#F8FAFC]">Organizational Filters</span>
+          </div>
+          
+          {/* Action buttons inside filter card header */}
+          <div className="flex gap-2.5 shrink-0">
+            <button
+              onClick={handleExportCSV}
+              className="flex items-center gap-2 rounded-xl border border-slate-250 dark:border-[#334155] bg-white dark:bg-[#111827] px-4 py-2.5 text-xs font-semibold text-slate-600 dark:text-[#CBD5E1] hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
+            >
+              <Download className="h-4 w-4 mr-1.5" /> Export Report
+            </button>
+            <Link to="/admin/courses/new">
+              <motion.button
+                whileHover={{ y: -2, scale: 1.02 }}
+                className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#9333EA] px-4 py-2.5 text-xs font-bold text-white shadow-md hover:shadow-purple-500/25 transition-all cursor-pointer border-0"
+              >
+                <Plus className="h-4 w-4" /> Add Course
+              </motion.button>
+            </Link>
+          </div>
+        </div>
+        
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
+          {[
+            { label: 'Year', val: filters.year, opts: yearOptions, key: 'year' },
+            { label: 'Quarter', val: filters.quarter, opts: quarterOptions, key: 'quarter', isObj: true },
+            { label: 'Region', val: filters.region, opts: regionOptions, key: 'region' },
+            { label: 'Location', val: filters.location, opts: locationOptions, key: 'location' },
+            { label: 'Department', val: filters.department, opts: deptOptions, key: 'department' },
+            { label: 'Practice', val: filters.practice, opts: practiceOptions, key: 'practice' },
+            { label: 'Grade', val: filters.employeeGrade, opts: gradeOptions, key: 'employeeGrade' }
+          ].map((f, i) => (
+            <div key={i} className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold text-slate-400 dark:text-[#CBD5E1] uppercase tracking-wider">{f.label}</label>
+              <select
+                value={f.val}
+                onChange={e => handleFilterChange(f.key, e.target.value)}
+                className="w-full h-[52px] rounded-xl border border-slate-200 dark:border-[#334155] bg-slate-50 dark:bg-[#0B1120] px-3.5 text-xs text-slate-800 dark:text-[#F8FAFC] focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] hover:border-[#8B5CF6] transition-all duration-200 outline-none cursor-pointer"
+              >
+                {f.opts.map(o => (
+                  <option key={f.isObj ? o.value : o} value={f.isObj ? o.value : o} className="dark:bg-[#1E293B] dark:text-[#F8FAFC]">
+                    {f.isObj ? o.label : (o === 'all' ? `All ${f.label}s` : o)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Premium Navigation Tabs ── */}
+      <div className="mb-8 flex flex-wrap gap-5 lg:gap-6 border-b border-slate-200 dark:border-[#334155] pb-3 select-none">
         {[
           { id: 'summary', label: 'Executive Summary', icon: BarChart2 },
           { id: 'coverage', label: 'Learning Coverage', icon: Users },
@@ -354,14 +353,20 @@ export default function Dashboard() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-xs font-semibold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-full transition-all cursor-pointer relative ${
                 active
-                  ? 'border-[#01ac9f] text-[#01ac9f]'
-                  : 'border-transparent text-brand-text-secondary hover:text-brand-text-primary'
+                  ? 'bg-[#6D28D9]/15 text-[#7C3AED] dark:bg-purple-950/60 dark:text-purple-300'
+                  : 'text-slate-500 dark:text-[#CBD5E1] hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-[#F8FAFC]'
               }`}
             >
-              <Icon className="h-3.5 w-3.5" />
+              <Icon className="h-4 w-4" />
               {tab.label}
+              {active && (
+                <motion.div
+                  layoutId="activeTabUnderline"
+                  className="absolute bottom-[-13px] left-0 right-0 h-[3px] bg-gradient-to-r from-[#7C3AED] to-[#9333EA] rounded-full"
+                />
+              )}
             </button>
           );
         })}
@@ -370,97 +375,342 @@ export default function Dashboard() {
       {/* ── Content View ── */}
       {loading ? (
         <div className="flex py-20 justify-center items-center">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#01ac9f] border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-3 border-[#6D28D9] border-t-transparent" />
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-8 animate-fade-in">
           {/* TAB 1: EXECUTIVE SUMMARY */}
           {activeTab === 'summary' && (
-            <div className="space-y-6 animate-fade-in">
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm">
-                  <div className="flex justify-between items-start text-brand-text-secondary">
-                    <span className="text-xs font-bold uppercase">Learning Reach</span>
-                    <Users className="h-5 w-5 text-blue-500" />
-                  </div>
-                  <h2 className="text-2xl font-extrabold text-brand-text-primary mt-2">
-                    {data.executiveSummary.employeesTrained} / {data.executiveSummary.totalEmployees}
-                  </h2>
-                  <p className="text-[11px] text-brand-text-secondary mt-1">Employees Trained (Coverage: {data.executiveSummary.learningCoveragePct}%)</p>
-                </div>
-
-                <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm">
-                  <div className="flex justify-between items-start text-brand-text-secondary">
-                    <span className="text-xs font-bold uppercase">Total Learning Hours</span>
-                    <Clock className="h-5 w-5 text-amber-500" />
-                  </div>
-                  <h2 className="text-2xl font-extrabold text-brand-text-primary mt-2">
-                    {data.executiveSummary.totalLearningHours} hrs
-                  </h2>
-                  <p className="text-[11px] text-brand-text-secondary mt-1">
-                    Avg {data.executiveSummary.avgHoursPerSession} hrs across {data.executiveSummary.totalSessionsConducted} sessions
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm">
-                  <div className="flex justify-between items-start text-brand-text-secondary">
-                    <span className="text-xs font-bold uppercase">AI readiness funnel</span>
-                    <Brain className="h-5 w-5 text-[#84117C]" />
-                  </div>
-                  <h2 className="text-2xl font-extrabold text-brand-text-primary mt-2">
-                    {data.executiveSummary.employeesTrainedInAI} Trained
-                  </h2>
-                  <p className="text-[11px] text-brand-text-secondary mt-1">
-                    {data.executiveSummary.aiCertificationsAchieved} AI Certs ({data.executiveSummary.aiLearningHours} AI Hours)
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm">
-                  <div className="flex justify-between items-start text-brand-text-secondary">
-                    <span className="text-xs font-bold uppercase">Average Feedback</span>
-                    <CheckCircle className="h-5 w-5 text-[#01ac9f]" />
-                  </div>
-                  <h2 className="text-2xl font-extrabold text-brand-text-primary mt-2">
-                    {data.executiveSummary.avgFeedbackRating} / 5.0
-                  </h2>
-                  <p className="text-[11px] text-brand-text-secondary mt-1">
-                    {data.executiveSummary.recommendationPct}% Recommendation score
-                  </p>
-                </div>
+            <div className="space-y-8 animate-fade-in text-slate-805 dark:text-slate-100 select-none">
+              
+              {/* 10 Key Metrics Cards Grid */}
+              <div className="grid gap-5 grid-cols-2 md:grid-cols-5">
+                {[
+                  { label: 'Total Users', val: '135', icon: Users, color: 'bg-blue-500/10 text-blue-500' },
+                  { label: 'Active Students', val: data?.executiveSummary?.employeesTrained || '120', icon: UserPlus, color: 'bg-emerald-500/10 text-emerald-500' },
+                  { label: 'Active Admins', val: '5', icon: Shield, color: 'bg-indigo-500/10 text-indigo-500' },
+                  { label: 'Total Courses', val: '12', icon: BookOpen, color: 'bg-purple-500/10 text-purple-500' },
+                  { label: 'Published Courses', val: '9', icon: CheckCircle, color: 'bg-teal-500/10 text-teal-500' },
+                  { label: 'Draft Courses', val: '3', icon: FolderOpen, color: 'bg-amber-500/10 text-amber-500' },
+                  { label: 'Total Assessments', val: '24', icon: ClipboardList, color: 'bg-cyan-500/10 text-cyan-500' },
+                  { label: 'Certificates Issued', val: data?.executiveSummary?.totalCertificationsCompleted || '45', icon: Award, color: 'bg-violet-500/10 text-violet-500' },
+                  { label: 'Learning Hours', val: `${data?.executiveSummary?.totalLearningHours || 2656}h`, icon: Clock, color: 'bg-orange-500/10 text-orange-500' },
+                  { label: 'Completion Rate', val: `${data?.executiveSummary?.learningCoveragePct || 88}%`, icon: Percent, color: 'bg-rose-500/10 text-rose-500' }
+                ].map((stat, idx) => {
+                  const Icon = stat.icon;
+                  return (
+                    <motion.div
+                      key={idx}
+                      whileHover={{ y: -6, scale: 1.02 }}
+                      className="rounded-2xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] p-5 shadow-sm hover:shadow-xl transition-all duration-300 flex items-center gap-4.5"
+                    >
+                      <div className={`p-3 rounded-xl ${stat.color} shrink-0`}>
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-[#CBD5E1] block truncate">{stat.label}</span>
+                        <span className="text-xl lg:text-2xl font-extrabold tracking-tight mt-0.5 block truncate text-slate-900 dark:text-[#F8FAFC]">{stat.val}</span>
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </div>
 
-              {/* Quick Summary list */}
-              <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm">
-                <h3 className="text-sm font-bold text-brand-text-primary mb-4">Summary Dashboard Overview</h3>
-                <div className="grid gap-6 md:grid-cols-3 text-xs text-brand-text-secondary">
-                  <div className="space-y-2 border-r border-brand-border pr-4">
-                    <p className="font-semibold text-brand-text-primary">Reach & Delivery</p>
-                    <p>Total Nominations: <strong>{data.executiveSummary.totalNominations}</strong></p>
-                    <p>Attendees Trained: <strong>{data.executiveSummary.totalAttendees}</strong></p>
-                    <p>Sessions Conducted: <strong>{data.executiveSummary.totalSessionsConducted}</strong></p>
+              {/* Main Dashboard Widget Layout */}
+              <div className="grid gap-8 lg:grid-cols-12">
+                
+                {/* Left Column (8 / 12) */}
+                <div className="lg:col-span-8 space-y-8">
+                  
+                  {/* Visual Charts section */}
+                  <div className="grid gap-6 md:grid-cols-2">
+                    {/* Monthly Enrollments */}
+                    <div className="rounded-3xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] p-6 shadow-sm">
+                      <div className="flex justify-between items-center mb-4">
+                        <h4 className="text-sm font-bold text-slate-800 dark:text-[#F8FAFC]">Monthly Enrollments</h4>
+                        <span className="text-[10px] bg-purple-100 dark:bg-purple-950/80 text-purple-600 dark:text-purple-300 font-bold px-2 py-0.5 rounded-full">+24% YoY</span>
+                      </div>
+                      {/* CSS SVG Bar Chart */}
+                      <div className="h-44 w-full flex items-end justify-between pt-4 pb-2 px-1">
+                        {[
+                          { m: 'Jan', val: 32 },
+                          { m: 'Feb', val: 45 },
+                          { m: 'Mar', val: 56 },
+                          { m: 'Apr', val: 78 },
+                          { m: 'May', val: 92 },
+                          { m: 'Jun', val: 120 }
+                        ].map((bar, i) => (
+                          <div key={i} className="flex flex-col items-center flex-1 gap-2">
+                            <div className="w-8 rounded-t bg-gradient-to-t from-purple-600 to-indigo-500 hover:opacity-85 transition-all relative group" style={{ height: `${(bar.val / 120) * 110}px` }}>
+                              <span className="absolute top-[-26px] left-1/2 -translate-x-1/2 bg-slate-850 dark:bg-[#0B1120] text-white text-[9px] font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 shadow-sm">{bar.val}</span>
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-400 dark:text-[#CBD5E1]">{bar.m}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* User Growth */}
+                    <div className="rounded-3xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] p-6 shadow-sm">
+                      <div className="flex justify-between items-center mb-4">
+                        <h4 className="text-sm font-bold text-slate-800 dark:text-[#F8FAFC]">User Growth Trend</h4>
+                        <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-full">MoM Growth</span>
+                      </div>
+                      {/* SVG Line Graph */}
+                      <div className="h-44 w-full relative pt-4">
+                        <svg className="w-full h-32" viewBox="0 0 300 100" preserveAspectRatio="none">
+                          <defs>
+                            <linearGradient id="growthGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#10B981" stopOpacity="0.2" />
+                              <stop offset="100%" stopColor="#10B981" stopOpacity="0.0" />
+                            </linearGradient>
+                          </defs>
+                          <path d="M0,80 Q50,60 100,50 T200,30 T300,10" fill="none" stroke="#10B981" strokeWidth="3" />
+                          <path d="M0,80 Q50,60 100,50 T200,30 T300,10 L300,100 L0,100 Z" fill="url(#growthGrad)" />
+                        </svg>
+                        <div className="flex justify-between text-[10px] font-bold text-slate-400 dark:text-[#CBD5E1] mt-2">
+                          <span>Jan</span>
+                          <span>Mar</span>
+                          <span>May</span>
+                          <span>Jun</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-2 border-r border-brand-border pr-4">
-                    <p className="font-semibold text-brand-text-primary">Certifications Status</p>
-                    <p>Total Completed: <strong>{data.executiveSummary.totalCertificationsCompleted}</strong></p>
-                    <p>Zoho Approved: <strong>{data.executiveSummary.totalCertificationsCompleted}</strong></p>
-                    <p>Estimated Growth: <strong className="text-green-500">+{data.executiveSummary.certificationGrowthPct}% MoM</strong></p>
+
+                  {/* AI Learning Analytics */}
+                  <div className="rounded-3xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] p-6 shadow-sm">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Brain className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                      <h4 className="text-sm font-bold text-slate-800 dark:text-[#F8FAFC]">AI Learning Analytics & Index</h4>
+                    </div>
+                    <div className="grid gap-6 md:grid-cols-3 text-xs">
+                      <div className="bg-slate-50 dark:bg-[#111827] p-4 rounded-2xl border border-slate-100 dark:border-[#334155]">
+                        <p className="font-semibold text-slate-450 dark:text-[#CBD5E1] uppercase tracking-wider text-[10px]">AI Readiness Index</p>
+                        <p className="text-2xl font-extrabold text-purple-600 dark:text-purple-400 mt-1">{data?.executiveSummary?.learningCoveragePct || 88}%</p>
+                        <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
+                          <div className="bg-purple-600 h-full" style={{ width: `${data?.executiveSummary?.learningCoveragePct || 88}%` }} />
+                        </div>
+                      </div>
+                      <div className="bg-slate-50 dark:bg-[#111827] p-4 rounded-2xl border border-slate-100 dark:border-[#334155]">
+                        <p className="font-semibold text-slate-450 dark:text-[#CBD5E1] uppercase tracking-wider text-[10px]">AI Certifications</p>
+                        <p className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">{data?.executiveSummary?.employeesTrainedInAI || 59} Certs</p>
+                        <p className="text-[10px] text-slate-400 dark:text-[#CBD5E1]/70 mt-2 font-medium">92% Completion success rate</p>
+                      </div>
+                      <div className="bg-slate-50 dark:bg-[#111827] p-4 rounded-2xl border border-slate-100 dark:border-[#334155]">
+                        <p className="font-semibold text-slate-450 dark:text-[#CBD5E1] uppercase tracking-wider text-[10px]">GenAI Copilot Activity</p>
+                        <p className="text-2xl font-extrabold text-blue-600 dark:text-blue-400 mt-1">94.8% Active</p>
+                        <p className="text-[10px] text-slate-400 dark:text-[#CBD5E1]/70 mt-2 font-medium">Active coding companion sessions</p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <p className="font-semibold text-brand-text-primary">Satisfaction Metrics</p>
-                    <p>Training Satisfaction: <strong>{data.executiveSummary.trainingSatisfactionScore}%</strong></p>
-                    <p>Recommendation Index: <strong>{data.executiveSummary.recommendationPct}%</strong></p>
-                    <p>Avg Rating Score: <strong>{data.executiveSummary.avgFeedbackRating} / 5</strong></p>
+
+                  {/* Recent Activities */}
+                  <div className="rounded-3xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] p-6 shadow-sm">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Activity className="h-5 w-5 text-indigo-500 dark:text-indigo-400" />
+                      <h4 className="text-sm font-bold text-slate-800 dark:text-[#F8FAFC]">Recent Activities Feed</h4>
+                    </div>
+                    <div className="space-y-4">
+                      {[
+                        { text: 'Rohit Vaishnav registered as a new student', time: '10 mins ago', badge: 'User' },
+                        { text: 'Dr. Sarah Chen updated Course Module: Cloud Native Deployments', time: '1 hour ago', badge: 'Course' },
+                        { text: 'Priya Sharma created assessment: Terraform Automation Basics', time: '3 hours ago', badge: 'Assessment' },
+                        { text: 'User Rohit completed certification: AI Foundation Program', time: '5 hours ago', badge: 'Certificate' }
+                      ].map((act, idx) => (
+                        <div key={act.time} className="flex justify-between items-start gap-4 text-xs border-b border-slate-100 dark:border-[#334155] last:border-0 pb-3 last:pb-0">
+                          <div className="flex gap-2.5 items-center">
+                            <span className="h-1.5 w-1.5 rounded-full bg-brand-primary shrink-0" />
+                            <p className="font-medium text-slate-700 dark:text-[#F8FAFC]">{act.text}</p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <span className="text-[10px] font-semibold text-slate-400 dark:text-[#CBD5E1] block">{act.time}</span>
+                            <span className="inline-block text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-[#111827] text-slate-500 dark:text-[#CBD5E1] mt-1 uppercase">{act.badge}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
+
+                  {/* Top Performers Grid */}
+                  <div className="grid gap-6 md:grid-cols-2">
+                    {/* Top Performing Courses */}
+                    <div className="rounded-3xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] p-6 shadow-sm">
+                      <h4 className="text-sm font-bold text-slate-800 dark:text-[#F8FAFC] mb-4">Top Performing Courses</h4>
+                      <div className="space-y-3">
+                        {[
+                          { title: 'Docker & Kubernetes Basics', coverage: 95 },
+                          { title: 'Spring Boot & Microservices', coverage: 91 },
+                          { title: 'Next.js 14 Enterprise Masterclass', coverage: 88 }
+                        ].map((c, i) => (
+                          <div key={c.title} className="text-xs space-y-1.5">
+                            <div className="flex justify-between font-semibold">
+                              <span className="truncate pr-4 text-slate-800 dark:text-[#F8FAFC]">{c.title}</span>
+                              <span className="text-emerald-500 font-bold shrink-0">{c.coverage}%</span>
+                            </div>
+                            <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                              <div className="bg-emerald-500 h-full" style={{ width: `${c.coverage}%` }} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Top Trainers */}
+                    <div className="rounded-3xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] p-6 shadow-sm">
+                      <h4 className="text-sm font-bold text-slate-800 dark:text-[#F8FAFC] mb-4">Top Instructors</h4>
+                      <div className="space-y-3.5">
+                        {[
+                          { name: 'Dr. Sarah Chen', dept: 'Cloud & DevOps', score: '4.9' },
+                          { name: 'Dr. Priya Sharma', dept: 'Data & AI', score: '4.8' },
+                          { name: 'Prof. James Wilson', dept: 'Enterprise Java', score: '4.7' }
+                        ].map((t, i) => (
+                          <div key={t.name} className="flex justify-between items-center text-xs border-b border-slate-50 dark:border-[#334155] pb-2 last:border-0 last:pb-0">
+                            <div>
+                              <p className="font-bold text-slate-800 dark:text-[#F8FAFC]">{t.name}</p>
+                              <p className="text-[10px] text-slate-400 dark:text-[#CBD5E1] font-medium">{t.dept}</p>
+                            </div>
+                            <span className="font-black text-xs text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50 px-2.5 py-1 rounded-full">⭐ {t.score}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
+
+                {/* Right Column (4 / 12) */}
+                <div className="lg:col-span-4 space-y-8">
+                  
+                  {/* Quick Actions Panel */}
+                  <div className="rounded-3xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] p-6 shadow-sm">
+                    <h4 className="text-sm font-bold text-slate-800 dark:text-[#F8FAFC] mb-4">Quick Actions Panel</h4>
+                    <div className="flex flex-col gap-2.5">
+                      <Link to="/admin/courses/new" className="w-full">
+                        <Button className="w-full justify-start text-left text-xs py-3 rounded-xl cursor-pointer">
+                          <Plus className="h-4 w-4 mr-2" /> Add Course
+                        </Button>
+                      </Link>
+                      <button
+                        onClick={() => showToast('Add User opened', 'info')}
+                        className="w-full flex items-center gap-2 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#111827] px-4 py-3 text-xs font-bold text-slate-705 dark:text-[#F8FAFC] hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer text-left"
+                      >
+                        <UserPlus className="h-4 w-4 text-purple-500 mr-1" /> Add User
+                      </button>
+                      <button
+                        onClick={() => showToast('Create Assessment opened', 'info')}
+                        className="w-full flex items-center gap-2 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#111827] px-4 py-3 text-xs font-bold text-slate-705 dark:text-[#F8FAFC] hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer text-left"
+                      >
+                        <ClipboardList className="h-4 w-4 text-emerald-500 mr-1" /> Create Assessment
+                      </button>
+                      <button
+                        onClick={handleExportCSV}
+                        className="w-full flex items-center gap-2 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#111827] px-4 py-3 text-xs font-bold text-slate-705 dark:text-[#F8FAFC] hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer text-left"
+                      >
+                        <FileText className="h-4 w-4 text-blue-500 mr-1" /> Generate Report
+                      </button>
+                      <button
+                        onClick={() => showToast('Publish Certificate opened', 'info')}
+                        className="w-full flex items-center gap-2 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#111827] px-4 py-3 text-xs font-bold text-slate-705 dark:text-[#F8FAFC] hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer text-left"
+                      >
+                        <Award className="h-4 w-4 text-amber-500 mr-1" /> Publish Certificate
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Latest Course Uploads */}
+                  <div className="rounded-3xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] p-6 shadow-sm">
+                    <h4 className="text-sm font-bold text-slate-800 dark:text-[#F8FAFC] mb-4">Latest Course Uploads</h4>
+                    <div className="space-y-4">
+                      {[
+                        { title: 'Kubernetes Deep Dive', bu: 'Cloud & Infra', files: '12 submodules' },
+                        { title: 'Advanced React Architecture', bu: 'Digital BU', files: '8 submodules' },
+                        { title: 'Introduction to GenAI', bu: 'Data & AI BU', files: '6 submodules' }
+                      ].map((c, i) => (
+                        <div key={c.title} className="text-xs flex gap-3 items-center justify-between border-b border-slate-50 dark:border-[#334155] pb-2 last:border-0 last:pb-0">
+                          <div>
+                            <p className="font-bold text-slate-800 dark:text-[#F8FAFC]">{c.title}</p>
+                            <p className="text-[10px] text-slate-400 dark:text-[#CBD5E1] font-medium">{c.bu} · {c.files}</p>
+                          </div>
+                          <Play className="h-4 w-4 text-purple-500 shrink-0" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Recent Student Registrations */}
+                  <div className="rounded-3xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] p-6 shadow-sm">
+                    <h4 className="text-sm font-bold text-slate-800 dark:text-[#F8FAFC] mb-4">Recent Student Registrations</h4>
+                    <div className="space-y-3.5">
+                      {[
+                        { name: 'Rohit Vaishnav', practice: 'Java Development', badge: 'Online' },
+                        { name: 'Nisha Sharma', practice: 'GenAI Technologies', badge: 'Online' },
+                        { name: 'Kirti Verma', practice: 'Security Services', badge: 'Offline' }
+                      ].map((std, i) => (
+                        <div key={std.name} className="flex justify-between items-center text-xs">
+                          <div>
+                            <p className="font-bold text-slate-800 dark:text-[#F8FAFC]">{std.name}</p>
+                            <p className="text-[10px] text-slate-400 dark:text-[#CBD5E1] font-medium">{std.practice}</p>
+                          </div>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded ${std.badge === 'Online' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-[#CBD5E1]'}`}>{std.badge}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Pending Approvals */}
+                  <div className="rounded-3xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] p-6 shadow-sm">
+                    <h4 className="text-sm font-bold text-slate-800 dark:text-[#F8FAFC] mb-4">Pending Approvals</h4>
+                    <div className="space-y-3 text-xs">
+                      {[
+                        { text: 'AWS Cloud Practitioner certification request', desc: 'Requested by Rohit Vaishnav' },
+                        { text: 'Terraform Advanced course draft publish request', desc: 'Uploaded by Amit Patel' }
+                      ].map((app, i) => (
+                        <div key={app.text} className="p-3 bg-slate-50 dark:bg-[#111827] rounded-xl border border-slate-100 dark:border-[#334155] space-y-1">
+                          <p className="font-semibold text-slate-800 dark:text-[#F8FAFC] leading-tight">{app.text}</p>
+                          <p className="text-[10px] text-slate-400 dark:text-[#CBD5E1] font-medium">{app.desc}</p>
+                          <div className="flex gap-2 pt-1">
+                            <button onClick={() => showToast('Approved successfully', 'success')} className="text-[9px] font-bold text-emerald-500 hover:underline bg-transparent border-0 cursor-pointer">Approve</button>
+                            <button onClick={() => showToast('Declined request', 'warning')} className="text-[9px] font-bold text-red-500 hover:underline bg-transparent border-0 cursor-pointer">Decline</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Upcoming Live Sessions */}
+                  <div className="rounded-3xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] p-6 shadow-sm">
+                    <h4 className="text-sm font-bold text-slate-800 dark:text-[#F8FAFC] mb-4">Upcoming Live Sessions</h4>
+                    <div className="space-y-3.5">
+                      {[
+                        { title: 'Kubernetes Hands-on Workshop', date: 'July 5th, 2:00 PM', host: 'Sarah Chen' },
+                        { title: 'AI & GenAI Integration Q&A Session', date: 'July 8th, 11:00 AM', host: 'Priya Sharma' }
+                      ].map((ses, i) => (
+                        <div key={ses.title} className="text-xs flex gap-3.5 items-start">
+                          <div className="p-2 rounded bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-300 shrink-0 text-center min-w-[40px]">
+                            <Calendar className="h-4 w-4 mx-auto" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-slate-800 dark:text-[#F8FAFC]">{ses.title}</p>
+                            <p className="text-[10px] text-slate-400 dark:text-[#CBD5E1] font-medium">Host: {ses.host} · {ses.date}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                </div>
+
               </div>
+
             </div>
           )}
 
           {/* TAB 2: LEARNING COVERAGE */}
           {activeTab === 'coverage' && (
-            <div className="grid gap-6 md:grid-cols-2 animate-fade-in">
-              <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm space-y-4">
-                <h3 className="text-sm font-bold text-brand-text-primary">Coverage by Region & Location</h3>
+            <div className="grid gap-6 md:grid-cols-2 animate-fade-in text-slate-805 dark:text-[#F8FAFC]">
+              <div className="rounded-2xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] p-6 shadow-sm space-y-4">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-[#F8FAFC]">Coverage by Region & Location</h3>
                 <div className="space-y-3">
                   {Object.entries(data.learningCoverage.locationCoverage).map(([loc, val]) => (
                     <div key={loc} className="space-y-1">
@@ -468,16 +718,16 @@ export default function Dashboard() {
                         <span>{loc} location</span>
                         <span>{val}%</span>
                       </div>
-                      <div className="h-2 w-full rounded-full bg-brand-surface overflow-hidden">
-                        <div className="h-full" style={{ width: `${val}%`, background: 'linear-gradient(90deg, var(--brand-secondary), var(--brand-success))' }} />
+                      <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                        <div className="h-full" style={{ width: `${val}%`, background: 'linear-gradient(90deg, #7C3AED, #10B981)' }} />
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="rounded-xl border border-brand-border bg-brand-background p-5 shadow-sm space-y-4">
-                <h3 className="text-sm font-bold text-brand-text-primary">Coverage by Employee Grade & BU</h3>
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-4">
+                <h3 className="text-sm font-bold">Coverage by Employee Grade & BU</h3>
                 <div className="space-y-3">
                   {Object.entries(data.learningCoverage.gradeCoverage).map(([grade, val]) => (
                     <div key={grade} className="space-y-1">
@@ -485,20 +735,20 @@ export default function Dashboard() {
                         <span>Grade {grade}</span>
                         <span>{val}%</span>
                       </div>
-                      <div className="h-2 w-full rounded-full bg-brand-surface overflow-hidden">
-                        <div className="h-full" style={{ width: `${val}%`, background: 'linear-gradient(90deg, var(--accent-purple), var(--brand-primary))' }} />
+                      <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                        <div className="h-full" style={{ width: `${val}%`, background: 'linear-gradient(90deg, #8B5CF6, #6D28D9)' }} />
                       </div>
                     </div>
                   ))}
-                  <div className="border-t border-brand-border/60 my-4 pt-3" />
+                  <div className="border-t border-slate-100 dark:border-slate-800 my-4 pt-3" />
                   {Object.entries(data.learningCoverage.businessUnitCoverage).map(([bu, val]) => (
                     <div key={bu} className="space-y-1">
                       <div className="flex justify-between text-xs font-semibold">
                         <span>BU: {bu}</span>
                         <span>{val}%</span>
                       </div>
-                      <div className="h-2 w-full rounded-full bg-brand-surface overflow-hidden">
-                        <div className="h-full bg-[#01ac9f]" style={{ width: `${val}%` }} />
+                      <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                        <div className="h-full bg-[#10B981]" style={{ width: `${val}%` }} />
                       </div>
                     </div>
                   ))}

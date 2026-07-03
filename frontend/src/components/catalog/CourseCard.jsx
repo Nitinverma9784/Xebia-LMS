@@ -58,36 +58,35 @@ export default function CourseCard({ course, categoryName, categoryColor = '#6c1
 
   return (
     <motion.div
-      whileHover={{ y: -3 }}
+      whileHover={{ y: -4, scale: 1.01 }}
+      transition={{ duration: 0.25 }}
       onClick={handleCardClick}
-      className="group flex flex-col overflow-hidden rounded-xl border bg-brand-background border-brand-border h-full shadow-sm hover:shadow-md transition-all cursor-pointer relative"
+      className="group flex flex-col justify-between overflow-hidden rounded-[20px] border bg-white dark:bg-[#1E293B] border-slate-200 dark:border-[#334155] h-full min-h-[390px] shadow-sm hover:shadow-xl hover:shadow-purple-900/10 transition-all duration-300 cursor-pointer relative select-none"
     >
       {/* Thumbnail */}
-      <div className="relative block overflow-hidden" style={{ aspectRatio: '16/9', backgroundColor: 'var(--brand-muted)' }}>
+      <div className="relative block overflow-hidden aspect-video bg-slate-100 dark:bg-slate-800 shrink-0">
         {course.thumbnail ? (
           <img
             src={course.thumbnail}
             alt={course.title}
-            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-            style={{ aspectRatio: '16/9' }}
+            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300 aspect-video"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-brand-surface text-brand-text-secondary text-xs font-semibold">
+          <div className="flex h-full w-full items-center justify-center text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider">
             No Thumbnail
           </div>
         )}
         {/* Featured star */}
         {(course.isFeatured || isPublished) && (
           <div
-            className="absolute top-3 right-3 flex h-7 w-7 items-center justify-center rounded-full text-sm shadow-md"
-            style={{ backgroundColor: 'var(--brand-cta)' }}
+            className="absolute top-3 right-3 flex h-7 w-7 items-center justify-center rounded-full text-xs shadow-md bg-amber-400 text-amber-950 font-bold"
           >
             ⭐
           </div>
         )}
         {/* Tech icon bottom left */}
         <div
-          className="absolute bottom-3 left-3 flex h-8 w-8 items-center justify-center rounded-lg border bg-brand-background border-brand-border text-base shadow-sm overflow-hidden"
+          className="absolute bottom-3 left-3 flex h-8 w-8 items-center justify-center rounded-xl border border-white/20 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md text-sm shadow-sm overflow-hidden"
         >
           {(() => {
             const logoVal = course.logo || course.icon || '';
@@ -105,67 +104,69 @@ export default function CourseCard({ course, categoryName, categoryColor = '#6c1
       </div>
 
       {/* Card body */}
-      <div className="flex flex-1 flex-col gap-2 p-3">
-        {/* Category + level tags */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span
-            className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
-            style={{ backgroundColor: `${categoryColor}18`, color: categoryColor }}
-          >
-            {categoryName}
-          </span>
-          <span
-            className="rounded-full px-2 py-0.5 text-[10px] font-semibold text-white"
-            style={{ backgroundColor: categoryColor }}
-          >
-            {course.difficulty || 'Intermediate'}
-          </span>
-        </div>
-
-        {/* Title */}
-        <div>
-          <h3 className="text-sm font-bold leading-snug text-brand-text-primary hover:underline truncate">
-            {course.title}
-          </h3>
-        </div>
-
-        {/* Instructor */}
-        <div className="flex items-center gap-1 text-[11px] text-brand-text-secondary">
-          <User className="h-3 w-3 text-brand-text-secondary" />
-          <span>Instructor: <strong className="text-brand-text-primary font-semibold">{course.author || 'Xebia Academy'}</strong></span>
-        </div>
-
-        <div className="border-t border-brand-border" />
-
-        {/* Meta stats & last updated */}
-        <div className="flex flex-col gap-1 text-[11px] text-brand-text-secondary">
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1">
-              <Globe className="h-3 w-3" />
-              {course.language || 'English'}
+      <div className="flex flex-1 flex-col justify-between gap-3 p-5">
+        <div className="space-y-2.5">
+          {/* Category + level tags */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className="rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wide"
+              style={{ backgroundColor: `${categoryColor}18`, color: categoryColor }}
+            >
+              {categoryName}
             </span>
-            <span className="flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              {course.duration || '—'}
+            <span
+              className="rounded-full px-2.5 py-0.5 text-[10px] font-bold text-white tracking-wide"
+              style={{ backgroundColor: categoryColor }}
+            >
+              {course.difficulty || 'Intermediate'}
             </span>
           </div>
-          <div className="flex items-center gap-3 mt-0.5">
-            <span className="font-semibold text-brand-primary">
-              📦 {stats.moduleCount} Modules
-            </span>
-            <span className="font-semibold text-accent-teal">
-              📑 {stats.submoduleCount} Submodules
-            </span>
+
+          {/* Title */}
+          <div>
+            <h3 className="text-sm font-extrabold leading-snug text-slate-900 dark:text-[#F8FAFC] tracking-tight line-clamp-2 min-h-[40px]">
+              {course.title}
+            </h3>
           </div>
-          <div className="flex items-center gap-1 mt-0.5 text-[10px] text-brand-text-secondary/85">
-            <Calendar className="h-3 w-3" />
-            <span>Updated: {formatDate(course.updatedAt)}</span>
+
+          {/* Instructor */}
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-[#CBD5E1]">
+            <User className="h-3.5 w-3.5 text-purple-500 shrink-0" />
+            <span>Instructor: <strong className="text-slate-800 dark:text-[#F8FAFC] font-semibold">{course.author || 'Xebia Academy'}</strong></span>
+          </div>
+
+          <div className="border-t border-slate-100 dark:border-[#334155] pt-2" />
+
+          {/* Meta stats & last updated */}
+          <div className="flex flex-col gap-1 text-xs text-slate-500 dark:text-[#CBD5E1]">
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-1">
+                <Globe className="h-3 w-3 text-slate-400" />
+                {course.language || 'English'}
+              </span>
+              <span className="flex items-center gap-1">
+                <Clock className="h-3 w-3 text-slate-400" />
+                {course.duration || '—'}
+              </span>
+            </div>
+            <div className="flex items-center gap-3 mt-1">
+              <span className="font-bold text-purple-600 dark:text-purple-400">
+                📦 {stats.moduleCount} Modules
+              </span>
+              <span className="font-bold text-teal-600 dark:text-teal-400">
+                📑 {stats.submoduleCount} Lessons
+              </span>
+            </div>
+            <div className="flex items-center gap-1 mt-1 text-[10px] font-medium text-slate-400 dark:text-[#CBD5E1]">
+              <Calendar className="h-3 w-3" />
+              <span>Updated: {formatDate(course.updatedAt)}</span>
+            </div>
           </div>
         </div>
 
         {/* Status pills + dropdown menu */}
-        <div className="mt-auto flex items-center justify-between pt-1.5">
-          <div className="flex flex-wrap gap-1">
+        <div className="flex items-center justify-between border-t border-slate-100 dark:border-[#334155] pt-3 mt-2">
+          <div className="flex flex-wrap gap-1.5">
             <StatusPill color={isActive ? 'active' : 'inactive'}>
               {isActive ? 'Active' : 'Inactive'}
             </StatusPill>
@@ -179,43 +180,43 @@ export default function CourseCard({ course, categoryName, categoryColor = '#6c1
             <button
               type="button"
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowMenu(!showMenu); }}
-              className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-brand-surface dark:hover:bg-slate-800 transition-colors cursor-pointer border border-brand-border/40"
-              title="Actions"
+              className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 dark:border-[#334155] bg-slate-50 dark:bg-[#0B1120] hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              title="Course Actions"
             >
-              <MoreVertical className="h-3.5 w-3.5 text-brand-text-secondary" />
+              <MoreVertical className="h-4 w-4 text-slate-600 dark:text-[#CBD5E1]" />
             </button>
             {showMenu && (
-              <div className="absolute right-0 bottom-full mb-1.5 z-30 w-44 rounded-lg border border-brand-border bg-white p-1 shadow-lg dark:border-slate-800 dark:bg-slate-900">
+              <div className="absolute right-0 bottom-full mb-1.5 z-30 w-48 rounded-2xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] p-1.5 shadow-xl select-none">
                 <button
                   type="button"
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowMenu(false); onEdit(course); }}
-                  className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-brand-text-primary hover:bg-brand-surface dark:hover:bg-slate-800 cursor-pointer"
+                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-bold text-slate-700 dark:text-[#F8FAFC] hover:bg-purple-50 dark:hover:bg-purple-950/50 cursor-pointer"
                 >
-                  <Pencil className="h-3.5 w-3.5 text-brand-primary" /> Edit Settings
+                  <Pencil className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" /> Edit Settings
                 </button>
                 <button
                   type="button"
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowMenu(false); navigate(targetUrl); }}
-                  className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-brand-text-primary hover:bg-brand-surface dark:hover:bg-slate-800 cursor-pointer"
+                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-bold text-slate-700 dark:text-[#F8FAFC] hover:bg-purple-50 dark:hover:bg-purple-950/50 cursor-pointer"
                 >
-                  📖 Open Course
+                  📖 Open Builder
                 </button>
                 {onDuplicate && (
                   <button
                     type="button"
                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowMenu(false); onDuplicate(course); }}
-                    className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-brand-text-primary hover:bg-brand-surface dark:hover:bg-slate-800 cursor-pointer"
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-bold text-slate-700 dark:text-[#F8FAFC] hover:bg-purple-50 dark:hover:bg-purple-950/50 cursor-pointer"
                   >
                     👥 Duplicate Course
                   </button>
                 )}
-                <div className="h-px bg-brand-border dark:bg-slate-800 my-1" />
+                <div className="h-px bg-slate-100 dark:bg-[#334155] my-1" />
                 <button
                   type="button"
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowMenu(false); onDelete(course); }}
-                  className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 cursor-pointer"
+                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer"
                 >
-                  <Trash2 className="h-3.5 w-3.5" /> Delete / Archive
+                  <Trash2 className="h-3.5 w-3.5" /> Delete Course
                 </button>
               </div>
             )}

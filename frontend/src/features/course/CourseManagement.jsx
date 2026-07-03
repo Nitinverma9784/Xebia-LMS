@@ -12,19 +12,22 @@ import Pagination from '@/components/ui/Pagination';
 import EmptyState from '@/components/ui/EmptyState';
 import { DEFAULT_PAGE_SIZE, DIFFICULTY_LEVELS, COURSE_STATUSES } from '@/constants';
 
+import StatCard from '@/components/ui/StatCard';
+import { BookOpen, CheckCircle, Clock, Tag } from 'lucide-react';
+
 function SelectDropdown({ value, options, onChange }) {
   return (
     <div className="relative">
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="appearance-none cursor-pointer rounded-lg border bg-brand-background border-brand-border py-2.5 pl-3.5 pr-8 text-sm text-brand-text-primary focus:outline-none"
+        className="h-11 appearance-none cursor-pointer rounded-xl border bg-white dark:bg-[#1E293B] border-slate-200 dark:border-[#334155] py-2 pl-4 pr-9 text-xs font-semibold text-slate-800 dark:text-[#F8FAFC] focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all outline-none"
       >
         {options.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
+          <option key={o.value} value={o.value} className="dark:bg-[#1E293B] dark:text-[#F8FAFC]">{o.label}</option>
         ))}
       </select>
-      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-brand-text-secondary" />
+      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400 dark:text-[#CBD5E1]" />
     </div>
   );
 }
@@ -75,8 +78,9 @@ export default function CourseManagement({ categoryId = null }) {
   const getCategoryName  = (id) => categories.find((c) => c.id === id)?.name  || '—';
   const getCategoryColor = (id) => categories.find((c) => c.id === id)?.color || '#6c1d5f';
 
-  const activeCourses   = baseCourses.filter((c) => c.status !== 'archived').length;
+  const activeCourses    = baseCourses.filter((c) => c.status !== 'archived').length;
   const publishedCourses = baseCourses.filter((c) => c.status === 'published').length;
+  const draftCourses     = baseCourses.filter((c) => c.status === 'draft').length;
 
   const handleCreate = () => {
     if (!categories?.length) {
@@ -89,66 +93,52 @@ export default function CourseManagement({ categoryId = null }) {
   if (!hydrated) return null;
 
   return (
-    <div className="flex min-h-screen flex-col bg-brand-surface text-brand-text-primary transition-colors">
+    <div className="flex min-h-screen flex-col bg-[#F8FAFC] dark:bg-[#0B1120] text-slate-800 dark:text-[#F8FAFC] transition-colors duration-300">
       {/* Page header bar */}
-      <div className="flex items-center justify-between px-8 py-4 bg-brand-background border-b border-brand-border">
+      <div className="flex items-center justify-between px-8 py-5 bg-white dark:bg-[#111827] border-b border-slate-200 dark:border-[#334155]">
         <div>
-          <h1 className="text-2xl font-bold text-brand-text-primary">
+          <h1 className="text-2xl font-black text-slate-900 dark:text-[#F8FAFC] tracking-tight">
             {category ? `${category.name} — Courses` : 'All Courses'}
           </h1>
-          <p className="mt-0.5 text-sm text-brand-text-secondary">
-            {category ? `Manage courses under category ${category.name}` : 'Browse and manage all courses on the platform.'}
+          <p className="mt-0.5 text-xs font-medium text-slate-500 dark:text-[#CBD5E1]">
+            {category ? `Manage learning modules and course content under ${category.name}` : 'Browse, filter, and manage all learning courses on the platform.'}
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          {/* Quick stat pills */}
-          <span
-            className="rounded-full border px-3 py-1.5 text-xs font-semibold"
-            style={{ color: '#6c1d5f', borderColor: '#6c1d5f40', backgroundColor: '#6c1d5f0d' }}
-          >
-            {baseCourses.length} Courses
-          </span>
-          <span
-            className="rounded-full border px-3 py-1.5 text-xs font-semibold"
-            style={{ color: '#01ac9f', borderColor: '#01ac9f40', backgroundColor: '#01ac9f0d' }}
-          >
-            {activeCourses} Active
-          </span>
-          <span
-            className="rounded-full border px-3 py-1.5 text-xs font-semibold"
-            style={{ color: '#ff6200', borderColor: '#ff620040', backgroundColor: '#ff62000d' }}
-          >
-            {publishedCourses} Published
-          </span>
-          <button
-            type="button"
-            onClick={handleCreate}
-            className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
-            style={{ backgroundColor: '#01ac9f' }}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Create Course
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={handleCreate}
+          className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-bold text-white shadow-md transition-all hover:opacity-90 cursor-pointer"
+          style={{ backgroundColor: '#10B5A5' }}
+        >
+          <Plus className="h-4 w-4" />
+          Create Course
+        </button>
       </div>
 
       {/* Content area */}
       <div className="flex-1 px-8 py-7">
 
+        {/* Top Summary Stats Cards */}
+        <div className="mb-8 grid grid-cols-2 gap-5 lg:gap-6 lg:grid-cols-4">
+          <StatCard icon={BookOpen}     label="Total Courses"   value={baseCourses.length}  color="purple" index={0} />
+          <StatCard icon={CheckCircle}  label="Published"       value={publishedCourses}    color="teal"   index={1} />
+          <StatCard icon={Clock}        label="Draft"           value={draftCourses}        color="orange" index={2} />
+          <StatCard icon={Tag}          label="Categories"      value={categories.filter(c => !c.deletedAt).length} color="plum" index={3} />
+        </div>
+
         {/* Filters toolbar */}
-        <div className="mb-6 flex items-center gap-3">
+        <div className="mb-6 flex flex-wrap items-center gap-3.5">
           {/* Search */}
           <div
-            className="flex flex-1 items-center gap-2.5 rounded-lg border bg-brand-background border-brand-border px-4 py-2.5 text-sm"
-            style={{ maxWidth: 420 }}
+            className="flex h-11 flex-1 items-center gap-2.5 rounded-xl border bg-white dark:bg-[#1E293B] border-slate-200 dark:border-[#334155] px-3.5 max-w-xs transition-all focus-within:border-[#7C3AED]"
           >
-            <Search className="h-[15px] w-[15px] shrink-0 text-brand-text-secondary" />
+            <Search className="h-4 w-4 shrink-0 text-slate-400 dark:text-[#CBD5E1]" />
             <input
               type="text"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               placeholder="Search courses by title or slug..."
-              className="w-full bg-transparent text-sm text-brand-text-primary placeholder:text-brand-text-secondary focus:outline-none"
+              className="w-full bg-transparent text-xs font-medium text-slate-800 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none"
             />
           </div>
 
@@ -181,17 +171,17 @@ export default function CourseManagement({ categoryId = null }) {
             ]}
           />
 
-          <div className="ml-auto flex items-center gap-2">
-            <span className="whitespace-nowrap text-xs font-medium text-brand-text-secondary mr-2">
+          <div className="ml-auto flex items-center gap-3">
+            <span className="whitespace-nowrap text-xs font-semibold text-slate-500 dark:text-[#CBD5E1]">
               {filtered.length} courses
             </span>
-            <div className="flex items-center gap-1 rounded-lg border border-brand-border bg-brand-background p-1 select-none">
+            <div className="flex h-11 items-center gap-1 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] p-1 select-none">
               <button
                 type="button"
                 onClick={() => setViewMode('card')}
                 className={cn(
-                  "p-1.5 rounded-md hover:bg-brand-surface transition-colors cursor-pointer",
-                  viewMode === 'card' ? "bg-brand-primary/10 text-brand-primary font-bold" : "text-brand-text-secondary"
+                  "flex h-9 w-9 items-center justify-center rounded-lg transition-colors cursor-pointer",
+                  viewMode === 'card' ? "bg-[#7C3AED]/15 text-[#7C3AED] dark:text-purple-300 font-bold" : "text-slate-400 hover:text-slate-600"
                 )}
                 title="Card View"
               >
@@ -201,8 +191,8 @@ export default function CourseManagement({ categoryId = null }) {
                 type="button"
                 onClick={() => setViewMode('list')}
                 className={cn(
-                  "p-1.5 rounded-md hover:bg-brand-surface transition-colors cursor-pointer",
-                  viewMode === 'list' ? "bg-brand-primary/10 text-brand-primary font-bold" : "text-brand-text-secondary"
+                  "flex h-9 w-9 items-center justify-center rounded-lg transition-colors cursor-pointer",
+                  viewMode === 'list' ? "bg-[#7C3AED]/15 text-[#7C3AED] dark:text-purple-300 font-bold" : "text-slate-400 hover:text-slate-600"
                 )}
                 title="List View"
               >
@@ -222,10 +212,10 @@ export default function CourseManagement({ categoryId = null }) {
             onAction={handleCreate}
           />
         ) : viewMode === 'list' ? (
-          <div className="overflow-x-auto rounded-xl border border-brand-border bg-brand-background shadow-sm">
-            <table className="w-full border-collapse text-left">
+          <div className="overflow-x-auto rounded-[20px] border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] shadow-sm">
+            <table className="w-full border-collapse text-left text-xs">
               <thead>
-                <tr className="border-b border-brand-border bg-brand-surface/50 text-[11px] font-bold uppercase tracking-wider text-brand-text-secondary select-none">
+                <tr className="border-b border-slate-200 dark:border-[#334155] bg-slate-50 dark:bg-[#111827] text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#CBD5E1] select-none">
                   <th className="px-4 py-3.5">#</th>
                   <th className="px-4 py-3.5">Course Name / Slug</th>
                   <th className="px-4 py-3.5">Category</th>
@@ -238,7 +228,7 @@ export default function CourseManagement({ categoryId = null }) {
                   <th className="px-4 py-3.5">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-brand-border bg-brand-background">
+              <tbody className="divide-y divide-slate-100 dark:divide-[#334155] bg-white dark:bg-[#1E293B]">
                 {data.map((course, idx) => (
                   <CourseRow
                     key={course.id}
@@ -255,7 +245,7 @@ export default function CourseManagement({ categoryId = null }) {
             </table>
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
             {data.map((course) => (
               <CourseCard
                 key={course.id}

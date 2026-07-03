@@ -81,14 +81,14 @@ export default function LoginPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-md space-y-8 rounded-2xl border border-white/10 bg-white p-8 shadow-2xl"
+        className="w-full max-w-md space-y-8 rounded-2xl border border-white/10 dark:border-[#334155] bg-white dark:bg-[#1E293B] p-8 shadow-2xl transition-colors duration-300"
       >
         <div className="flex flex-col items-center justify-center text-center font-semibold">
           <Logo className="mb-2" variant="light" size="lg" />
-          <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-slate-900">
+          <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-[#F8FAFC]">
             Welcome Back
           </h2>
-          <p className="mt-2 text-sm text-brand-text-secondary">
+          <p className="mt-2 text-sm text-brand-text-secondary dark:text-[#CBD5E1]">
             Sign in to the Xebia LMS Admin Panel
           </p>
         </div>

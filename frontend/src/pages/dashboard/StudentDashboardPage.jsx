@@ -14,6 +14,7 @@ import Button from '@/components/ui/Button';
 // Hooks & Services
 import { useStudentAuth } from '@/auth/student/studentAuthHooks';
 import { useToast } from '@/hooks/useToast';
+import { useCatalog } from '@/hooks/useCatalog';
 import {
   getStudentDashboardData,
   getStudentProgress,
@@ -23,6 +24,15 @@ import {
   getStudentRanking,
   getStudentRecommendations
 } from '@/services/studentDashboardService';
+
+function getInitials(name) {
+  if (!name) return 'RO';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+}
 
 // Dashboard Tab Panels
 import LearningProgress from '@/components/dashboard/LearningProgress';
@@ -35,6 +45,7 @@ import RecommendedCourses from '@/components/dashboard/RecommendedCourses';
 export default function StudentDashboardPage() {
   const { user } = useStudentAuth();
   const { showToast } = useToast();
+  const { courses: liveCourses, categories: liveCategories } = useCatalog();
   const [activeTab, setActiveTab] = useState('overview');
   
   // Data states
@@ -149,7 +160,7 @@ export default function StudentDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-brand-surface/60 p-6 lg:p-8">
+    <div className="min-h-screen bg-brand-surface/60 dark:bg-[#0B1120] text-brand-text-primary dark:text-[#F8FAFC] p-6 lg:p-8 transition-colors duration-300">
       
       {/* ── Welcome Banner ── */}
       <motion.div
@@ -162,11 +173,9 @@ export default function StudentDashboardPage() {
 
         <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            <img
-              src={userAvatar}
-              alt={userName}
-              className="h-16 w-16 md:h-20 md:w-20 rounded-full border-2 border-white/20 object-cover shadow-md bg-white/10 shrink-0"
-            />
+            <div className="h-16 w-16 md:h-20 md:w-20 rounded-full border-2 border-white/20 flex items-center justify-center text-xl md:text-2xl font-black bg-[#6C1D5F] text-white shrink-0 shadow-md select-none">
+              {getInitials(userName)}
+            </div>
             <div>
               <h2 className="text-xl md:text-2xl font-extrabold tracking-tight">
                 Welcome back, {userName}! 👋

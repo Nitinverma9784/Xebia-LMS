@@ -524,7 +524,7 @@ export default function CategoryForm() {
       <div className="flex flex-1">
 
         {/* ── Left: form ───────────────────────────────── */}
-        <div className="flex-1 min-w-0 px-10 py-8" style={{ backgroundColor: '#f7f8fc' }}>
+        <div className="flex-1 min-w-0 px-10 py-8 bg-brand-surface dark:bg-[#0F172A]">
 
           {/* Page title row */}
           <div className="flex items-start justify-between mb-8">
@@ -536,11 +536,11 @@ export default function CategoryForm() {
                 >
                   <Tag className="w-4 h-4" style={{ color: '#6c1d5f' }} />
                 </div>
-                <h1 className="text-2xl font-bold" style={{ color: '#000' }}>
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                   {isEdit ? 'Edit Category' : 'Create New Category'}
                 </h1>
               </div>
-              <p className="text-sm ml-11" style={{ color: '#5a5a5a' }}>
+              <p className="text-sm ml-11 text-brand-text-secondary dark:text-slate-400">
                 Fill in the details below to set up a new learning category.
               </p>
             </div>
@@ -575,15 +575,13 @@ export default function CategoryForm() {
 
           {/* ── Category Name ──────────────────────────── */}
           <div className="mb-6">
-            <label className="block text-sm font-semibold mb-1.5" style={{ color: '#000' }}>
+            <label className="block text-sm font-semibold mb-1.5 text-slate-900 dark:text-slate-200">
               Category Name <span style={{ color: '#ff6200' }}>*</span>
             </label>
             <div
-              className="flex items-center gap-3 px-4 py-3 rounded-md text-sm"
+              className="flex items-center gap-3 px-4 py-3 rounded-md text-sm border border-brand-border dark:border-slate-800 bg-white dark:bg-slate-900"
               style={{
-                border: '1px solid #dadcea',
                 borderLeft: errors.name ? '3px solid #ef4444' : '3px solid #6c1d5f',
-                backgroundColor: '#fff',
               }}
             >
               <input
@@ -592,8 +590,7 @@ export default function CategoryForm() {
                 placeholder="e.g. Web Development"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="flex-1 bg-transparent focus:outline-none text-sm"
-                style={{ color: '#000' }}
+                className="flex-1 bg-transparent focus:outline-none text-sm text-slate-900 dark:text-slate-100"
               />
               {form.name.trim() && (
                 <span
@@ -607,16 +604,16 @@ export default function CategoryForm() {
             </div>
             <div className="flex justify-between mt-1.5">
               {errors.name
-                ? <p className="text-xs" style={{ color: '#ef4444' }}>{errors.name}</p>
-                : <span className="text-xs" style={{ color: '#5a5a5a' }}>Must be unique. Checked in real-time.</span>
+                ? <p className="text-xs text-red-500">{errors.name}</p>
+                : <span className="text-xs text-slate-500 dark:text-slate-400">Must be unique. Checked in real-time.</span>
               }
-              <span className="text-xs" style={{ color: '#5a5a5a' }}>{form.name.length}/100</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">{form.name.length}/100</span>
             </div>
 
             {/* Slug Preview */}
-            <div className="mt-3 rounded-lg border border-brand-border bg-brand-surface p-3 flex items-center justify-between select-none">
-              <span className="text-xs font-semibold text-brand-text-secondary uppercase">slug</span>
-              <span className="font-mono text-xs text-brand-text-primary">
+            <div className="mt-3 rounded-lg border border-brand-border dark:border-slate-800 bg-brand-surface dark:bg-slate-900 p-3 flex items-center justify-between select-none">
+              <span className="text-xs font-semibold text-brand-text-secondary dark:text-slate-400 uppercase">slug</span>
+              <span className="font-mono text-xs text-brand-text-primary dark:text-slate-200">
                 /{form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'category-slug'}
               </span>
             </div>

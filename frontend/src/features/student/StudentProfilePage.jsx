@@ -4,6 +4,15 @@ import PageHeader from '@/components/layout/PageHeader';
 import Button from '@/components/ui/Button';
 import { studentProfile } from '@/services/studentMockData';
 
+function getInitials(name) {
+  if (!name) return 'SP';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+}
+
 export default function StudentProfilePage() {
   return (
     <div className="min-h-screen bg-brand-surface/60 p-6 lg:p-8">
@@ -11,7 +20,9 @@ export default function StudentProfilePage() {
       <div className="mt-6 grid gap-6 xl:grid-cols-[0.75fr_1.25fr]">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-3xl border border-brand-border/70 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900">
           <div className="flex flex-col items-center text-center">
-            <img src={studentProfile.avatar} alt={studentProfile.fullName} className="h-28 w-28 rounded-full object-cover ring-4 ring-brand-surface" />
+            <div className="h-28 w-28 rounded-full flex items-center justify-center text-3xl font-black bg-[#6C1D5F] text-white ring-4 ring-brand-surface select-none">
+              {getInitials(studentProfile.fullName)}
+            </div>
             <h3 className="mt-4 text-xl font-bold text-brand-text-primary dark:text-slate-100">{studentProfile.fullName}</h3>
             <p className="mt-1 text-sm text-brand-text-secondary">{studentProfile.designation} · {studentProfile.department}</p>
             <div className="mt-4 flex gap-2">

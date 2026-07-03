@@ -31,85 +31,84 @@ export default function CategoryCard({ category, courseCount, onEdit, onDelete, 
 
   return (
     <motion.div
-      whileHover={{ y: -2 }}
+      whileHover={{ y: -4, scale: 1.01 }}
+      transition={{ duration: 0.25 }}
       onClick={() => onView(category)}
-      className="group relative cursor-pointer overflow-hidden rounded-xl border bg-brand-background border-brand-border transition-shadow hover:shadow-md"
+      className="group relative cursor-pointer overflow-hidden rounded-[20px] border bg-white dark:bg-[#1E293B] border-slate-200 dark:border-[#334155] shadow-sm hover:shadow-xl hover:shadow-purple-900/10 transition-all duration-300 flex flex-col justify-between h-full min-h-[270px]"
     >
       {/* Top color accent bar */}
       <div className="h-1.5 w-full" style={{ backgroundColor: color }} />
 
-      <div className="p-5">
-        {/* Icon + Status badge */}
-        <div className="mb-3 flex items-start justify-between">
-          <div
-            className="flex h-12 w-12 items-center justify-center rounded-xl text-2xl"
-            style={{
-              backgroundColor: `${color}18`,
-              border: `1.5px solid ${color}30`,
-            }}
+      <div className="p-6 flex flex-col flex-1 justify-between">
+        <div>
+          {/* Icon + Status badge */}
+          <div className="mb-4 flex items-start justify-between">
+            <div
+              className="flex h-12 w-12 items-center justify-center rounded-2xl text-2xl shadow-sm"
+              style={{
+                backgroundColor: `${color}18`,
+                border: `1.5px solid ${color}30`,
+              }}
+            >
+              {category.icon || '💻'}
+            </div>
+            <StatusBadge status={category.deletedAt ? 'inactive' : (category.status || 'active')} />
+          </div>
+
+          {/* Name + slug */}
+          <div className="mb-2">
+            <h3 className="text-base font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">{category.name}</h3>
+            <p className="mt-0.5 font-mono text-xs text-slate-400 dark:text-[#CBD5E1]">{slug}</p>
+          </div>
+
+          {/* Description */}
+          <p
+            className="mb-4 text-xs leading-relaxed text-slate-600 dark:text-[#CBD5E1] line-clamp-2 min-h-[36px]"
           >
-            {category.icon || '💻'}
+            {category.description || 'No description provided for this learning category.'}
+          </p>
+        </div>
+
+        <div>
+          {/* Stats row */}
+          <div className="mb-4 flex items-center gap-4 text-xs font-semibold text-slate-500 dark:text-[#CBD5E1]">
+            <span className="flex items-center gap-1.5">
+              <BookOpen className="h-3.5 w-3.5 text-purple-500" />
+              {(courseCount ?? category.courseCount ?? 0)} courses
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Users className="h-3.5 w-3.5 text-teal-500" />
+              {studentCount.toLocaleString()} learners
+            </span>
           </div>
-          <StatusBadge status={category.deletedAt ? 'inactive' : (category.status || 'active')} />
-        </div>
 
-        {/* Name + slug */}
-        <div className="mb-2">
-          <p className="text-sm font-bold text-brand-text-primary">{category.name}</p>
-          <p className="mt-0.5 font-mono text-xs text-brand-text-secondary">{slug}</p>
-        </div>
-
-        {/* Description */}
-        <p
-          className="mb-4 text-xs leading-relaxed text-brand-text-secondary"
-          style={{
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-          }}
-        >
-          {category.description || 'No description provided.'}
-        </p>
-
-        {/* Stats row */}
-        <div className="mb-4 flex items-center gap-3 text-xs text-brand-text-secondary">
-          <span className="flex items-center gap-1">
-            <BookOpen className="h-2.5 w-2.5" />
-            {(courseCount ?? category.courseCount ?? 0)} courses
-          </span>
-          <span className="flex items-center gap-1">
-            <Users className="h-2.5 w-2.5" />
-            {studentCount.toLocaleString()}
-          </span>
-        </div>
-
-        {/* Footer: color swatch + action buttons */}
-        <div
-          className="flex items-center justify-between border-t border-brand-border pt-3"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex items-center gap-1.5">
-            <div className="h-3 w-3 rounded-full" style={{ backgroundColor: color }} />
-            <span className="font-mono text-xs text-brand-text-secondary">{color.toUpperCase()}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onEdit(category); }}
-              className="flex h-7 w-7 items-center justify-center rounded-md border border-brand-border bg-brand-background transition-colors hover:bg-brand-surface"
-              title="Edit"
-            >
-              <Pencil className="h-3 w-3" style={{ color: 'var(--brand-primary)' }} />
-            </button>
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onDelete(category); }}
-              className="flex h-7 w-7 items-center justify-center rounded-md border border-brand-border bg-brand-background transition-colors hover:bg-brand-cta/10"
-              title="Delete"
-            >
-              <Trash2 className="h-3 w-3" style={{ color: 'var(--brand-cta)' }} />
-            </button>
+          {/* Footer: color swatch + action buttons */}
+          <div
+            className="flex items-center justify-between border-t border-slate-100 dark:border-[#334155] pt-3.5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-3 rounded-full shadow-sm" style={{ backgroundColor: color }} />
+              <span className="font-mono text-[11px] font-semibold text-slate-400 dark:text-[#CBD5E1]">{color.toUpperCase()}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onEdit(category); }}
+                className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 dark:border-[#334155] bg-slate-50 dark:bg-[#0B1120] text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/50 transition-colors cursor-pointer"
+                title="Edit Category"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onDelete(category); }}
+                className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 dark:border-[#334155] bg-slate-50 dark:bg-[#0B1120] text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors cursor-pointer"
+                title="Delete Category"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
         </div>
       </div>

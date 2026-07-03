@@ -1,54 +1,262 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, ChevronRight, ChevronDown, ChevronUp, GripVertical, Pencil, Trash2, Save, X,
-  Cloud, Lock, Sun, Moon, ArrowLeft, Link as LinkIcon, CheckCircle, FileText, UploadCloud, AlertCircle
+  Cloud, Lock, ArrowLeft, Link as LinkIcon, CheckCircle, FileText, UploadCloud, AlertCircle,
+  Eye, Copy, Layers, PlayCircle, Video, Image as ImageIcon, FileCode, HelpCircle,
+  FileSpreadsheet, FileArchive, Globe, Code, Quote, List, ListOrdered, CheckSquare,
+  Minus, Table, Download, Monitor, Tablet, Smartphone, Sparkles, Check, RefreshCw,
+  Search, ExternalLink, MessageSquare, AlertTriangle, File, FolderPlus, Compass, Loader2,
+  Film, Play, Pause, Volume2, Maximize, RotateCcw, Award, Clock
 } from 'lucide-react';
-import { cn } from '@/utils';
+import { cn, slugify } from '@/utils';
 import Button from '@/components/ui/Button';
 import { ConfirmationDialog } from '@/components/ui/Modal';
 import { Link } from 'react-router-dom';
 import api from '@/services/api';
+import { QuizBuilderModal, AssignmentBuilderModal } from './components/QuizAssignmentModals';
+
+/* ─── 11 Supported LMS Block Types ─── */
+const BLOCK_TYPES = [
+  { type: 'text', label: 'Text / Paragraph', icon: FileText, category: 'Content', color: '#7C3AED', description: 'Body text and lesson summary' },
+  { type: 'image', label: 'Image', icon: ImageIcon, category: 'Media', color: '#EC4899', description: 'Upload or link images (PNG, JPG, WEBP)' },
+  { type: 'video', label: 'Video', icon: Video, category: 'Media', color: '#F59E0B', description: 'Upload MP4, MOV, AVI, MKV, WMV, WebM' },
+  { type: 'pdf', label: 'PDF Document', icon: FileText, category: 'Files', color: '#EF4444', description: 'PDF course guides and handouts' },
+  { type: 'ppt', label: 'PowerPoint (PPT)', icon: Layers, category: 'Files', color: '#F97316', description: 'Slide deck presentation files' },
+  { type: 'word', label: 'Word Document', icon: FileText, category: 'Files', color: '#3B82F6', description: 'DOCX / DOC file attachments' },
+  { type: 'excel', label: 'Excel File', icon: FileSpreadsheet, category: 'Files', color: '#10B5A5', description: 'XLSX / CSV data spreadsheets' },
+  { type: 'zip', label: 'ZIP Archive', icon: FileArchive, category: 'Files', color: '#6366F1', description: 'Downloadable zip resource package' },
+  { type: 'link', label: 'External Link', icon: LinkIcon, category: 'Embeds', color: '#0284C7', description: 'External website link or bookmark' },
+  { type: 'quiz', label: 'Quiz / Test', icon: HelpCircle, category: 'Interactive', color: '#8B5CF6', description: 'Knowledge check assessment' },
+  { type: 'assignment', label: 'Assignment', icon: CheckCircle, category: 'Interactive', color: '#059669', description: 'Practical student submission task' },
+];
+
+const SUPPORTED_VIDEO_EXTENSIONS = [
+  'mp4', 'mov', 'avi', 'mkv', 'webm', 'wmv', 'flv', 'm4v',
+  'mpeg', 'mpg', '3gp', 'ogv', 'ts', 'mts', 'm2ts', 'asf', 'vob', 'f4v', 'rmvb'
+];
+
+function formatBytes(bytes) {
+  if (!bytes || bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+function isYouTubeUrl(url) {
+  return url && (url.includes('youtube.com') || url.includes('youtu.be'));
+}
+
+function getYouTubeEmbedUrl(url) {
+  if (!url) return '';
+  let videoId = '';
+  if (url.includes('youtu.be/')) {
+    videoId = url.split('youtu.be/')[1]?.split('?')[0];
+  } else if (url.includes('youtube.com/watch')) {
+    const params = new URLSearchParams(url.split('?')[1]);
+    videoId = params.get('v');
+  } else if (url.includes('youtube.com/embed/')) {
+    videoId = url.split('embed/')[1]?.split('?')[0];
+  }
+  return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+}
+
+function isVimeoUrl(url) {
+  return url && url.includes('vimeo.com');
+}
+
+function getVimeoEmbedUrl(url) {
+  if (!url) return '';
+  const match = url.match(/vimeo\.com\/(?:video\/)?([0-9]+)/);
+  return match?.[1] ? `https://player.vimeo.com/video/${match[1]}` : url;
+}
+
+function LessonVideoPlayer({ url, title, thumbnail }) {
+  const videoRef = useRef(null);
+  const [isBuffering, setIsBuffering] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+
+  const cleanUrl = url || '';
+
+  const handleSpeedChange = (speed) => {
+    setPlaybackSpeed(speed);
+    if (videoRef.current) {
+      videoRef.current.playbackRate = speed;
+    }
+  };
+
+  const handlePiP = async () => {
+    if (videoRef.current && document.pictureInPictureEnabled) {
+      try {
+        if (document.pictureInPictureElement) {
+          await document.exitPictureInPicture();
+        } else {
+          await videoRef.current.requestPictureInPicture();
+        }
+      } catch {
+        // PiP not supported or failed
+      }
+    }
+  };
+
+  if (isYouTubeUrl(cleanUrl)) {
+    return (
+      <div className="relative rounded-2xl overflow-hidden bg-black aspect-video shadow-lg border border-slate-800">
+        <iframe src={getYouTubeEmbedUrl(cleanUrl)} className="w-full h-full" allowFullScreen title={title} />
+      </div>
+    );
+  }
+
+  if (isVimeoUrl(cleanUrl)) {
+    return (
+      <div className="relative rounded-2xl overflow-hidden bg-black aspect-video shadow-lg border border-slate-800">
+        <iframe src={getVimeoEmbedUrl(cleanUrl)} className="w-full h-full" allowFullScreen title={title} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative rounded-2xl overflow-hidden bg-black aspect-video shadow-lg border border-slate-800 group/player">
+      {hasError ? (
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 bg-slate-900 text-center space-y-3">
+          <RefreshCw className="h-9 w-9 text-purple-400 animate-spin mb-1" />
+          <h4 className="text-xs font-bold text-white max-w-md">
+            This video format is being processed and converted automatically into high-definition web format.
+          </h4>
+          <p className="text-[11px] text-slate-400 max-w-sm">
+            Please wait until processing is complete, or download the original video file below.
+          </p>
+          {cleanUrl && (
+            <a
+              href={cleanUrl}
+              download
+              target="_blank"
+              rel="noreferrer"
+              className="mt-1 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-colors inline-flex items-center gap-1.5"
+            >
+              <Download className="h-4 w-4" /> Download Original Video File
+            </a>
+          )}
+        </div>
+      ) : (
+        <>
+          <video
+            ref={videoRef}
+            key={cleanUrl}
+            controls
+            preload="metadata"
+            crossOrigin="anonymous"
+            poster={thumbnail || undefined}
+            onWaiting={() => setIsBuffering(true)}
+            onStalled={() => setIsBuffering(true)}
+            onCanPlay={() => setIsBuffering(false)}
+            onPlaying={() => setIsBuffering(false)}
+            onError={() => setHasError(true)}
+            className="w-full h-full object-contain"
+          >
+            <source src={cleanUrl} type="video/mp4" />
+            <source src={cleanUrl} type="video/webm" />
+            <source src={cleanUrl} type="video/quicktime" />
+            <source src={cleanUrl} type="video/x-matroska" />
+            <source src={cleanUrl} type="video/x-msvideo" />
+            <source src={cleanUrl} type="video/ogg" />
+            Your browser does not support HTML5 video playback.
+          </video>
+
+          {/* Buffering Indicator Overlay */}
+          {isBuffering && (
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center pointer-events-none">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900/80 text-white text-xs font-bold shadow-lg">
+                <Loader2 className="h-4 w-4 animate-spin text-purple-400" />
+                <span>Buffering video...</span>
+              </div>
+            </div>
+          )}
+
+          {/* Speed & PiP Control Bar */}
+          <div className="absolute top-3 right-3 opacity-0 group-hover/player:opacity-100 transition-opacity flex items-center gap-1.5 bg-black/60 backdrop-blur-md p-1 rounded-xl text-white text-[11px] font-bold z-10">
+            <span className="px-2 text-slate-400">Speed:</span>
+            {[0.5, 1, 1.25, 1.5, 2].map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => handleSpeedChange(s)}
+                className={`px-1.5 py-0.5 rounded-lg text-[10px] transition-colors ${playbackSpeed === s ? 'bg-purple-600 text-white' : 'text-slate-300 hover:text-white'}`}
+              >
+                {s}x
+              </button>
+            ))}
+            {document.pictureInPictureEnabled && (
+              <button
+                type="button"
+                onClick={handlePiP}
+                title="Picture in Picture"
+                className="px-2 py-0.5 rounded-lg text-[10px] hover:bg-slate-700 text-slate-300"
+              >
+                PiP
+              </button>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function CourseBuilderWorkspace({ course, catalog, showToast }) {
-  // Navigation & View Mode
-  const [activeView, setActiveView] = useState('modules_submodules'); // 'modules_submodules' or 'submodule_content'
+  // View mode & selection state
+  const [activeView, setActiveView] = useState('modules_submodules'); // 'modules_submodules' | 'submodule_content'
   const [activeModuleId, setActiveModuleId] = useState(course.modules?.[0]?.id || null);
   const [activeSubmoduleId, setActiveSubmoduleId] = useState(null);
 
   // Forms Visibility
   const [moduleFormOpen, setModuleFormOpen] = useState(null); // 'add' | 'edit' | null
   const [submoduleFormOpen, setSubmoduleFormOpen] = useState(null); // 'add' | 'edit' | null
-  const [seoExpanded, setSeoExpanded] = useState(false);
 
-  // Content Block inline editor state
+  // Quiz & Assignment Dedicated Modals
+  const [quizModalOpen, setQuizModalOpen] = useState(null); // object | null
+  const [assignmentModalOpen, setAssignmentModalOpen] = useState(null); // object | null
+
+  // Loading States
+  const [isSavingModule, setIsSavingModule] = useState(false);
+  const [isSavingSubmodule, setIsSavingSubmodule] = useState(false);
+
+  // Floating Slash/Block Menu
+  const [blockMenuOpen, setBlockMenuOpen] = useState(false);
+  const [blockSearch, setBlockSearch] = useState('');
+  const [previewDevice, setPreviewDevice] = useState('desktop'); // 'desktop' | 'tablet' | 'mobile'
+  const [showLivePreviewModal, setShowLivePreviewModal] = useState(false);
+
+  // Content Block Editor State
   const [contentFormOpen, setContentFormOpen] = useState(null); // 'add' | 'edit' | null
+  const [uploadTab, setUploadTab] = useState('computer'); // 'computer' | 'library' | 'url'
+
   const [contentForm, setContentForm] = useState({
     id: null,
     title: '',
     description: '',
-    type: 'heading', // default content block type in mockup
+    type: 'video',
     status: 'published',
     visibility: 'public',
     thumbnail: '',
     fileUrl: '',
     fileSize: 0,
     markdown: '',
-    code: '',
-    language: 'Java',
-    headingLevel: 2,
     contentOrder: 1,
-    alt: '',
-    caption: ''
+    duration: '10 mins',
+    completionRule: 'must_view',
   });
 
-  // Form states for Modules & Submodules
+  // Module & Submodule Forms
   const [moduleForm, setModuleForm] = useState({
     id: null,
     title: '',
     description: '',
+    duration: '2 hours',
     moduleOrder: 1,
     status: 'active'
   });
@@ -58,65 +266,37 @@ export default function CourseBuilderWorkspace({ course, catalog, showToast }) {
     title: '',
     slug: '',
     description: '',
+    duration: '30 mins',
     submoduleOrder: 1,
-    status: 'active',
-    metaTitle: '',
-    metaDescription: '',
-    canonicalUrl: '',
-    ogTitle: '',
-    ogImageUrl: ''
+    status: 'active'
   });
 
-  // File uploading states inside inline editor
+  // File Upload progress & status
   const [contentUploading, setContentUploading] = useState(false);
   const [contentUploadProgress, setContentUploadProgress] = useState(0);
-  const [contentFileError, setContentFileError] = useState('');
-  const [contentSelectedFile, setContentSelectedFile] = useState(null);
-
+  const [uploadStatusText, setUploadStatusText] = useState('Uploading...');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [theme, setTheme] = useState('light');
 
-  // Drag states for builder workspace
-  const [draggedModuleIndex, setDraggedModuleIndex] = useState(null);
-  const [draggedSubmoduleIndex, setDraggedSubmoduleIndex] = useState(null);
-  const [draggedContentIndex, setDraggedContentIndex] = useState(null);
-
-  // Load theme settings on mount
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    setTheme(savedTheme || systemTheme);
-  }, []);
-
-  const toggleTheme = () => {
-    const nextTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(nextTheme);
-    localStorage.setItem('theme', nextTheme);
-    if (nextTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  };
-
-  // Find active records based on selected ID
+  // Current active records
   const activeModule = course.modules?.find(m => m.id === activeModuleId) || course.modules?.[0];
+  const activeSubmodule = activeModule?.submodules?.find(s => s.id === activeSubmoduleId) || activeModule?.submodules?.[0];
+
   useEffect(() => {
-    if (activeModule && !activeModuleId) {
-      setActiveModuleId(activeModule.id);
+    if (activeModule) {
+      if (!activeModuleId) setActiveModuleId(activeModule.id);
+      if (!activeSubmoduleId && activeModule.submodules?.length > 0) {
+        setActiveSubmoduleId(activeModule.submodules[0].id);
+      }
     }
-  }, [activeModule, activeModuleId]);
+  }, [activeModule, activeModuleId, activeSubmoduleId]);
 
-  const activeSubmodule = activeModule?.submodules?.find(s => s.id === activeSubmoduleId);
-
-  // ── Form Handlers ──
-
-  // Module Actions
+  // ── Module Handlers ──
   const handleOpenAddModuleForm = () => {
     setModuleForm({
       id: null,
       title: '',
       description: '',
+      duration: '2 hours',
       moduleOrder: (course.modules?.length || 0) + 1,
       status: 'active'
     });
@@ -129,6 +309,7 @@ export default function CourseBuilderWorkspace({ course, catalog, showToast }) {
       id: mod.id,
       title: mod.title || '',
       description: mod.description || '',
+      duration: mod.duration || '2 hours',
       moduleOrder: mod.moduleOrder || 1,
       status: mod.status || 'active'
     });
@@ -141,42 +322,55 @@ export default function CourseBuilderWorkspace({ course, catalog, showToast }) {
       showToast('Module title is required', 'error');
       return;
     }
-
+    setIsSavingModule(true);
     try {
       const payload = {
         title: moduleForm.title,
         description: moduleForm.description,
+        duration: moduleForm.duration,
         moduleOrder: moduleForm.moduleOrder,
         status: moduleForm.status
       };
-
       if (moduleFormOpen === 'add') {
         const newMod = await catalog.addModule(course.id, payload);
-        if (newMod) setActiveModuleId(newMod.id);
+        if (newMod && newMod.id) {
+          setActiveModuleId(newMod.id);
+          // Auto-create initial default submodule to guarantee valid submoduleId
+          const newSub = await catalog.addSubmodule(course.id, newMod.id, {
+            title: 'Lesson 1: Introduction',
+            slug: `lesson-1-${Date.now()}`,
+            description: 'Main lesson content section',
+            submoduleOrder: 1,
+            status: 'active'
+          });
+          if (newSub && newSub.id) setActiveSubmoduleId(newSub.id);
+        }
+        showToast('Module created successfully');
       } else {
         await catalog.updateModule(course.id, moduleForm.id, payload);
+        showToast('Module updated successfully');
       }
       setModuleFormOpen(null);
-      showToast('Module saved successfully');
-    } catch (err) {
-      showToast('Failed to save module details', 'error');
+    } catch {
+      showToast('Failed to save module', 'error');
+    } finally {
+      setIsSavingModule(false);
     }
   };
 
-  const handleToggleModuleStatus = async (mod) => {
-    const nextStatus = mod.status === 'active' ? 'inactive' : 'active';
+  const handleDuplicateModule = async (mod) => {
     try {
-      await catalog.updateModule(course.id, mod.id, { status: nextStatus });
-      showToast(`Module status updated to ${nextStatus}`);
-    } catch (err) {
-      showToast('Failed to update status', 'error');
+      await catalog.duplicateModule(course.id, mod.id);
+      showToast('Module duplicated successfully');
+    } catch {
+      showToast('Failed to duplicate module', 'error');
     }
   };
 
-  // Submodule Actions
+  // ── Submodule Handlers ──
   const handleOpenAddSubmoduleForm = () => {
     if (!activeModule) {
-      showToast('Please select or create a module first', 'error');
+      showToast('Select or create a module first', 'error');
       return;
     }
     setSubmoduleForm({
@@ -184,15 +378,10 @@ export default function CourseBuilderWorkspace({ course, catalog, showToast }) {
       title: '',
       slug: '',
       description: '',
+      duration: '30 mins',
       submoduleOrder: (activeModule.submodules?.length || 0) + 1,
-      status: 'active',
-      metaTitle: '',
-      metaDescription: '',
-      canonicalUrl: '',
-      ogTitle: '',
-      ogImageUrl: ''
+      status: 'active'
     });
-    setSeoExpanded(false);
     setModuleFormOpen(null);
     setSubmoduleFormOpen('add');
   };
@@ -203,15 +392,10 @@ export default function CourseBuilderWorkspace({ course, catalog, showToast }) {
       title: sub.title || '',
       slug: sub.slug || '',
       description: sub.description || '',
+      duration: sub.duration || '30 mins',
       submoduleOrder: sub.submoduleOrder || 1,
-      status: sub.status || 'active',
-      metaTitle: sub.metaTitle || '',
-      metaDescription: sub.metaDescription || '',
-      canonicalUrl: sub.canonicalUrl || '',
-      ogTitle: sub.ogTitle || '',
-      ogImageUrl: sub.ogImage || ''
+      status: sub.status || 'active'
     });
-    setSeoExpanded(false);
     setModuleFormOpen(null);
     setSubmoduleFormOpen('edit');
   };
@@ -221,215 +405,227 @@ export default function CourseBuilderWorkspace({ course, catalog, showToast }) {
       showToast('Submodule title is required', 'error');
       return;
     }
-    if (!submoduleForm.slug.trim()) {
-      showToast('Slug is required', 'error');
-      return;
-    }
-
+    setIsSavingSubmodule(true);
     try {
       const payload = {
         title: submoduleForm.title,
-        slug: submoduleForm.slug,
+        slug: submoduleForm.slug || slugify(submoduleForm.title),
         description: submoduleForm.description,
+        duration: submoduleForm.duration,
         submoduleOrder: submoduleForm.submoduleOrder,
-        status: submoduleForm.status,
-        metaTitle: submoduleForm.metaTitle,
-        metaDescription: submoduleForm.metaDescription,
-        canonicalUrl: submoduleForm.canonicalUrl,
-        ogTitle: submoduleForm.ogTitle,
-        ogImageUrl: submoduleForm.ogImageUrl
+        status: submoduleForm.status
       };
-
       if (submoduleFormOpen === 'add') {
-        await catalog.addSubmodule(course.id, activeModuleId, payload);
+        const newSub = await catalog.addSubmodule(course.id, activeModuleId || activeModule.id, payload);
+        if (newSub && newSub.id) setActiveSubmoduleId(newSub.id);
+        showToast('Submodule created successfully');
       } else {
-        await catalog.updateSubmodule(course.id, activeModuleId, submoduleForm.id, payload);
+        await catalog.updateSubmodule(course.id, activeModuleId || activeModule.id, submoduleForm.id, payload);
+        showToast('Submodule updated successfully');
       }
       setSubmoduleFormOpen(null);
-      showToast('Submodule saved successfully');
-    } catch (err) {
-      showToast('Failed to save submodule details', 'error');
+    } catch {
+      showToast('Failed to save submodule', 'error');
+    } finally {
+      setIsSavingSubmodule(false);
     }
   };
 
-  const handleToggleSubmoduleStatus = async (sub) => {
-    const nextStatus = sub.status === 'active' ? 'inactive' : 'active';
+  const handleDuplicateSubmodule = async (sub) => {
     try {
-      await catalog.updateSubmodule(course.id, activeModuleId, sub.id, { status: nextStatus });
-      showToast(`Submodule status updated to ${nextStatus}`);
-    } catch (err) {
-      showToast('Failed to update status', 'error');
+      await catalog.addSubmodule(course.id, activeModuleId || activeModule.id, {
+        title: `${sub.title} (Copy)`,
+        slug: `${sub.slug}-copy`,
+        description: sub.description,
+        duration: sub.duration,
+        submoduleOrder: (activeModule.submodules?.length || 0) + 1,
+        status: sub.status || 'active'
+      });
+      showToast('Submodule duplicated successfully');
+    } catch {
+      showToast('Failed to duplicate submodule', 'error');
     }
   };
 
-  // Delete Handlers
-  const handleDeleteClick = (node) => {
-    setDeleteConfirm(node);
-  };
+  // ── Content Block Handlers ──
+  const handleOpenAddContent = async (type) => {
+    if (!activeModule || !activeModule.id || Number(activeModule.id) <= 0) {
+      showToast('Please create or select a module first.', 'error');
+      return;
+    }
 
-  const confirmDelete = async () => {
-    try {
-      const node = deleteConfirm;
-      if (node.type === 'module') {
-        await catalog.deleteModule(course.id, node.id);
-        if (activeModuleId === node.id) {
-          setActiveModuleId(course.modules?.find(m => m.id !== node.id)?.id || null);
+    let targetSubId = activeSubmodule?.id;
+    if (!targetSubId || Number(targetSubId) <= 0) {
+      if (activeModule.submodules?.length > 0) {
+        targetSubId = activeModule.submodules[0].id;
+        setActiveSubmoduleId(targetSubId);
+      } else {
+        // Auto-create a default submodule to guarantee a valid DB ID
+        try {
+          const autoSub = await catalog.addSubmodule(course.id, activeModule.id, {
+            title: 'Lesson 1: Main Content',
+            slug: `lesson-1-${Date.now()}`,
+            description: 'Default lesson section',
+            submoduleOrder: 1,
+            status: 'active'
+          });
+          if (autoSub && autoSub.id) {
+            targetSubId = autoSub.id;
+            setActiveSubmoduleId(autoSub.id);
+          } else {
+            showToast('Please create or select a submodule first.', 'error');
+            return;
+          }
+        } catch {
+          showToast('Please create a submodule first.', 'error');
+          return;
         }
-      } else if (node.type === 'submodule') {
-        await catalog.deleteSubmodule(course.id, node.moduleId || activeModuleId, node.id);
-        if (activeSubmoduleId === node.id) {
-          setActiveSubmoduleId(null);
-        }
-      } else if (node.type === 'content') {
-        await catalog.deleteContent(course.id, node.moduleId, node.submoduleId, node.id);
       }
-      setDeleteConfirm(null);
-      showToast('Item deleted successfully');
-    } catch (err) {
-      showToast('Failed to delete item', 'error');
     }
-  };
 
-  // Navigate to content blocks editor
-  const handleNavigateToContent = (sub) => {
-    setActiveSubmoduleId(sub.id);
-    setActiveView('submodule_content');
-    setContentFormOpen(null);
-  };
+    if (type === 'quiz') {
+      setQuizModalOpen({ isNew: true });
+      return;
+    }
 
-  // ── Inline Content Block Editor Handlers ──
+    if (type === 'assignment') {
+      setAssignmentModalOpen({ isNew: true });
+      return;
+    }
 
-  const handleOpenAddContent = (type) => {
     setContentUploading(false);
     setContentUploadProgress(0);
-    setContentFileError('');
-    setContentSelectedFile(null);
-
+    setUploadStatusText('Uploading...');
     setContentForm({
       id: null,
-      title: type === 'heading' ? 'Your Heading Here' : '',
+      title: type === 'video' ? 'Lesson Video' : '',
       description: '',
-      type: type || 'notes',
+      type: type || 'video',
       status: 'published',
       visibility: 'public',
       thumbnail: '',
       fileUrl: '',
       fileSize: 0,
       markdown: '',
-      code: '',
-      language: 'Java',
-      headingLevel: 2,
       contentOrder: (activeSubmodule?.contents?.length || 0) + 1,
-      alt: '',
-      caption: '',
-      pageCount: '',
-      slideCount: ''
+      duration: '10 mins',
+      completionRule: 'must_view',
     });
     setContentFormOpen('add');
+    setBlockMenuOpen(false);
   };
 
   const handleOpenEditContent = (item) => {
+    if (item.type === 'quiz') {
+      setQuizModalOpen(item);
+      return;
+    }
+
+    if (item.type === 'assignment') {
+      setAssignmentModalOpen(item);
+      return;
+    }
+
     setContentUploading(false);
     setContentUploadProgress(0);
-    setContentFileError('');
-    setContentSelectedFile(null);
-
+    setUploadStatusText('Uploading...');
     setContentForm({
       id: item.id,
       title: item.title || '',
       description: item.description || '',
-      type: item.type || 'notes',
+      type: item.type || 'video',
       status: item.status || 'published',
       visibility: item.visibility || 'public',
       thumbnail: item.thumbnail || '',
       fileUrl: item.fileUrl || '',
       fileSize: item.fileSize || 0,
       markdown: item.markdown || '',
-      code: item.code || '',
-      language: item.language || 'Java',
-      headingLevel: item.headingLevel || 2,
       contentOrder: item.contentOrder || 1,
-      alt: item.alt || '',
-      caption: item.caption || '',
-      pageCount: item.pageCount || '',
-      slideCount: item.slideCount || ''
+      duration: item.duration || '10 mins',
+      completionRule: item.completionRule || 'must_view',
     });
     setContentFormOpen('edit');
   };
 
-  const handleSaveContent = async () => {
-    const isTextBased = ['notes', 'text', 'heading', 'callout', 'table'].includes(contentForm.type);
+  const handleSaveQuizBlock = async (payload) => {
+    const targetSubId = activeSubmodule?.id || activeSubmoduleId;
+    try {
+      if (quizModalOpen?.id) {
+        await catalog.updateContent(course.id, activeModuleId || activeModule.id, targetSubId, quizModalOpen.id, payload);
+        showToast('Quiz updated successfully.');
+      } else {
+        await catalog.addContent(course.id, activeModuleId || activeModule.id, targetSubId, payload);
+        showToast('Quiz created successfully.');
+      }
+      setQuizModalOpen(null);
+    } catch {
+      showToast('Failed to save quiz', 'error');
+    }
+  };
 
-    if (contentForm.type === 'heading' && !contentForm.title.trim()) {
-      showToast('Heading text is required', 'error');
+  const handleSaveAssignmentBlock = async (payload) => {
+    const targetSubId = activeSubmodule?.id || activeSubmoduleId;
+    try {
+      if (assignmentModalOpen?.id) {
+        await catalog.updateContent(course.id, activeModuleId || activeModule.id, targetSubId, assignmentModalOpen.id, payload);
+        showToast('Assignment updated successfully.');
+      } else {
+        await catalog.addContent(course.id, activeModuleId || activeModule.id, targetSubId, payload);
+        showToast('Assignment created successfully.');
+      }
+      setAssignmentModalOpen(null);
+    } catch {
+      showToast('Failed to save assignment', 'error');
+    }
+  };
+
+  const handleSaveContent = async () => {
+    const targetSubId = activeSubmodule?.id || activeSubmoduleId;
+    if (!targetSubId || Number(targetSubId) <= 0) {
+      showToast('Please create or select a valid submodule/lesson first.', 'error');
       return;
     }
-    if (contentForm.type === 'notes' && !contentForm.markdown.trim()) {
-      showToast('Notes body content is required', 'error');
-      return;
-    }
-    if (contentForm.type === 'text' && !contentForm.markdown.trim()) {
-      showToast('Text content is required', 'error');
-      return;
-    }
-    if (contentForm.type === 'code' && !contentForm.code.trim()) {
-      showToast('Code block content is required', 'error');
-      return;
-    }
-    if (contentForm.type === 'video' && !contentForm.fileUrl.trim()) {
-      showToast('Video URL is required', 'error');
-      return;
-    }
-    if (contentForm.type === 'image' && !contentForm.fileUrl.trim()) {
-      showToast('Image source URL is required', 'error');
-      return;
-    }
-    if (contentForm.type === 'pdf' && !contentForm.fileUrl.trim()) {
-      showToast('PDF file URL is required', 'error');
-      return;
-    }
-    if (contentForm.type === 'ppt' && !contentForm.fileUrl.trim()) {
-      showToast('PPT file URL is required', 'error');
-      return;
-    }
-    if (contentForm.type === 'link' && !contentForm.fileUrl.trim()) {
-      showToast('External link URL is required', 'error');
-      return;
-    }
-    if (contentForm.type === 'callout' && !contentForm.markdown.trim()) {
-      showToast('Callout body text is required', 'error');
-      return;
-    }
-    if (contentForm.type === 'table' && !contentForm.markdown.trim()) {
-      showToast('Table markdown or JSON text is required', 'error');
+
+    if (contentForm.type === 'text' && !contentForm.markdown.trim() && !contentForm.title.trim()) {
+      showToast('Please enter text content or title', 'error');
       return;
     }
 
     const payload = {
       ...contentForm,
-      status: contentForm.status,
-      title: contentForm.title || (contentForm.type.toUpperCase() + ' Block')
+      title: contentForm.title || `${contentForm.type.toUpperCase()} Block`
     };
 
     try {
       if (contentForm.id) {
-        await catalog.updateContent(course.id, activeModuleId, activeSubmoduleId, contentForm.id, payload);
-        showToast('Content block updated successfully');
+        await catalog.updateContent(course.id, activeModuleId || activeModule.id, targetSubId, contentForm.id, payload);
+        showToast(contentForm.type === 'video' ? 'Video updated successfully.' : 'Block updated successfully.');
       } else {
-        await catalog.addContent(course.id, activeModuleId, activeSubmoduleId, payload);
-        showToast('Content block created successfully');
+        await catalog.addContent(course.id, activeModuleId || activeModule.id, targetSubId, payload);
+        showToast(contentForm.type === 'video' ? 'Video uploaded successfully.' : 'Block added to lesson.');
       }
       setContentFormOpen(null);
     } catch (err) {
-      showToast('Failed to save content block', 'error');
+      showToast(err?.response?.data?.message || 'Failed to save block', 'error');
     }
   };
 
-  const handleInlineFileUpload = async (file) => {
-    setContentFileError('');
-    setContentSelectedFile(file);
+  const handleFileUpload = async (file) => {
+    if (!file) return;
+
+    if (contentForm.type === 'video') {
+      const fileName = file.name.toLowerCase();
+      const ext = fileName.split('.').pop();
+      const isVideo = file.type.startsWith('video/') || SUPPORTED_VIDEO_EXTENSIONS.includes(ext);
+      if (!isVideo) {
+        showToast('File format not recognized as video. Please select a valid video file.', 'error');
+        return;
+      }
+    }
+
     setContentUploading(true);
-    setContentUploadProgress(15);
+    setContentUploadProgress(10);
+    setUploadStatusText('Uploading...');
 
     const formData = new FormData();
     formData.append('file', file);
@@ -437,1548 +633,962 @@ export default function CourseBuilderWorkspace({ course, catalog, showToast }) {
     try {
       const response = await api.post('/media/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
-        onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round((progressEvent.loaded * 80) / progressEvent.total) + 15;
-          setContentUploadProgress(percentCompleted);
+        onUploadProgress: (e) => {
+          const percent = Math.round((e.loaded * 75) / e.total);
+          setContentUploadProgress(percent);
+          if (percent > 70) {
+            setUploadStatusText('Processing video & generating preview...');
+          } else {
+            setUploadStatusText('Uploading...');
+          }
         }
       });
 
+      setContentUploadProgress(95);
+      setUploadStatusText('Processing video...');
+
       const { url, size } = response.data.data;
-      setContentForm(prev => ({
-        ...prev,
-        fileUrl: url,
-        fileSize: size
-      }));
-      setContentUploadProgress(100);
-      showToast('Asset uploaded successfully');
-    } catch (err) {
-      setContentFileError('Upload failed. Try again.');
-    } finally {
+
+      setTimeout(() => {
+        setContentForm(prev => ({
+          ...prev,
+          fileUrl: url,
+          fileSize: size,
+          title: prev.title || file.name.replace(/\.[^/.]+$/, "")
+        }));
+        setContentUploadProgress(100);
+        setUploadStatusText('Video ready to play.');
+        setContentUploading(false);
+        showToast('Video uploaded & ready to play.');
+      }, 500);
+
+    } catch {
+      setUploadStatusText('Upload failed');
+      showToast('Upload failed. Please try again.', 'error');
       setContentUploading(false);
     }
   };
 
-  const handleToggleContentStatus = async (item) => {
-    const nextStatus = item.status === 'published' ? 'draft' : 'published';
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return;
+    const { type, id, moduleId } = deleteConfirm;
     try {
-      await catalog.updateContent(course.id, activeModuleId, activeSubmoduleId, item.id, { status: nextStatus });
-      showToast(`Block status updated to ${nextStatus}`);
-    } catch (err) {
-      showToast('Failed to update status', 'error');
+      if (type === 'module') {
+        await catalog.deleteModule(course.id, id);
+        showToast('Module deleted successfully');
+      } else if (type === 'submodule') {
+        await catalog.deleteSubmodule(course.id, moduleId || activeModuleId, id);
+        showToast('Submodule deleted successfully');
+      } else if (type === 'content') {
+        await catalog.deleteContent(course.id, activeModuleId, activeSubmoduleId, id);
+        showToast('Block deleted successfully');
+      }
+      setDeleteConfirm(null);
+    } catch {
+      showToast('Failed to delete item', 'error');
     }
   };
 
-  // Reordering helpers
-  const handleMoveModule = async (mod, direction) => {
-    const list = [...(course.modules || [])].sort((a, b) => (a.moduleOrder || 0) - (b.moduleOrder || 0));
-    const index = list.findIndex(m => m.id === mod.id);
-    if (index === -1) return;
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= list.length) return;
-
-    const targetMod = list[targetIndex];
-    try {
-      await catalog.updateModule(course.id, mod.id, { moduleOrder: targetMod.moduleOrder });
-      await catalog.updateModule(course.id, targetMod.id, { moduleOrder: mod.moduleOrder });
-      showToast('Modules reordered');
-    } catch (e) {
-      showToast('Failed to reorder', 'error');
-    }
-  };
-
-  const handleMoveSubmodule = async (sub, direction) => {
-    const list = [...(activeModule?.submodules || [])].sort((a, b) => (a.submoduleOrder || 0) - (b.submoduleOrder || 0));
-    const index = list.findIndex(s => s.id === sub.id);
-    if (index === -1) return;
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= list.length) return;
-
-    const targetSub = list[targetIndex];
-    try {
-      await catalog.updateSubmodule(course.id, activeModuleId, sub.id, { submoduleOrder: targetSub.submoduleOrder });
-      await catalog.updateSubmodule(course.id, activeModuleId, targetSub.id, { submoduleOrder: sub.submoduleOrder });
-      showToast('Submodules reordered');
-    } catch (e) {
-      showToast('Failed to reorder', 'error');
-    }
-  };
-
-  const handleMoveContent = async (item, direction) => {
-    const list = [...(activeSubmodule?.contents || [])].sort((a, b) => (a.contentOrder || 0) - (b.contentOrder || 0));
-    const index = list.findIndex(c => c.id === item.id);
-    if (index === -1) return;
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= list.length) return;
-
-    const targetItem = list[targetIndex];
-    try {
-      await catalog.updateContent(course.id, activeModuleId, activeSubmoduleId, item.id, { contentOrder: targetItem.contentOrder });
-      await catalog.updateContent(course.id, activeModuleId, activeSubmoduleId, targetItem.id, { contentOrder: item.contentOrder });
-      showToast('Content blocks reordered');
-    } catch (e) {
-      showToast('Failed to reorder', 'error');
-    }
-  };
-
-  // Drag and Drop reordering handlers
-  const handleModuleDragStart = (e, index) => {
-    setDraggedModuleIndex(index);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleModuleDrop = async (e, targetIndex) => {
-    e.preventDefault();
-    if (draggedModuleIndex === null || draggedModuleIndex === targetIndex) return;
-
-    const list = [...(course.modules || [])].sort((a, b) => (a.moduleOrder || 0) - (b.moduleOrder || 0));
-    const sourceMod = list[draggedModuleIndex];
-    const targetMod = list[targetIndex];
-
-    try {
-      await catalog.updateModule(course.id, sourceMod.id, { moduleOrder: targetMod.moduleOrder });
-      await catalog.updateModule(course.id, targetMod.id, { moduleOrder: sourceMod.moduleOrder });
-      showToast('Modules reordered');
-    } catch (err) {
-      showToast('Failed to reorder modules', 'error');
-    } finally {
-      setDraggedModuleIndex(null);
-    }
-  };
-
-  const handleSubmoduleDragStart = (e, index) => {
-    setDraggedSubmoduleIndex(index);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleSubmoduleDrop = async (e, targetIndex) => {
-    e.preventDefault();
-    if (draggedSubmoduleIndex === null || draggedSubmoduleIndex === targetIndex) return;
-
-    const list = [...(activeModule.submodules || [])].sort((a, b) => (a.submoduleOrder || 0) - (b.submoduleOrder || 0));
-    const sourceSub = list[draggedSubmoduleIndex];
-    const targetSub = list[targetIndex];
-
-    try {
-      await catalog.updateSubmodule(course.id, activeModuleId, sourceSub.id, { submoduleOrder: targetSub.submoduleOrder });
-      await catalog.updateSubmodule(course.id, activeModuleId, targetSub.id, { submoduleOrder: sourceSub.submoduleOrder });
-      showToast('Submodules reordered');
-    } catch (err) {
-      showToast('Failed to reorder submodules', 'error');
-    } finally {
-      setDraggedSubmoduleIndex(null);
-    }
-  };
-
-  const handleContentDragStart = (e, index) => {
-    setDraggedContentIndex(index);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleContentDrop = async (e, targetIndex) => {
-    e.preventDefault();
-    if (draggedContentIndex === null || draggedContentIndex === targetIndex) return;
-
-    const list = [...(activeSubmodule?.contents || [])].sort((a, b) => (a.contentOrder || 0) - (b.contentOrder || 0));
-    const sourceItem = list[draggedContentIndex];
-    const targetItem = list[targetIndex];
-
-    try {
-      await catalog.updateContent(course.id, activeModuleId, activeSubmoduleId, sourceItem.id, { contentOrder: targetItem.contentOrder });
-      await catalog.updateContent(course.id, activeModuleId, activeSubmoduleId, targetItem.id, { contentOrder: sourceItem.contentOrder });
-      showToast('Content blocks reordered');
-    } catch (err) {
-      showToast('Failed to reorder content blocks', 'error');
-    } finally {
-      setDraggedContentIndex(null);
-    }
-  };
-
-  // Block colors config from design stylesheet
-  const blockTypesConfig = {
-    heading: { label: 'Heading', color: '#6c1d5f', bg: '#6c1d5f12' },
-    text: { label: 'Text', color: '#5c4f61', bg: '#5c4f6112' },
-    callout: { label: 'Callout', color: '#793b74', bg: '#793b7412' },
-    code: { label: 'Code', color: '#4a1e47', bg: '#4a1e4712' },
-    video: { label: 'Video', color: '#ff6200', bg: '#ff620012' },
-    image: { label: 'Image', color: '#db2777', bg: '#db277712' },
-    table: { label: 'Table', color: '#533754', bg: '#53375412' },
-    notes: { label: 'Notes', color: '#ff6200', bg: '#ff620012' },
-    link: { label: 'Link', color: '#793b74', bg: '#793b7412' },
-    pdf: { label: 'PDF', color: '#db2777', bg: '#db277712' },
-    ppt: { label: 'PPT', color: '#eab308', bg: '#eab30812' }
-  };
-
-  const currentTypeColor = blockTypesConfig[contentForm.type]?.color || '#6b7280';
+  const filteredBlocks = BLOCK_TYPES.filter(b => 
+    !blockSearch || b.label.toLowerCase().includes(blockSearch.toLowerCase()) || b.description.toLowerCase().includes(blockSearch.toLowerCase())
+  );
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] bg-white dark:bg-slate-900 transition-colors">
-      {/* Sticky Header breadcrumbs exactly matching mockup */}
-      <div className="sticky top-0 z-20 border-b border-brand-border dark:border-slate-800 bg-white dark:bg-slate-900">
-        <div className="flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-2 text-sm font-semibold text-brand-text-secondary dark:text-slate-400">
-            <Link to="/admin/courses" className="flex items-center gap-1 hover:text-brand-primary transition-colors cursor-pointer">
-              <ArrowLeft className="h-4 w-4" />
-              <span>Courses</span>
-            </Link>
-            <ChevronRight className="h-3.5 w-3.5 text-brand-text-secondary" />
-            <span className="text-brand-text-secondary truncate max-w-[150px]">
-              {course.title}
-            </span>
-            {activeModule && (
+    <div className="flex flex-col h-[calc(100vh-64px)] bg-[#F8FAFC] dark:bg-[#0B1120] text-slate-800 dark:text-[#F8FAFC]">
+
+      {/* Top Navigation & Action Header */}
+      <div className="sticky top-0 z-30 flex items-center justify-between px-8 py-3.5 bg-white dark:bg-[#111827] border-b border-slate-200 dark:border-[#334155] shadow-sm">
+        <div className="flex items-center gap-3">
+          <Link
+            to="/admin/courses"
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 dark:border-[#334155] text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+          <div className="flex items-center gap-2 text-xs font-bold">
+            <span className="text-slate-400 dark:text-[#CBD5E1]">{course.title}</span>
+            <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+            <span className="text-purple-600 dark:text-purple-400 font-extrabold">{activeModule?.title || 'Modules'}</span>
+            {activeSubmodule && (
               <>
-                <ChevronRight className="h-3.5 w-3.5 text-brand-text-secondary" />
-                <span className="text-brand-text-primary dark:text-slate-100 truncate max-w-[200px]">
-                  {activeModule.title}
-                </span>
-              </>
-            )}
-            {activeView === 'submodule_content' && activeSubmodule && (
-              <>
-                <ChevronRight className="h-3.5 w-3.5 text-brand-text-secondary" />
-                <span className="font-bold text-brand-primary dark:text-slate-100 truncate max-w-[200px]">
-                  {activeSubmodule.title}
-                </span>
+                <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                <span className="text-slate-800 dark:text-[#F8FAFC] font-extrabold">{activeSubmodule.title}</span>
               </>
             )}
           </div>
-          <div className="flex items-center gap-3.5">
-            <span className="text-xs text-brand-text-secondary dark:text-slate-400 flex items-center gap-1.5 font-medium">
-              <Cloud className="h-3.5 w-3.5 text-brand-success shrink-0" />
-              <span>All changes saved</span>
-            </span>
+        </div>
+
+        {/* View Toggle & Actions */}
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 items-center gap-1 rounded-xl border border-slate-200 dark:border-[#334155] bg-slate-50 dark:bg-[#1E293B] p-1 select-none">
             <button
-              onClick={toggleTheme}
-              className="rounded-xl p-2 text-brand-text-secondary dark:text-slate-400 hover:bg-brand-surface dark:hover:bg-slate-800 transition-colors"
-              aria-label="Toggle theme mode"
+              type="button"
+              onClick={() => setActiveView('modules_submodules')}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${activeView === 'modules_submodules' ? 'bg-[#7C3AED] text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}
             >
-              {theme === 'dark' ? <Sun className="h-4.5 w-4.5 text-amber-500" /> : <Moon className="h-4.5 w-4.5 text-slate-500" />}
+              <Layers className="h-3.5 w-3.5" />
+              Structure Builder
             </button>
-            <div className="w-7 h-7 rounded-full bg-brand-primary flex items-center justify-center text-white text-xs font-bold">
-              A
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (activeSubmodule) setActiveView('submodule_content');
+                else showToast('Select a lesson submodule first', 'error');
+              }}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${activeView === 'submodule_content' ? 'bg-[#7C3AED] text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}
+            >
+              <FileText className="h-3.5 w-3.5" />
+              Content Editor
+            </button>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setShowLivePreviewModal(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] text-xs font-bold text-slate-700 dark:text-[#F8FAFC] hover:bg-purple-50 dark:hover:bg-purple-950/40 transition-colors cursor-pointer shadow-sm"
+          >
+            <Eye className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+            Live Preview
+          </button>
         </div>
       </div>
 
+      {/* View 1: Structure Builder (Modules & Submodules) */}
       {activeView === 'modules_submodules' ? (
-        /* Module & Submodule Side-by-Side Split Column Editor */
-        <div className="flex-1 flex overflow-hidden divide-x divide-brand-border dark:divide-slate-800">
-          {/* Left Column: Modules list & form */}
-          <div className="w-[480px] shrink-0 flex flex-col bg-white dark:bg-slate-900">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border dark:border-slate-800 bg-white dark:bg-slate-900">
+        <div className="flex-1 flex overflow-hidden p-8 gap-8 max-w-7xl w-full mx-auto">
+          {/* Modules List Panel */}
+          <div className="w-1/2 flex flex-col space-y-6">
+            <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-base font-bold text-brand-text-primary dark:text-slate-100 font-headings">Modules</h2>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="text-xs text-brand-text-secondary dark:text-slate-400">Course:</span>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-brand-surface dark:bg-slate-800 border border-brand-border dark:border-slate-700 text-brand-text-primary dark:text-slate-200">
-                    <span>📘</span>
-                    <span className="truncate max-w-[140px]">{course.title}</span>
-                    <Lock className="h-2.5 w-2.5 text-brand-text-secondary/50 dark:text-slate-500" />
-                  </span>
-                </div>
+                <h2 className="text-lg font-black text-slate-900 dark:text-[#F8FAFC] tracking-tight">Course Modules</h2>
+                <p className="text-xs font-medium text-slate-500 dark:text-[#CBD5E1]">Organize top-level learning chapters and sections</p>
               </div>
-              <Button 
-                onClick={handleOpenAddModuleForm} 
-                size="sm" 
-                className="bg-accent-teal hover:bg-accent-teal-dark text-white font-semibold flex items-center gap-1.5"
+              <button
+                type="button"
+                onClick={handleOpenAddModuleForm}
+                className="flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold text-white shadow-md transition-all hover:opacity-90 cursor-pointer"
+                style={{ backgroundColor: '#10B5A5' }}
               >
                 <Plus className="h-4 w-4" /> Add Module
-              </Button>
+              </button>
             </div>
 
-            {/* Scrollable Modules List */}
-            <div className="flex-1 overflow-y-auto scrollbar-thin divide-y divide-brand-border dark:divide-slate-800 bg-white dark:bg-slate-900">
-              {course.modules?.length === 0 ? (
-                <div className="p-8 text-center text-brand-text-secondary dark:text-slate-450">
-                  No modules created yet. Click "Add Module" to start.
-                </div>
-              ) : (
-                [...(course.modules || [])]
-                  .sort((a, b) => (a.moduleOrder || 0) - (b.moduleOrder || 0))
-                  .map((mod, idx) => {
-                    const isSelected = activeModuleId === mod.id;
-                    return (
-                      <div
-                        key={mod.id}
-                        draggable="true"
-                        onDragStart={(e) => handleModuleDragStart(e, idx)}
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={(e) => handleModuleDrop(e, idx)}
-                        onClick={() => {
-                          setActiveModuleId(mod.id);
-                          setModuleFormOpen(null);
-                          setSubmoduleFormOpen(null);
-                        }}
-                        className={cn(
-                          "flex items-start gap-3 px-5 py-4 cursor-grab active:cursor-grabbing hover:bg-brand-surface/[0.05] dark:hover:bg-slate-800/20 transition-all",
-                          isSelected && "bg-brand-primary/[0.03] dark:bg-brand-primary/10 border-l-3 border-l-brand-primary pl-[17px]"
-                        )}
-                      >
-                        <div className="flex flex-col gap-1 mt-1 shrink-0 text-brand-text-secondary dark:text-slate-500">
-                          <button onClick={(e) => { e.stopPropagation(); handleMoveModule(mod, 'up'); }} className="hover:text-brand-primary"><ChevronUp className="h-3 w-3" /></button>
-                          <GripVertical className="h-3.5 w-3.5 mx-auto opacity-40" />
-                          <button onClick={(e) => { e.stopPropagation(); handleMoveModule(mod, 'down'); }} className="hover:text-brand-primary"><ChevronDown className="h-3 w-3" /></button>
-                        </div>
-                        <div 
-                          className={cn(
-                            "w-7 h-7 rounded-md flex items-center justify-center text-xs font-bold shrink-0 mt-0.5",
-                            isSelected 
-                              ? "bg-brand-primary/15 text-brand-primary dark:bg-brand-primary/30 dark:text-brand-text-primary" 
-                              : "bg-brand-surface dark:bg-slate-800 text-brand-text-secondary border border-brand-border dark:border-slate-700"
-                          )}
-                        >
-                          {String(idx + 1).padStart(2, '0')}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-bold text-brand-text-primary dark:text-slate-100 leading-snug truncate">
-                                {mod.title}
-                              </div>
-                              <div className="text-xs text-brand-text-secondary dark:text-slate-400 mt-0.5 truncate">
-                                {mod.description || 'No description provided.'}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
-                              <button
-                                onClick={() => {
-                                  setActiveModuleId(mod.id);
-                                  setModuleFormOpen(null);
-                                  setSubmoduleFormOpen(null);
-                                }}
-                                className="w-7 h-7 rounded-md border border-brand-border dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-brand-surface dark:hover:bg-slate-750 flex items-center justify-center text-brand-primary"
-                                title="View submodules"
-                              >
-                                <ChevronRight className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={() => handleOpenEditModuleForm(mod)}
-                                className="w-7 h-7 rounded-md border border-brand-border dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-brand-surface dark:hover:bg-slate-750 flex items-center justify-center text-brand-primary"
-                                title="Edit module details"
-                              >
-                                <Pencil className="h-3 w-3" />
-                              </button>
-                            </div>
-                          </div>
-                          {/* Bottom Row status + delete */}
-                          <div className="flex items-center gap-3 mt-2.5" onClick={e => e.stopPropagation()}>
-                            <div className="flex items-center gap-1.5">
-                              <button
-                                onClick={() => handleToggleModuleStatus(mod)}
-                                className={cn(
-                                  "w-8 h-4 rounded-full px-0.5 flex items-center transition-colors duration-200",
-                                  mod.status === 'active' ? "bg-brand-success" : "bg-brand-border dark:bg-slate-700"
-                                )}
-                              >
-                                <div className={cn("w-3 h-3 rounded-full bg-white shadow-sm transition-transform duration-200", mod.status === 'active' && "translate-x-4")} />
-                              </button>
-                              <span className={cn("text-xs font-semibold", mod.status === 'active' ? "text-brand-success" : "text-brand-text-secondary dark:text-slate-400")}>
-                                {mod.status === 'active' ? 'Active' : 'Inactive'}
-                              </span>
-                            </div>
-                            <button
-                              onClick={() => handleDeleteClick({ type: 'module', id: mod.id })}
-                              className="flex items-center gap-1 text-xs font-medium text-accent-orange hover:underline"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                              <span>Delete</span>
-                            </button>
-                          </div>
-                        </div>
+            {/* Modules List Cards */}
+            <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+              {course.modules?.map((mod, idx) => {
+                const isSelected = activeModuleId === mod.id;
+                return (
+                  <div
+                    key={mod.id}
+                    onClick={() => setActiveModuleId(mod.id)}
+                    className={`p-5 rounded-[20px] border transition-all cursor-pointer ${isSelected ? 'bg-white dark:bg-[#1E293B] border-[#7C3AED] shadow-md ring-1 ring-[#7C3AED]' : 'bg-white dark:bg-[#1E293B] border-slate-200 dark:border-[#334155] hover:border-purple-300'}`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <GripVertical className="h-4 w-4 text-slate-300 dark:text-slate-600 cursor-grab" />
+                        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-50 text-purple-600 dark:bg-purple-950/50 text-xs font-bold">
+                          {idx + 1}
+                        </span>
+                        <h3 className="text-sm font-extrabold text-slate-900 dark:text-[#F8FAFC]">{mod.title}</h3>
                       </div>
-                    );
-                  })
-              )}
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${mod.status === 'active' ? 'bg-teal-50 text-teal-600 dark:bg-teal-950/50' : 'bg-slate-100 text-slate-500'}`}>
+                        {mod.status || 'Active'}
+                      </span>
+                    </div>
 
-              {/* Module Add/Edit Form Card inline under list */}
-              {moduleFormOpen && (
-                <div className="mx-5 my-5 rounded-xl border border-brand-border dark:border-slate-800 overflow-hidden shadow-card bg-white dark:bg-slate-900 border-t-3 border-t-accent-teal">
-                  <div className="flex items-center justify-between px-5 py-3.5 border-b border-brand-border dark:border-slate-800 bg-brand-surface dark:bg-slate-950/20">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-md flex items-center justify-center bg-accent-teal/15 text-accent-teal">
-                        <Pencil className="h-3.5 w-3.5" />
+                    <p className="text-xs text-slate-500 dark:text-[#CBD5E1] line-clamp-2 pl-14 mb-4">
+                      {mod.description || 'No description added yet.'}
+                    </p>
+
+                    <div className="flex items-center justify-between border-t border-slate-100 dark:border-[#334155] pt-3 pl-14 text-xs font-medium text-slate-400">
+                      <span>{(mod.submodules || []).length} Lessons / Submodules</span>
+                      <div className="flex items-center gap-2">
+                        <button type="button" onClick={(e) => { e.stopPropagation(); handleOpenEditModuleForm(mod); }} className="p-1 hover:text-purple-600">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button type="button" onClick={(e) => { e.stopPropagation(); handleDuplicateModule(mod); }} className="p-1 hover:text-purple-600">
+                          <Copy className="h-3.5 w-3.5" />
+                        </button>
+                        <button type="button" onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: 'module', id: mod.id }); }} className="p-1 hover:text-rose-500">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
                       </div>
-                      <span className="text-sm font-bold text-brand-text-primary dark:text-slate-100">
-                        {moduleFormOpen === 'edit' ? 'Edit Module' : 'Add Module'}
-                      </span>
-                    </div>
-                    <button onClick={() => setModuleFormOpen(null)} className="text-brand-text-secondary hover:text-brand-text-primary dark:text-slate-400">
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                  <div className="px-5 py-5 space-y-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-brand-text-secondary dark:text-slate-400">Course</span>
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-brand-surface dark:bg-slate-800 border border-brand-border dark:border-slate-750 text-brand-text-secondary dark:text-slate-400">
-                        <span>📘</span>
-                        <span>{course.title}</span>
-                        <Lock className="h-2.5 w-2.5 text-brand-text-secondary/55" />
-                      </span>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5">
-                        Title <span className="text-accent-orange">*</span>
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={moduleForm.title}
-                          onChange={e => setModuleForm({ ...moduleForm, title: e.target.value.slice(0, 200) })}
-                          placeholder="e.g. Introduction to Spring Boot"
-                          className="w-full border-l-3 border-l-brand-primary border border-brand-border dark:border-slate-750 rounded-md px-4 py-2.5 bg-brand-surface dark:bg-slate-800 text-sm text-brand-text-primary dark:text-slate-100 focus:border-brand-primary focus:outline-none"
-                          required
-                        />
-                        <span className="absolute right-3 bottom-2.5 text-xs text-brand-text-secondary dark:text-slate-455">{moduleForm.title.length}/200</span>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5">Description</label>
-                      <textarea
-                        value={moduleForm.description}
-                        onChange={e => setModuleForm({ ...moduleForm, description: e.target.value })}
-                        placeholder="Describe this module..."
-                        className="w-full border border-brand-border dark:border-slate-750 rounded-md px-4 py-3 bg-brand-surface dark:bg-slate-800 text-sm text-brand-text-primary dark:text-slate-200 leading-relaxed min-h-[80px] focus:outline-none focus:border-accent-teal"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5 font-headings">Module Order</label>
-                        <input
-                          type="number"
-                          value={moduleForm.moduleOrder}
-                          onChange={e => setModuleForm({ ...moduleForm, moduleOrder: parseInt(e.target.value) || 1 })}
-                          className="w-full border border-brand-border dark:border-slate-750 rounded-md px-4 py-2.5 bg-brand-surface dark:bg-slate-800 text-sm text-brand-text-primary dark:text-slate-100"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5">Active</label>
-                        <div className="flex items-center gap-2.5 pt-1.5">
-                          <button
-                            onClick={() => setModuleForm({ ...moduleForm, status: moduleForm.status === 'active' ? 'inactive' : 'active' })}
-                            className={cn(
-                              "w-11 h-6 rounded-full px-0.5 flex items-center transition-colors duration-200",
-                              moduleForm.status === 'active' ? "bg-brand-success" : "bg-brand-border dark:bg-slate-700"
-                            )}
-                          >
-                            <div className={cn("w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200", moduleForm.status === 'active' && "translate-x-5")} />
-                          </button>
-                          <span className={cn("text-sm font-semibold", moduleForm.status === 'active' ? "text-brand-success" : "text-brand-text-secondary")}>
-                            {moduleForm.status === 'active' ? 'Active' : 'Inactive'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-end gap-3 pt-2 border-t border-brand-border dark:border-slate-800">
-                      <Button onClick={() => setModuleFormOpen(null)} variant="outline" size="sm">Cancel</Button>
-                      <Button onClick={handleSaveModule} size="sm" className="bg-accent-teal text-white flex items-center gap-1.5">
-                        <Save className="h-3.5 w-3.5" /> Save Module
-                      </Button>
                     </div>
                   </div>
-                </div>
-              )}
+                );
+              })}
             </div>
           </div>
 
-          {/* Right Column: Submodules list & form */}
-          <div className="flex-1 flex flex-col bg-brand-surface dark:bg-slate-950/40">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border dark:border-slate-800 bg-white dark:bg-slate-900">
+          {/* Submodules / Lessons Panel */}
+          <div className="w-1/2 flex flex-col space-y-6">
+            <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-base font-bold text-brand-text-primary dark:text-slate-100 font-headings">Submodules</h2>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="text-xs text-brand-text-secondary dark:text-slate-400 font-medium">Module:</span>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-brand-surface dark:bg-slate-800 border border-brand-border dark:border-slate-750 text-brand-text-primary dark:text-slate-200">
-                    <span>📦</span>
-                    <span className="truncate max-w-[200px]">{activeModule?.title || 'None Selected'}</span>
-                    <Lock className="h-2.5 w-2.5 text-brand-text-secondary/55" />
-                  </span>
-                </div>
+                <h2 className="text-lg font-black text-slate-900 dark:text-[#F8FAFC] tracking-tight">Lessons &amp; Submodules</h2>
+                <p className="text-xs font-medium text-slate-500 dark:text-[#CBD5E1]">
+                  Inside: <strong className="text-purple-600 dark:text-purple-400">{activeModule?.title || 'Module'}</strong>
+                </p>
               </div>
-              <Button 
-                onClick={handleOpenAddSubmoduleForm} 
-                disabled={!activeModule} 
-                size="sm" 
-                className="bg-accent-teal hover:bg-accent-teal-dark text-white font-semibold flex items-center gap-1.5"
+              <button
+                type="button"
+                onClick={handleOpenAddSubmoduleForm}
+                className="flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold text-white shadow-md transition-all hover:opacity-90 cursor-pointer"
+                style={{ backgroundColor: '#7C3AED' }}
               >
                 <Plus className="h-4 w-4" /> Add Submodule
-              </Button>
+              </button>
             </div>
 
-            {/* Scrollable Submodules list */}
-            <div className="flex-1 overflow-y-auto scrollbar-thin px-5 py-4 space-y-3">
-              {!activeModule ? (
-                <div className="text-center py-12 text-brand-text-secondary dark:text-slate-450 bg-white dark:bg-slate-900 border border-brand-border dark:border-slate-800 rounded-xl">
-                  Select a Module in the left panel to manage its submodules.
-                </div>
-              ) : activeModule.submodules?.length === 0 ? (
-                <div className="text-center py-12 text-brand-text-secondary dark:text-slate-450 bg-white dark:bg-slate-900 border border-brand-border dark:border-slate-800 rounded-xl">
-                  No submodules inside this module yet. Click "Add Submodule" to start.
-                </div>
-              ) : (
-                [...(activeModule.submodules || [])]
-                  .sort((a, b) => (a.submoduleOrder || 0) - (b.submoduleOrder || 0))
-                  .map((sub, idx) => (
-                    <div 
-                      key={sub.id} 
-                      draggable="true"
-                      onDragStart={(e) => handleSubmoduleDragStart(e, idx)}
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={(e) => handleSubmoduleDrop(e, idx)}
-                      className="bg-white dark:bg-slate-900 rounded-xl border border-brand-border dark:border-slate-800 overflow-hidden shadow-sm flex items-start gap-3 px-5 py-4 cursor-grab active:cursor-grabbing hover:border-brand-primary transition-all"
-                    >
-                      <div className="flex flex-col gap-1 mt-1 shrink-0 text-brand-text-secondary dark:text-slate-500">
-                        <button onClick={() => handleMoveSubmodule(sub, 'up')} className="hover:text-brand-primary"><ChevronUp className="h-3 w-3" /></button>
-                        <GripVertical className="h-3.5 w-3.5 mx-auto opacity-40" />
-                        <button onClick={() => handleMoveSubmodule(sub, 'down')} className="hover:text-brand-primary"><ChevronDown className="h-3 w-3" /></button>
-                      </div>
-                      <div 
-                        className="w-7 h-7 rounded-md flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 border border-brand-border dark:border-slate-700 bg-brand-surface dark:bg-slate-850 text-brand-text-secondary"
-                      >
-                        {String(idx + 1).padStart(2, '0')}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <div className="text-sm font-bold text-brand-text-primary dark:text-slate-100 leading-snug truncate">
-                              {sub.title}
-                            </div>
-                            <div className="text-xs font-mono text-brand-text-secondary dark:text-slate-450 mt-0.5 truncate">
-                              /{sub.slug}
-                            </div>
-                            <div className="text-xs text-brand-text-secondary dark:text-slate-400 mt-1 truncate">
-                              {sub.description || 'No description provided.'}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <button
-                              onClick={() => handleNavigateToContent(sub)}
-                              className="w-7 h-7 rounded-md border border-brand-border dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-brand-surface dark:hover:bg-slate-755 flex items-center justify-center text-brand-primary"
-                              title="Edit submodule learning content blocks"
-                            >
-                              <ChevronRight className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleOpenEditSubmoduleForm(sub)}
-                              className="w-7 h-7 rounded-md border border-brand-border dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-brand-surface dark:hover:bg-slate-755 flex items-center justify-center text-brand-primary"
-                              title="Edit submodule details"
-                            >
-                              <Pencil className="h-3 w-3" />
-                            </button>
-                          </div>
-                        </div>
-                        {/* Bottom Row status & actions */}
-                        <div className="flex items-center gap-3 mt-2.5">
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              onClick={() => handleToggleSubmoduleStatus(sub)}
-                              className={cn(
-                                "w-8 h-4 rounded-full px-0.5 flex items-center transition-colors duration-200",
-                                sub.status === 'active' ? "bg-brand-success" : "bg-brand-border dark:bg-slate-700"
-                              )}
-                            >
-                              <div className={cn("w-3 h-3 rounded-full bg-white shadow-sm transition-transform duration-200", sub.status === 'active' && "translate-x-4")} />
-                            </button>
-                            <span className={cn("text-xs font-semibold", sub.status === 'active' ? "text-brand-success" : "text-brand-text-secondary dark:text-slate-400")}>
-                              {sub.status === 'active' ? 'Active' : 'Inactive'}
-                            </span>
-                          </div>
-                          <button
-                            onClick={() => handleDeleteClick({ type: 'submodule', id: sub.id, moduleId: activeModule.id })}
-                            className="flex items-center gap-1 text-xs font-medium text-accent-orange hover:underline"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                            <span>Delete</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-              )}
-
-              {/* Submodule Add/Edit Form Card inline under list */}
-              {submoduleFormOpen && (
-                <div className="rounded-xl border border-brand-border dark:border-slate-800 overflow-hidden shadow-card bg-white dark:bg-slate-900 border-t-3 border-t-accent-teal mt-2">
-                  <div className="flex items-center justify-between px-5 py-3.5 border-b border-brand-border dark:border-slate-800 bg-brand-surface dark:bg-slate-950/20">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-md flex items-center justify-center bg-accent-teal/15 text-accent-teal">
-                        <Pencil className="h-3.5 w-3.5" />
-                      </div>
-                      <span className="text-sm font-bold text-brand-text-primary dark:text-slate-100">
-                        {submoduleFormOpen === 'edit' ? 'Edit Submodule' : 'Add Submodule'}
+            {/* Submodules List Cards */}
+            <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+              {activeModule?.submodules?.map((sub, sIdx) => (
+                <div
+                  key={sub.id}
+                  className="p-5 rounded-[20px] border bg-white dark:bg-[#1E293B] border-slate-200 dark:border-[#334155] shadow-sm hover:border-purple-300 transition-all"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <GripVertical className="h-4 w-4 text-slate-300 dark:text-slate-600 cursor-grab" />
+                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-teal-50 text-teal-600 dark:bg-teal-950/50 text-xs font-bold">
+                        {sIdx + 1}
                       </span>
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC]">{sub.title}</h4>
                     </div>
-                    <button onClick={() => setSubmoduleFormOpen(null)} className="text-brand-text-secondary dark:text-slate-400 hover:text-brand-text-primary">
-                      <X className="h-4 w-4" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveSubmoduleId(sub.id);
+                        setActiveView('submodule_content');
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-950/50 dark:text-purple-300 text-xs font-bold hover:bg-purple-100 cursor-pointer"
+                    >
+                      <FileText className="h-3.5 w-3.5" /> Open Editor
                     </button>
                   </div>
-                  <div className="px-5 py-5 space-y-4">
+
+                  <p className="text-xs text-slate-500 dark:text-[#CBD5E1] pl-14 mb-3">
+                    {sub.description || 'No summary text.'}
+                  </p>
+
+                  <div className="flex items-center justify-between border-t border-slate-100 dark:border-[#334155] pt-3 pl-14 text-xs font-medium text-slate-400">
+                    <span>{(sub.contents || []).length} Content Blocks</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-brand-text-secondary dark:text-slate-400">Module</span>
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-brand-surface dark:bg-slate-800 border border-brand-border dark:border-slate-750 text-brand-text-secondary dark:text-slate-400">
-                        <span>📦</span>
-                        <span>{activeModule.title}</span>
-                        <Lock className="h-2.5 w-2.5 text-brand-text-secondary/55" />
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5">
-                          Title <span className="text-accent-orange">*</span>
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={submoduleForm.title}
-                            onChange={e => {
-                              const val = e.target.value.slice(0, 200);
-                              const generatedSlug = val.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-                              setSubmoduleForm({ 
-                                ...submoduleForm, 
-                                title: val,
-                                slug: submoduleFormOpen === 'add' ? generatedSlug : submoduleForm.slug
-                              });
-                            }}
-                            placeholder="e.g. Variables and Types"
-                            className="w-full border-l-3 border-l-brand-primary border border-brand-border dark:border-slate-750 rounded-md px-4 py-2.5 bg-brand-surface dark:bg-slate-800 text-sm text-brand-text-primary dark:text-slate-100 focus:outline-none"
-                            required
-                          />
-                          <span className="absolute right-3 bottom-2.5 text-xs text-brand-text-secondary dark:text-slate-455">{submoduleForm.title.length}/200</span>
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5">
-                          Slug <span className="text-accent-orange">*</span>
-                        </label>
-                        <div className="border border-brand-border dark:border-slate-750 rounded-md px-3 py-2 bg-brand-surface dark:bg-slate-800 text-sm flex items-center gap-2">
-                          <span className="text-brand-text-secondary dark:text-slate-400">
-                            <LinkIcon className="h-3.5 w-3.5" />
-                          </span>
-                          <input
-                            type="text"
-                            value={submoduleForm.slug}
-                            onChange={e => setSubmoduleForm({ ...submoduleForm, slug: e.target.value.toLowerCase().replace(/[^a-z0-9_-]+/g, '') })}
-                            placeholder="variables-and-types"
-                            className="flex-1 bg-transparent text-brand-text-primary dark:text-slate-100 focus:outline-none text-sm"
-                          />
-                          <span className="flex items-center gap-1 text-xs font-semibold text-brand-success shrink-0">
-                            <CheckCircle className="h-3.5 w-3.5" />
-                            <span>OK</span>
-                          </span>
-                          <span className="text-brand-text-secondary/55">
-                            <Lock className="h-3.5 w-3.5" />
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5 font-headings">Description</label>
-                      <textarea
-                        value={submoduleForm.description}
-                        onChange={e => setSubmoduleForm({ ...submoduleForm, description: e.target.value })}
-                        placeholder="Describe this submodule..."
-                        className="w-full border border-brand-border dark:border-slate-750 rounded-md px-4 py-3 bg-brand-surface dark:bg-slate-800 text-sm text-brand-text-primary dark:text-slate-200 leading-relaxed min-h-[68px] focus:outline-none"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5 font-headings">Submodule Order</label>
-                        <input
-                          type="number"
-                          value={submoduleForm.submoduleOrder}
-                          onChange={e => setSubmoduleForm({ ...submoduleForm, submoduleOrder: parseInt(e.target.value) || 1 })}
-                          className="w-full border border-brand-border dark:border-slate-750 rounded-md px-4 py-2.5 bg-brand-surface dark:bg-slate-800 text-sm text-brand-text-primary dark:text-slate-100"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5">Active</label>
-                        <div className="flex items-center gap-2.5 pt-1.5">
-                          <button
-                            onClick={() => setSubmoduleForm({ ...submoduleForm, status: submoduleForm.status === 'active' ? 'inactive' : 'active' })}
-                            className={cn(
-                              "w-11 h-6 rounded-full px-0.5 flex items-center transition-colors duration-200",
-                              submoduleForm.status === 'active' ? "bg-brand-success" : "bg-brand-border dark:bg-slate-700"
-                            )}
-                          >
-                            <div className={cn("w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200", submoduleForm.status === 'active' && "translate-x-5")} />
-                          </button>
-                          <span className={cn("text-sm font-semibold", submoduleForm.status === 'active' ? "text-brand-success" : "text-brand-text-secondary")}>
-                            {submoduleForm.status === 'active' ? 'Active' : 'Inactive'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Expandable SEO Accordion */}
-                    <div className="rounded-lg border border-brand-border dark:border-slate-800 overflow-hidden bg-brand-surface dark:bg-slate-800/40">
-                      <div 
-                        onClick={() => setSeoExpanded(!seoExpanded)}
-                        className="flex items-center justify-between px-4 py-3 bg-brand-surface dark:bg-slate-800 border-b border-brand-border dark:border-slate-850 cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-brand-text-primary dark:text-slate-100">SEO &amp; Metadata</span>
-                          <span className="text-[10px] text-brand-text-secondary border border-brand-border dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-0.5 rounded-full font-semibold">Optional</span>
-                        </div>
-                        <ChevronDown className={cn("h-4 w-4 text-brand-text-secondary transition-transform duration-200", seoExpanded && "rotate-180")} />
-                      </div>
-                      {seoExpanded && (
-                        <div className="px-4 py-4 grid grid-cols-2 gap-3 bg-white dark:bg-slate-900">
-                          <div>
-                            <label className="block text-xs font-semibold text-brand-text-primary dark:text-slate-300 mb-1">Meta Title</label>
-                            <div className="relative">
-                              <input
-                                type="text"
-                                value={submoduleForm.metaTitle}
-                                onChange={e => setSubmoduleForm({ ...submoduleForm, metaTitle: e.target.value.slice(0, 70) })}
-                                placeholder="Meta title..."
-                                className="w-full border border-brand-border dark:border-slate-750 bg-brand-surface dark:bg-slate-800 text-xs px-3 py-2 text-brand-text-primary dark:text-slate-100 rounded-md focus:outline-none"
-                              />
-                              <span className="absolute right-2 bottom-2 text-[9px] text-brand-text-secondary dark:text-slate-450">{submoduleForm.metaTitle.length}/70</span>
-                            </div>
-                          </div>
-                          <div>
-                            <label className="block text-xs font-semibold text-brand-text-primary dark:text-slate-300 mb-1">Canonical URL</label>
-                            <input
-                              type="url"
-                              value={submoduleForm.canonicalUrl}
-                              onChange={e => setSubmoduleForm({ ...submoduleForm, canonicalUrl: e.target.value })}
-                              placeholder="https://..."
-                              className="w-full border border-brand-border dark:border-slate-750 bg-brand-surface dark:bg-slate-800 text-xs px-3 py-2 text-brand-text-primary dark:text-slate-100 rounded-md focus:outline-none"
-                            />
-                          </div>
-                          <div className="col-span-2">
-                            <label className="block text-xs font-semibold text-brand-text-primary dark:text-slate-300 mb-1">Meta Description</label>
-                            <div className="relative">
-                              <textarea
-                                value={submoduleForm.metaDescription}
-                                onChange={e => setSubmoduleForm({ ...submoduleForm, metaDescription: e.target.value.slice(0, 320) })}
-                                placeholder="Meta description..."
-                                className="w-full border border-brand-border dark:border-slate-750 bg-brand-surface dark:bg-slate-800 text-xs px-3 py-2 text-brand-text-primary dark:text-slate-100 rounded-md min-h-[48px] focus:outline-none"
-                              />
-                              <span className="absolute right-2 bottom-2 text-[9px] text-brand-text-secondary dark:text-slate-450">{submoduleForm.metaDescription.length}/320</span>
-                            </div>
-                          </div>
-                          <div>
-                            <label className="block text-xs font-semibold text-brand-text-primary dark:text-slate-300 mb-1">OG Title</label>
-                            <input
-                              type="text"
-                              value={submoduleForm.ogTitle}
-                              onChange={e => setSubmoduleForm({ ...submoduleForm, ogTitle: e.target.value })}
-                              placeholder="OG title..."
-                              className="w-full border border-brand-border dark:border-slate-750 bg-brand-surface dark:bg-slate-800 text-xs px-3 py-2 text-brand-text-primary dark:text-slate-100 rounded-md focus:outline-none"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-semibold text-brand-text-primary dark:text-slate-300 mb-1">OG Image URL</label>
-                            <input
-                              type="url"
-                              value={submoduleForm.ogImageUrl}
-                              onChange={e => setSubmoduleForm({ ...submoduleForm, ogImageUrl: e.target.value })}
-                              placeholder="Image URL..."
-                              className="w-full border border-brand-border dark:border-slate-750 bg-brand-surface dark:bg-slate-800 text-xs px-3 py-2 text-brand-text-primary dark:text-slate-100 rounded-md focus:outline-none"
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-end gap-3 pt-2 border-t border-brand-border dark:border-slate-800">
-                      <Button onClick={() => setSubmoduleFormOpen(null)} variant="outline" size="sm">Cancel</Button>
-                      <Button onClick={handleSaveSubmodule} size="sm" className="bg-accent-teal text-white flex items-center gap-1.5">
-                        <Save className="h-3.5 w-3.5" /> Save Submodule
-                      </Button>
+                      <button type="button" onClick={() => handleOpenEditSubmoduleForm(sub)} className="p-1 hover:text-purple-600">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button type="button" onClick={() => handleDuplicateSubmodule(sub)} className="p-1 hover:text-purple-600">
+                        <Copy className="h-3.5 w-3.5" />
+                      </button>
+                      <button type="button" onClick={() => setDeleteConfirm({ type: 'submodule', id: sub.id })} className="p-1 hover:text-rose-500">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   </div>
                 </div>
-              )}
+              ))}
             </div>
           </div>
         </div>
       ) : (
-        /* Submodule Learning Content Block Editor View (cyrriculamcontent.html layout) */
-        <div className="flex-1 flex flex-col bg-brand-surface dark:bg-slate-950/40 px-12 py-8 overflow-y-auto scrollbar-thin">
-          <div className="max-w-4xl mx-auto w-full space-y-6">
-            
-            {/* Submodule Header Details exactly matching cyrriculamcontent.html */}
-            <div className="flex items-start justify-between gap-6 mb-2">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 mb-2">
-                  <div
-                    className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                    style={{ backgroundColor: '#6c1d5f18' }}
-                  >
-                    <FileText className="h-[17px] w-[17px] text-brand-primary" />
+        /* View 2: Three-Panel Block Editor Canvas */
+        <div className="flex-1 flex overflow-hidden">
+          {/* Panel 1: Left Course Structure Tree (280px) */}
+          <div className="w-72 shrink-0 border-r border-slate-200 dark:border-[#334155] bg-white dark:bg-[#111827] flex flex-col p-4 space-y-4">
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Course Structure</h3>
+            <div className="flex-1 overflow-y-auto space-y-3">
+              {course.modules?.map((m, mIdx) => (
+                <div key={m.id} className="space-y-1">
+                  <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-[#1E293B] text-xs font-bold text-slate-800 dark:text-[#F8FAFC]">
+                    <span className="truncate">{mIdx + 1}. {m.title}</span>
                   </div>
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <h1 className="border-b-2 border-brand-primary text-2xl font-bold text-brand-text-primary dark:text-slate-100 font-headings leading-tight">
-                      {activeSubmodule?.title}
-                    </h1>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4 ml-12 text-xs text-brand-text-secondary dark:text-slate-450">
-                  <span className="flex items-center gap-1.5 font-mono">
-                    <span className="font-semibold text-brand-text-secondary dark:text-slate-400">slug:</span>
-                    /{activeSubmodule?.slug}
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full inline-block bg-brand-success"></span>
-                    <span className="text-brand-success font-semibold">Active</span>
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <FileText className="h-3.5 w-3.5 opacity-60" />
-                    <span>{activeSubmodule?.contents?.length || 0} blocks</span>
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => {
-                    setActiveView('modules_submodules');
-                    setContentFormOpen(null);
-                  }}
-                  className="flex items-center gap-2 border-brand-border dark:border-slate-800 text-brand-text-secondary hover:bg-brand-surface"
-                >
-                  <ArrowLeft className="h-3.5 w-3.5" /> Back
-                </Button>
-                <Button
-                  onClick={handleSaveContent}
-                  disabled={!contentFormOpen}
-                  size="sm"
-                  className="bg-brand-success hover:bg-brand-success-dark text-white font-semibold flex items-center gap-2"
-                >
-                  <Save className="h-3.5 w-3.5" /> Save All
-                </Button>
-              </div>
-            </div>
-
-            <div className="border-b border-brand-border dark:border-slate-800 mb-6 ml-12"></div>
-
-            {/* List of Content blocks inside this submodule */}
-            <div className="space-y-2">
-              {(!activeSubmodule?.contents || activeSubmodule.contents.length === 0) ? (
-                <div className="text-center py-12 bg-white dark:bg-slate-900 border border-brand-border dark:border-slate-800 rounded-xl p-8">
-                  <UploadCloud className="h-8 w-8 text-brand-text-secondary mx-auto mb-2 opacity-50" />
-                  <p className="text-sm font-bold text-brand-text-primary dark:text-slate-200">No content blocks yet</p>
-                  <p className="text-xs text-brand-text-secondary dark:text-slate-450 mt-1 max-w-sm mx-auto">
-                    Create headings, code snippets, videos, tables or callouts below.
-                  </p>
-                </div>
-              ) : (
-                [...(activeSubmodule.contents || [])]
-                  .sort((a, b) => (a.contentOrder || 0) - (b.contentOrder || 0))
-                  .map((item, idx) => {
-                    const blockCfg = blockTypesConfig[item.type] || { label: item.type, color: '#6b7280', bg: '#6b728012' };
-
-                    return (
-                      <div 
-                        key={item.id} 
-                        draggable="true"
-                        onDragStart={(e) => handleContentDragStart(e, idx)}
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={(e) => handleContentDrop(e, idx)}
-                        className="flex items-center gap-3 bg-white dark:bg-slate-900 border border-brand-border dark:border-slate-800 rounded-xl px-4 py-3.5 shadow-sm group hover:border-brand-primary cursor-grab active:cursor-grabbing transition-all"
-                      >
-                        <div className="flex flex-col gap-0.5 shrink-0 text-brand-text-secondary dark:text-slate-500 opacity-60">
-                          <button onClick={() => handleMoveContent(item, 'up')} className="hover:text-brand-primary"><ChevronUp className="h-2.5 w-2.5" /></button>
-                          <GripVertical className="h-3.5 w-3.5 mx-auto" />
-                          <button onClick={() => handleMoveContent(item, 'down')} className="hover:text-brand-primary"><ChevronDown className="h-2.5 w-2.5" /></button>
-                        </div>
-                        <span 
-                          className="text-[10px] font-bold px-2.5 py-1 rounded-full text-white shrink-0 capitalize select-none"
-                          style={{ backgroundColor: blockCfg.color }}
-                        >
-                          {item.type === 'notes' ? 'text' : item.type}
-                        </span>
-                        <div 
-                          className="w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold shrink-0 border border-brand-border dark:border-slate-700 bg-brand-surface dark:bg-slate-800 text-brand-text-secondary"
-                        >
-                          {idx + 1}
-                        </div>
-                        <span className="flex-1 text-sm font-semibold text-brand-text-primary dark:text-slate-200 truncate min-w-0">
-                          {item.type === 'heading' ? item.title : (item.text || item.title || item.fileUrl)}
-                        </span>
-                        <div className="flex items-center gap-3 shrink-0">
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              onClick={() => handleToggleContentStatus(item)}
-                              className={cn(
-                                "w-8 h-4 rounded-full px-0.5 flex items-center transition-colors duration-200",
-                                item.status === 'published' ? "bg-brand-success" : "bg-brand-border dark:bg-slate-700"
-                              )}
-                            >
-                              <div className={cn("w-3 h-3 rounded-full bg-white shadow-sm transition-transform duration-200", item.status === 'published' && "translate-x-4")} />
-                            </button>
-                            <span className="text-xs font-medium text-brand-text-secondary dark:text-slate-400">
-                              {item.status === 'published' ? 'Active' : 'Draft'}
-                            </span>
-                          </div>
-                          <button
-                            onClick={() => handleOpenEditContent(item)}
-                            className="w-7 h-7 rounded-md border border-brand-border dark:border-slate-750 bg-white dark:bg-slate-800 hover:bg-brand-surface dark:hover:bg-slate-755 flex items-center justify-center text-brand-primary"
-                            title="Edit content block"
-                          >
-                            <Pencil className="h-3 w-3" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteClick({ type: 'content', id: item.id, moduleId: activeModuleId, submoduleId: activeSubmoduleId })}
-                            className="w-7 h-7 rounded-md border border-brand-border dark:border-slate-755 bg-white dark:bg-slate-800 hover:bg-brand-surface dark:hover:bg-slate-755 flex items-center justify-center text-accent-orange"
-                            title="Delete block"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })
-              )}
-            </div>
-
-            {/* Quick block addition triggers (renders above inline editor) */}
-            <div className="border-2 border-dashed rounded-xl px-4 py-4 flex items-center justify-center border-brand-border dark:border-slate-800 bg-white dark:bg-slate-900">
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-bold text-brand-text-secondary dark:text-slate-400">Quick Add:</span>
-                {['heading', 'text', 'code', 'video', 'pdf', 'ppt', 'image', 'callout', 'table'].map(t => (
-                  <button
-                    key={t}
-                    onClick={() => handleOpenAddContent(t)}
-                    className="text-xs px-3 py-1.5 rounded-full border border-brand-border dark:border-slate-700 bg-brand-surface dark:bg-slate-800 font-semibold text-brand-text-primary dark:text-slate-200 hover:bg-brand-primary hover:text-white dark:hover:bg-brand-primary transition-all capitalize"
-                  >
-                    + {t}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Inline Content Block Editor Form exactly matching cyrriculamcontent.html */}
-            {contentFormOpen && (
-              <div
-                className="bg-card rounded-2xl border border-brand-border dark:border-slate-800 overflow-hidden shadow-card"
-                style={{ borderTop: `3px solid ${currentTypeColor}` }}
-              >
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border dark:border-slate-850">
-                  <div className="flex items-center gap-2.5">
-                    <span
-                      className="text-xs font-bold px-2.5 py-1 rounded-full text-white capitalize"
-                      style={{ backgroundColor: currentTypeColor }}
-                    >
-                      {contentForm.type}
-                    </span>
-                    <span className="text-base font-bold text-brand-text-primary dark:text-slate-100">
-                      {contentFormOpen === 'edit' ? 'Edit Content Block' : 'Add Content Block'}
-                    </span>
-                    <span className="text-xs text-brand-text-secondary dark:text-slate-400 px-2 py-0.5 rounded-full bg-brand-surface dark:bg-slate-800 border border-brand-border dark:border-slate-700">
-                      order: {contentForm.contentOrder}
-                    </span>
-                  </div>
-                  <button onClick={() => setContentFormOpen(null)} className="text-brand-text-secondary dark:text-slate-400 hover:text-brand-text-primary">
-                    <X className="h-4.5 w-4.5" />
-                  </button>
-                </div>
-
-                {/* Block type pill list selector */}
-                <div className="px-6 pt-5 pb-4 border-b border-brand-border dark:border-slate-850">
-                  <div className="text-xs font-semibold text-brand-text-secondary dark:text-slate-400 mb-3 uppercase tracking-wider">
-                    Block Type
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {['heading', 'text', 'callout', 'code', 'video', 'pdf', 'ppt', 'image', 'table'].map(t => {
-                      const isActive = contentForm.type === t;
-                      const cfg = blockTypesConfig[t] || { color: '#6b7280' };
+                  <div className="pl-3 space-y-1 border-l-2 border-slate-100 dark:border-[#334155]">
+                    {m.submodules?.map((s) => {
+                      const isSubActive = s.id === activeSubmodule?.id;
                       return (
                         <button
-                          key={t}
-                          onClick={() => setContentForm(prev => ({ 
-                            ...prev, 
-                            type: t, 
-                            title: t === 'heading' ? 'Your Heading Here' : '',
-                            markdown: '',
-                            code: ''
-                          }))}
-                          className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold border transition-all"
-                          style={{
-                            backgroundColor: isActive ? cfg.color : 'transparent',
-                            color: isActive ? '#fff' : '#5a5a5a',
-                            borderColor: isActive ? cfg.color : '#dadcea'
-                          }}
+                          key={s.id}
+                          type="button"
+                          onClick={() => setActiveSubmoduleId(s.id)}
+                          className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between cursor-pointer ${isSubActive ? 'bg-[#7C3AED]/15 text-[#7C3AED] font-bold' : 'text-slate-600 dark:text-[#CBD5E1] hover:bg-slate-100 dark:hover:bg-slate-800'}`}
                         >
-                          <span className="capitalize">{t}</span>
+                          <span className="truncate">{s.title}</span>
+                          <span className="text-[10px] opacity-70">{(s.contents || []).length}</span>
                         </button>
                       );
                     })}
                   </div>
                 </div>
+              ))}
+            </div>
+          </div>
 
-                {/* Form fields based on selected type */}
-                <div className="px-6 py-5 space-y-5">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-brand-text-secondary dark:text-slate-400">Submodule</span>
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-brand-surface dark:bg-slate-800 border border-brand-border dark:border-slate-700 text-brand-text-secondary dark:text-slate-400">
-                      <span>📄</span>
-                      <span>{activeSubmodule?.title}</span>
-                      <Lock className="h-2.5 w-2.5 text-brand-text-secondary/40" />
-                    </span>
-                  </div>
+          {/* Panel 2: Center Content Canvas & 11 Grid Menu */}
+          <div className="flex-1 flex flex-col bg-[#F8FAFC] dark:bg-[#0B1120] overflow-y-auto p-8 relative">
+            <div className="max-w-3xl w-full mx-auto space-y-6">
 
-                  {/* 1. Heading Type */}
-                  {contentForm.type === 'heading' && (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-5">
-                        <div>
-                          <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5">
-                            Heading Text <span className="text-accent-orange">*</span>
-                            <span className="ml-1 text-xs font-normal text-brand-text-secondary">max 300</span>
-                          </label>
-                          <input
-                            type="text"
-                            value={contentForm.title}
-                            onChange={e => setContentForm(prev => ({ ...prev, title: e.target.value.slice(0, 300) }))}
-                            placeholder="Enter heading text..."
-                            className="w-full border-l-3 border-brand-primary border border-brand-border dark:border-slate-700 rounded-md px-4 py-2.5 bg-brand-surface dark:bg-slate-800 text-sm text-brand-text-primary dark:text-slate-100 focus:outline-none"
-                            style={{ borderLeftColor: currentTypeColor }}
-                          />
-                          <div className="text-right text-[10px] text-brand-text-secondary mt-1">
-                            {contentForm.title.length}/300
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5">
-                            Heading Level <span className="text-xs font-normal text-brand-text-secondary">default 2</span>
-                          </label>
-                          <div className="flex items-center gap-1.5">
-                            {[1, 2, 3, 4, 5, 6].map(lvl => {
-                              const isLvlActive = contentForm.headingLevel === lvl;
-                              return (
-                                <button
-                                  key={lvl}
-                                  onClick={() => setContentForm(prev => ({ ...prev, headingLevel: lvl }))}
-                                  className="w-10 h-10 rounded-lg text-sm font-bold border transition-colors"
-                                  style={{
-                                    backgroundColor: isLvlActive ? '#6c1d5f' : 'transparent',
-                                    color: isLvlActive ? '#fff' : '#5a5a5a',
-                                    borderColor: isLvlActive ? '#6c1d5f' : '#dadcea'
-                                  }}
-                                >
-                                  H{lvl}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      </div>
-                      {/* Live Heading Preview */}
-                      <div className="rounded-xl border border-brand-border dark:border-slate-800 p-5 bg-brand-surface dark:bg-slate-800/40">
-                        <div className="flex items-center gap-2 mb-3 text-xs font-semibold text-brand-text-secondary uppercase">
-                          <span>👁️</span>
-                          <span>Preview</span>
-                        </div>
-                        <div className="text-brand-text-primary dark:text-slate-100 font-headings font-bold">
-                          {contentForm.headingLevel === 1 && <h1 className="text-3xl">{contentForm.title || 'Your Heading Here'}</h1>}
-                          {contentForm.headingLevel === 2 && <h2 className="text-2xl">{contentForm.title || 'Your Heading Here'}</h2>}
-                          {contentForm.headingLevel === 3 && <h3 className="text-xl">{contentForm.title || 'Your Heading Here'}</h3>}
-                          {contentForm.headingLevel === 4 && <h4 className="text-lg">{contentForm.title || 'Your Heading Here'}</h4>}
-                          {contentForm.headingLevel === 5 && <h5 className="text-base">{contentForm.title || 'Your Heading Here'}</h5>}
-                          {contentForm.headingLevel === 6 && <h6 className="text-sm">{contentForm.title || 'Your Heading Here'}</h6>}
-                        </div>
-                      </div>
-                    </div>
-                  )}
+              {/* Lesson Header */}
+              <div className="border-b border-slate-200 dark:border-[#334155] pb-4">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-purple-600 dark:text-purple-400">Lesson Canvas</span>
+                <h1 className="text-2xl font-black text-slate-900 dark:text-[#F8FAFC] tracking-tight">{activeSubmodule?.title || 'Lesson Title'}</h1>
+                <p className="text-xs font-medium text-slate-500 dark:text-[#CBD5E1] mt-1">{activeSubmodule?.description || 'Build lesson content using the supported LMS block types below.'}</p>
+              </div>
 
-                  {/* 2. Text Type */}
-                  {contentForm.type === 'text' && (
-                    <div className="space-y-2">
-                      <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5">
-                        Text Content <span className="text-accent-orange">*</span>
-                      </label>
-                      <textarea
-                        value={contentForm.markdown}
-                        onChange={e => setContentForm(prev => ({ ...prev, markdown: e.target.value }))}
-                        placeholder="Enter paragraph text content..."
-                        rows={4}
-                        className="w-full border-l-3 border-brand-border dark:border-slate-700 border rounded-md px-4 py-3 bg-brand-surface dark:bg-slate-800 text-sm text-brand-text-primary dark:text-slate-200 leading-relaxed focus:outline-none"
-                        style={{ borderLeftColor: currentTypeColor }}
-                      />
-                    </div>
-                  )}
-
-                  {/* 3. Code Type */}
-                  {contentForm.type === 'code' && (
-                    <div className="grid grid-cols-4 gap-4">
-                      <div className="col-span-3">
-                        <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5">
-                          Code <span className="text-accent-orange">*</span>
-                        </label>
-                        <textarea
-                          value={contentForm.code}
-                          onChange={e => setContentForm(prev => ({ ...prev, code: e.target.value }))}
-                          placeholder="// Paste your code here..."
-                          rows={4}
-                          className="w-full border-l-3 border border-brand-border dark:border-slate-700 rounded-lg px-4 py-3 text-sm font-mono leading-relaxed"
-                          style={{
-                            backgroundColor: '#1e1b2e',
-                            color: '#a9b1d6',
-                            borderLeftColor: currentTypeColor
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5">
-                          Language <span className="text-xs font-normal text-brand-text-secondary">max 50</span>
-                        </label>
-                        <select
-                          value={contentForm.language}
-                          onChange={e => setContentForm(prev => ({ ...prev, language: e.target.value }))}
-                          className="w-full border border-brand-border dark:border-slate-700 rounded-md px-3 py-2 bg-brand-surface dark:bg-slate-800 text-sm text-brand-text-primary focus:outline-none"
-                        >
-                          {['Java', 'Javascript', 'Python', 'Go', 'Typescript', 'SQL', 'Bash', 'HTML', 'CSS', 'JSON'].map(lang => (
-                            <option key={lang} value={lang}>{lang}</option>
-                          ))}
-                        </select>
-                        <div className="mt-2.5 flex flex-wrap gap-1">
-                          {['JS', 'Python', 'Java', 'SQL', 'Bash'].map(lang => {
-                            const isSel = contentForm.language.toLowerCase().startsWith(lang.toLowerCase());
-                            return (
-                              <button
-                                key={lang}
-                                onClick={() => setContentForm(prev => ({ ...prev, language: lang }))}
-                                className="text-[10px] px-2 py-0.5 rounded border border-brand-border dark:border-slate-700 bg-brand-surface text-brand-text-secondary font-semibold"
-                                style={isSel ? { borderColor: '#4a1e47', color: '#4a1e47', backgroundColor: '#4a1e4710' } : {}}
-                              >
-                                {lang}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 4. Video Type */}
-                  {contentForm.type === 'video' && (
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5">
-                          Video URL <span className="text-accent-orange">*</span>
-                        </label>
-                        <div 
-                          className="border-l-3 border border-brand-border dark:border-slate-700 rounded-md px-4 py-2.5 bg-brand-surface dark:bg-slate-800 text-sm flex items-center gap-2"
-                          style={{ borderLeftColor: currentTypeColor }}
-                        >
-                          <span className="text-brand-text-secondary"><LinkIcon className="h-4 w-4" /></span>
-                          <input
-                            type="text"
-                            value={contentForm.fileUrl}
-                            onChange={e => setContentForm(prev => ({ ...prev, fileUrl: e.target.value }))}
-                            placeholder="https://www.youtube.com/watch?v=..."
-                            className="flex-1 bg-transparent text-brand-text-primary focus:outline-none"
-                          />
-                        </div>
-                      </div>
-                      <div className="rounded-xl border border-brand-border dark:border-slate-800 flex items-center justify-center aspect-video bg-brand-surface dark:bg-slate-800/40">
-                        <div className="text-center text-brand-text-secondary space-y-2">
-                          <span className="inline-block p-3 rounded-full bg-brand-primary/10 text-brand-primary">📹</span>
-                          <p className="text-xs font-semibold">Video preview will appear here</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 5. Image Type */}
-                  {contentForm.type === 'image' && (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5">
-                            Image URL / Source <span className="text-accent-orange">*</span>
-                          </label>
-                          <div 
-                            className="border-l-3 border border-brand-border dark:border-slate-700 rounded-md px-4 py-2.5 bg-brand-surface dark:bg-slate-800 text-sm flex items-center gap-2 mb-2"
-                            style={{ borderLeftColor: currentTypeColor }}
-                          >
-                            <span className="text-brand-text-secondary">🖼️</span>
-                            <input
-                              type="text"
-                              value={contentForm.fileUrl}
-                              onChange={e => setContentForm(prev => ({ ...prev, fileUrl: e.target.value }))}
-                              placeholder="https://cdn.example.com/image.png"
-                              className="flex-1 bg-transparent text-brand-text-primary focus:outline-none"
-                            />
-                          </div>
-                          {/* File upload drag & drop inside image form */}
-                          <div
-                            className="border border-dashed border-brand-border dark:border-slate-700 rounded-lg p-4 text-center bg-brand-surface dark:bg-slate-850 cursor-pointer"
-                            onClick={() => {
-                              const input = document.createElement('input');
-                              input.type = 'file';
-                              input.accept = 'image/*';
-                              input.onchange = (e) => {
-                                const f = e.target.files[0];
-                                if (f) handleInlineFileUpload(f);
-                              };
-                              input.click();
-                            }}
-                          >
-                            <UploadCloud className="h-6 w-6 text-brand-text-secondary mx-auto mb-1 shrink-0" />
-                            <p className="text-[11px] font-semibold text-brand-text-primary">Click to upload image asset</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-center rounded-xl border border-brand-border dark:border-slate-800 bg-brand-surface dark:bg-slate-800/40">
-                          {contentForm.fileUrl ? (
-                            <img src={contentForm.fileUrl} alt={contentForm.alt || "Preview"} className="max-h-[140px] rounded object-contain p-2" />
-                          ) : (
-                            <div className="text-center text-brand-text-secondary text-xs">
-                              <span>🖼️</span>
-                              <div>Live Preview</div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5">
-                            Alt text
-                          </label>
-                          <input
-                            type="text"
-                            value={contentForm.alt}
-                            onChange={e => setContentForm(prev => ({ ...prev, alt: e.target.value.slice(0, 200) }))}
-                            placeholder="Describe the image..."
-                            className="w-full border border-brand-border dark:border-slate-700 rounded-md px-3 py-2 bg-brand-surface dark:bg-slate-800 text-sm text-brand-text-primary focus:outline-none"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5">
-                            Caption
-                          </label>
-                          <input
-                            type="text"
-                            value={contentForm.caption}
-                            onChange={e => setContentForm(prev => ({ ...prev, caption: e.target.value.slice(0, 300) }))}
-                            placeholder="Optional caption..."
-                            className="w-full border border-brand-border dark:border-slate-700 rounded-md px-3 py-2 bg-brand-surface dark:bg-slate-800 text-sm text-brand-text-primary focus:outline-none"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 6. Callout Type */}
-                  {contentForm.type === 'callout' && (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5">
-                            Callout Title <span className="text-accent-orange">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            value={contentForm.title}
-                            onChange={e => setContentForm(prev => ({ ...prev, title: e.target.value }))}
-                            placeholder="e.g. 💡 Pro Tip"
-                            className="w-full border-l-3 border border-brand-border dark:border-slate-700 rounded-md px-3 py-2 bg-brand-surface dark:bg-slate-800 text-sm text-brand-text-primary focus:outline-none"
-                            style={{ borderLeftColor: currentTypeColor }}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5">
-                            Callout Body Text <span className="text-accent-orange">*</span>
-                          </label>
-                          <textarea
-                            value={contentForm.markdown}
-                            onChange={e => setContentForm(prev => ({ ...prev, markdown: e.target.value }))}
-                            placeholder="Callout body text..."
-                            rows={2}
-                            className="w-full border border-brand-border dark:border-slate-700 rounded-md px-3 py-2 bg-brand-surface dark:bg-slate-800 text-sm text-brand-text-primary focus:outline-none"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Live Callout Preview */}
-                      <div
-                        className="rounded-xl border-l-4 px-5 py-4"
-                        style={{
-                          borderColor: '#01ac9f',
-                          backgroundColor: '#01ac9f0a',
-                          border: '1px solid #01ac9f30',
-                          borderLeftWidth: '4px',
-                          borderLeftColor: '#01ac9f'
-                        }}
-                      >
-                        <div className="text-sm font-bold text-brand-text-primary dark:text-slate-200 mb-1">
-                          {contentForm.title || "💡 Pro Tip"}
-                        </div>
-                        <div className="text-sm text-brand-text-secondary dark:text-slate-400">
-                          {contentForm.markdown || "Your callout body text will appear here."}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 7. Table Type */}
-                  {contentForm.type === 'table' && (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5">
-                          Table Text Content <span className="text-accent-orange">*</span>
-                        </label>
-                        <textarea
-                          value={contentForm.markdown}
-                          onChange={e => setContentForm(prev => ({ ...prev, markdown: e.target.value }))}
-                          placeholder="| Column A | Column B |&#10;| -------- | -------- |&#10;| Value 1  | Value 2  |"
-                          rows={4}
-                          className="w-full border-l-3 border border-brand-border dark:border-slate-700 rounded-md px-4 py-3 font-mono text-sm leading-relaxed"
-                          style={{
-                            backgroundColor: '#f7f8fc',
-                            color: '#5a5a5a',
-                            borderLeftColor: currentTypeColor
-                          }}
-                        />
-                        <p className="text-[11px] text-brand-text-secondary dark:text-slate-450 mt-1.5 flex items-center gap-1">
-                          <span>ℹ️</span>
-                          <span>Enter as JSON array or Markdown table</span>
-                        </p>
-                        <div className="mt-2 rounded-lg border border-brand-border dark:border-slate-800 px-4 py-3 bg-brand-surface dark:bg-slate-850 text-xs font-mono text-brand-text-secondary leading-relaxed">
-                          {"// JSON example: [[\"Op\",\"Time\"],[\"Access\",\"O(1)\"],[\"Search\",\"O(n)\"]]"}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* PDF and PPT Content Types */}
-                  {['pdf', 'ppt'].includes(contentForm.type) && (
-                    <div className="space-y-4 font-sans">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5 font-sans">
-                            Content Title <span className="text-accent-orange">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            value={contentForm.title}
-                            onChange={e => setContentForm(prev => ({ ...prev, title: e.target.value }))}
-                            placeholder={contentForm.type === 'pdf' ? "e.g. Kubernetes Cheat Sheet" : "e.g. S3 Architecture Slides"}
-                            className="w-full border border-brand-border dark:border-slate-750 rounded-md px-3 py-2 bg-brand-surface dark:bg-slate-800 text-sm text-brand-text-primary focus:outline-none"
-                            required
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5 font-sans">
-                            {contentForm.type === 'pdf' ? "Page Count" : "Slide Count"}
-                          </label>
-                          <input
-                            type="number"
-                            value={contentForm.type === 'pdf' ? contentForm.pageCount : contentForm.slideCount}
-                            onChange={e => {
-                              const val = parseInt(e.target.value) || '';
-                              if (contentForm.type === 'pdf') {
-                                setContentForm(prev => ({ ...prev, pageCount: val }));
-                              } else {
-                                setContentForm(prev => ({ ...prev, slideCount: val }));
-                              }
-                            }}
-                            placeholder={contentForm.type === 'pdf' ? "e.g. 8" : "e.g. 24"}
-                            className="w-full border border-brand-border dark:border-slate-750 rounded-md px-3 py-2 bg-brand-surface dark:bg-slate-800 text-sm text-brand-text-primary focus:outline-none"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5 font-sans">
-                            File URL <span className="text-accent-orange">*</span>
-                          </label>
-                          <div 
-                            className="border-l-3 border border-brand-border dark:border-slate-750 rounded-md px-4 py-2.5 bg-brand-surface dark:bg-slate-800 text-sm flex items-center gap-2 mb-2"
-                            style={{ borderLeftColor: currentTypeColor }}
-                          >
-                            <span className="text-brand-text-secondary">🔗</span>
-                            <input
-                              type="text"
-                              value={contentForm.fileUrl}
-                              onChange={e => setContentForm(prev => ({ ...prev, fileUrl: e.target.value }))}
-                              placeholder="https://..."
-                              className="flex-1 bg-transparent text-brand-text-primary focus:outline-none"
-                            />
-                          </div>
-                          
-                          {/* File upload drag & drop inside PDF/PPT form */}
-                          <div
-                            className="border border-dashed border-brand-border dark:border-slate-700 rounded-lg p-4 text-center bg-brand-surface dark:bg-slate-850 cursor-pointer"
-                            onClick={() => {
-                              const input = document.createElement('input');
-                              input.type = 'file';
-                              input.accept = contentForm.type === 'pdf' ? '.pdf' : '.ppt,.pptx';
-                              input.onchange = (e) => {
-                                const f = e.target.files[0];
-                                if (f) handleInlineFileUpload(f);
-                              };
-                              input.click();
-                            }}
-                          >
-                            <UploadCloud className="h-6 w-6 text-brand-text-secondary mx-auto mb-1 shrink-0" />
-                            <p className="text-[11px] font-semibold text-brand-text-primary">
-                              Click to upload {contentForm.type.toUpperCase()} file
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col justify-center rounded-xl border border-brand-border dark:border-slate-800 bg-brand-surface dark:bg-slate-800/40 p-4">
-                          <div className="text-center text-brand-text-secondary text-xs space-y-2">
-                            <span className="text-2xl">{contentForm.type === 'pdf' ? "📄" : "📊"}</span>
-                            <div className="font-semibold">{contentForm.type.toUpperCase()} Block Preview</div>
-                            {contentForm.fileUrl ? (
-                              <div className="text-[11px] break-all px-2 text-brand-primary font-mono max-h-[60px] overflow-y-auto">
-                                {contentForm.fileUrl}
-                              </div>
-                            ) : (
-                              <div className="text-[10px] text-brand-text-secondary/60">No file uploaded/linked</div>
-                            )}
-                            {contentForm.fileSize > 0 && (
-                              <div className="text-[10px] font-semibold text-brand-text-primary">
-                                Size: {(contentForm.fileSize / (1024 * 1024)).toFixed(2)} MB
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 8 & 9: PDF, ZIP and external link support using file block fields */}
-                  {['notes', 'link'].includes(contentForm.type) && (
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5">
-                          Content Title <span className="text-accent-orange">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={contentForm.title}
-                          onChange={e => setContentForm(prev => ({ ...prev, title: e.target.value }))}
-                          placeholder="e.g. Reference Documentation"
-                          className="w-full border border-brand-border dark:border-slate-700 rounded-md px-3 py-2 bg-brand-surface dark:bg-slate-800 text-sm text-brand-text-primary focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5">
-                          URL / Link
-                        </label>
-                        <input
-                          type="text"
-                          value={contentForm.fileUrl}
-                          onChange={e => setContentForm(prev => ({ ...prev, fileUrl: e.target.value }))}
-                          placeholder="https://..."
-                          className="w-full border border-brand-border dark:border-slate-700 rounded-md px-3 py-2 bg-brand-surface dark:bg-slate-800 text-sm text-brand-text-primary focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5">
-                          Markdown Body
-                        </label>
-                        <textarea
-                          value={contentForm.markdown}
-                          onChange={e => setContentForm(prev => ({ ...prev, markdown: e.target.value }))}
-                          placeholder="Markdown body..."
-                          rows={3}
-                          className="w-full border border-brand-border dark:border-slate-700 rounded-md px-3 py-2 bg-brand-surface dark:bg-slate-800 text-sm text-brand-text-primary focus:outline-none"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {contentUploading && (
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between text-[10px] font-semibold">
-                        <span>Uploading...</span>
-                        <span>{contentUploadProgress}%</span>
-                      </div>
-                      <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                        <div className="h-full bg-accent-teal transition-all duration-200" style={{ width: `${contentUploadProgress}%` }} />
-                      </div>
-                    </div>
-                  )}
-
-                  {contentFileError && (
-                    <p className="text-[10px] font-semibold text-red-500 flex items-center gap-1">
-                      <span>⚠️</span> {contentFileError}
-                    </p>
-                  )}
-
-                  {/* Order & Status toggles */}
-                  <div className="grid grid-cols-3 gap-5 border-t border-brand-border dark:border-slate-800 pt-5">
-                    <div>
-                      <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5">
-                        contentOrder <span className="text-brand-text-secondary font-normal">≥ 0</span>
-                      </label>
-                      <input
-                        type="number"
-                        value={contentForm.contentOrder}
-                        onChange={e => setContentForm(prev => ({ ...prev, contentOrder: parseInt(e.target.value) || 1 }))}
-                        className="w-full border border-brand-border dark:border-slate-700 rounded-md px-3 py-2.5 bg-brand-surface dark:bg-slate-800 text-sm text-brand-text-primary focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5">
-                        Active Status <span className="text-brand-text-secondary font-normal">default ON</span>
-                      </label>
-                      <div className="flex items-center gap-2.5 pt-2">
-                        <button
-                          onClick={() => setContentForm(prev => ({ ...prev, status: prev.status === 'published' ? 'draft' : 'published' }))}
-                          className={cn(
-                            "w-11 h-6 rounded-full px-0.5 flex items-center transition-colors duration-200",
-                            contentForm.status === 'published' ? "bg-brand-success" : "bg-brand-border dark:bg-slate-700"
-                          )}
-                        >
-                          <div className={cn("w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200", contentForm.status === 'published' && "translate-x-5")} />
-                        </button>
-                        <span className={cn("text-sm font-semibold", contentForm.status === 'published' ? "text-brand-success" : "text-brand-text-secondary")}>
-                          {contentForm.status === 'published' ? 'Active' : 'Inactive'}
+              {/* Block Cards List */}
+              <div className="space-y-6">
+                {activeSubmodule?.contents?.map((blk, bIdx) => (
+                  <div
+                    key={blk.id}
+                    className="p-6 rounded-[20px] border bg-white dark:bg-[#1E293B] border-slate-200 dark:border-[#334155] shadow-sm relative group transition-all"
+                  >
+                    <div className="flex items-center justify-between mb-3 border-b border-slate-100 dark:border-[#334155] pb-3">
+                      <div className="flex items-center gap-2.5">
+                        <span className="px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-300">
+                          {blk.type}
                         </span>
+                        <h4 className="text-xs font-bold text-slate-900 dark:text-[#F8FAFC]">{blk.title}</h4>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button type="button" onClick={() => handleOpenEditContent(blk)} className="p-1.5 text-slate-400 hover:text-purple-600 cursor-pointer">
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button type="button" onClick={() => setDeleteConfirm({ type: 'content', id: blk.id })} className="p-1.5 text-slate-400 hover:text-rose-500 cursor-pointer">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Actions Footer */}
-                  <div className="flex items-center justify-between pt-3 border-t border-brand-border dark:border-slate-850">
-                    <span className="text-xs text-brand-text-secondary flex items-center gap-1.5">
-                      <span>ℹ️</span>
-                      <span>Block will be added at position {contentForm.contentOrder}</span>
-                    </span>
-                    <div className="flex items-center gap-3">
-                      <Button
-                        variant="outline"
-                        onClick={() => setContentFormOpen(null)}
-                        className="px-5 py-2.5 border-brand-border"
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={handleSaveContent}
-                        disabled={contentUploading}
-                        className="px-6 py-2.5 text-white bg-brand-success hover:bg-brand-success-dark flex items-center gap-2 font-semibold"
-                      >
-                        <span>+</span>
-                        <span>{contentForm.id ? 'Save Block' : 'Add Block'}</span>
-                      </Button>
-                    </div>
+                    {/* QUIZ BLOCK DISPLAY */}
+                    {blk.type === 'quiz' && (
+                      <div className="p-4 rounded-2xl border border-purple-200 dark:border-purple-900/60 bg-purple-50/50 dark:bg-purple-950/20 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <HelpCircle className="h-5 w-5 text-purple-600" />
+                            <span className="text-xs font-extrabold text-slate-800 dark:text-white">Enterprise Quiz Assessment</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditContent(blk)}
+                            className="px-3 py-1 rounded-xl bg-purple-600 text-white text-xs font-bold hover:bg-purple-700 cursor-pointer"
+                          >
+                            Edit Quiz Studio
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-3 gap-3 text-xs font-medium text-slate-600 dark:text-slate-300 pt-1">
+                          <div className="bg-white dark:bg-[#1E293B] p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
+                            <span className="text-[10px] text-slate-400 block font-bold uppercase">Passing Score</span>
+                            <span className="font-extrabold text-purple-600">70%</span>
+                          </div>
+                          <div className="bg-white dark:bg-[#1E293B] p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
+                            <span className="text-[10px] text-slate-400 block font-bold uppercase">Time Limit</span>
+                            <span className="font-extrabold text-purple-600">{blk.duration || '20 mins'}</span>
+                          </div>
+                          <div className="bg-white dark:bg-[#1E293B] p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
+                            <span className="text-[10px] text-slate-400 block font-bold uppercase">Attempts</span>
+                            <span className="font-extrabold text-purple-600">3 Allowed</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ASSIGNMENT BLOCK DISPLAY */}
+                    {blk.type === 'assignment' && (
+                      <div className="p-4 rounded-2xl border border-teal-200 dark:border-teal-900/60 bg-teal-50/50 dark:bg-teal-950/20 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-5 w-5 text-teal-600" />
+                            <span className="text-xs font-extrabold text-slate-800 dark:text-white">Practical Project Assignment</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditContent(blk)}
+                            className="px-3 py-1 rounded-xl bg-teal-600 text-white text-xs font-bold hover:bg-teal-700 cursor-pointer"
+                          >
+                            Edit Assignment Studio
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-3 gap-3 text-xs font-medium text-slate-600 dark:text-slate-300 pt-1">
+                          <div className="bg-white dark:bg-[#1E293B] p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
+                            <span className="text-[10px] text-slate-400 block font-bold uppercase">Total Points</span>
+                            <span className="font-extrabold text-teal-600">100 pts</span>
+                          </div>
+                          <div className="bg-white dark:bg-[#1E293B] p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
+                            <span className="text-[10px] text-slate-400 block font-bold uppercase">Allowed Formats</span>
+                            <span className="font-extrabold text-teal-600">PDF, ZIP, DOCX</span>
+                          </div>
+                          <div className="bg-white dark:bg-[#1E293B] p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
+                            <span className="text-[10px] text-slate-400 block font-bold uppercase">Grading</span>
+                            <span className="font-extrabold text-teal-600">Rubric Based</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* VIDEO BLOCK PLAYER DISPLAY */}
+                    {blk.type === 'video' && (
+                      <div>
+                        {blk.fileUrl ? (
+                          <div className="space-y-3">
+                            <LessonVideoPlayer
+                              url={blk.fileUrl}
+                              title={blk.title}
+                              thumbnail={blk.thumbnail}
+                            />
+
+                            {/* Video Metadata & Actions Toolbar */}
+                            <div className="flex items-center justify-between text-xs font-medium text-slate-500 dark:text-[#CBD5E1] pt-1">
+                              <div className="flex items-center gap-4">
+                                <span className="flex items-center gap-1">
+                                  <Film className="h-3.5 w-3.5 text-purple-500" /> {blk.duration || '10 mins'}
+                                </span>
+                                {blk.fileSize > 0 && (
+                                  <span>Size: {formatBytes(blk.fileSize)}</span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditContent(blk)}
+                                  className="flex items-center gap-1 text-purple-600 dark:text-purple-400 font-bold hover:underline cursor-pointer"
+                                >
+                                  <RefreshCw className="h-3.5 w-3.5" /> Replace Video
+                                </button>
+                                {blk.fileUrl && !isYouTubeUrl(blk.fileUrl) && !isVimeoUrl(blk.fileUrl) && (
+                                  <a
+                                    href={blk.fileUrl}
+                                    download
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="flex items-center gap-1 text-teal-600 dark:text-teal-400 font-bold hover:underline"
+                                  >
+                                    <Download className="h-3.5 w-3.5" /> Download Original File
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          /* Video Empty Placeholder */
+                          <div
+                            onClick={() => handleOpenEditContent(blk)}
+                            className="p-8 rounded-2xl border-2 border-dashed border-amber-300 dark:border-amber-800/60 bg-amber-50/50 dark:bg-amber-950/20 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-amber-100/50 transition-colors"
+                          >
+                            <Video className="h-8 w-8 text-amber-500 mb-2" />
+                            <span className="text-xs font-bold text-slate-800 dark:text-[#F8FAFC]">No video uploaded yet.</span>
+                            <span className="text-[11px] text-slate-400 dark:text-[#CBD5E1] mt-0.5">
+                              Supports MP4, MOV, AVI, MKV, WebM, WMV, FLV, M4V, 3GP, TS up to 2GB.
+                            </span>
+                            <button
+                              type="button"
+                              className="mt-3 px-4 py-1.5 rounded-xl bg-amber-500 text-white font-bold text-xs shadow hover:bg-amber-600 transition-colors"
+                            >
+                              + Upload Video File
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* IMAGE BLOCK PREVIEW */}
+                    {blk.type === 'image' && (
+                      <div>
+                        {blk.fileUrl ? (
+                          <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 max-h-80">
+                            <img src={blk.fileUrl} alt={blk.title} className="w-full h-full object-cover" />
+                          </div>
+                        ) : (
+                          <div className="p-6 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 text-center text-xs font-bold text-slate-400">
+                            No image selected yet. Click edit to upload.
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* TEXT BLOCK PREVIEW */}
+                    {blk.type === 'text' && (
+                      <p className="text-xs leading-relaxed text-slate-700 dark:text-[#CBD5E1]">
+                        {blk.markdown || blk.title || 'Text block body content.'}
+                      </p>
+                    )}
+
+                    {/* FILE DOCUMENT PREVIEWS (PDF, PPT, Word, Excel, ZIP) */}
+                    {['pdf', 'ppt', 'word', 'excel', 'zip', 'link'].includes(blk.type) && (
+                      <div className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 dark:border-[#334155] bg-slate-50/50 dark:bg-[#0B1120]/50">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-950/50">
+                            <File className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold text-slate-800 dark:text-[#F8FAFC]">{blk.title || 'Attached File'}</div>
+                            <div className="text-[10px] text-slate-400 truncate max-w-sm">{blk.fileUrl || 'No file link attached'}</div>
+                          </div>
+                        </div>
+                        {blk.fileUrl && (
+                          <a
+                            href={blk.fileUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-3 py-1.5 rounded-lg bg-purple-50 text-purple-600 dark:bg-purple-950/50 dark:text-purple-300 text-xs font-bold hover:bg-purple-100"
+                          >
+                            Open File
+                          </a>
+                        )}
+                      </div>
+                    )}
+
                   </div>
+                ))}
+              </div>
+
+              {/* Add Block Section - Symmetrical Grid */}
+              <div className="pt-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    Add Content Block (11 Supported Options)
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {BLOCK_TYPES.map((b) => (
+                    <button
+                      key={b.type}
+                      type="button"
+                      onClick={() => handleOpenAddContent(b.type)}
+                      className="p-4 rounded-[20px] border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] hover:border-[#7C3AED] hover:shadow-md transition-all flex flex-col items-center text-center group cursor-pointer"
+                    >
+                      <div
+                        className="h-10 w-10 rounded-2xl flex items-center justify-center text-white mb-2 shadow-sm group-hover:scale-105 transition-transform"
+                        style={{ backgroundColor: b.color }}
+                      >
+                        <b.icon className="h-5 w-5" />
+                      </div>
+                      <span className="text-xs font-extrabold text-slate-800 dark:text-[#F8FAFC]">{b.label}</span>
+                      <span className="text-[10px] text-slate-400 dark:text-[#CBD5E1] mt-1 line-clamp-1">{b.description}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
-            )}
+
+            </div>
+          </div>
+
+          {/* Panel 3: Right Properties Panel (320px) */}
+          <div className="w-80 shrink-0 border-l border-slate-200 dark:border-[#334155] bg-white dark:bg-[#111827] flex flex-col p-5 space-y-6">
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Lesson Settings</h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-slate-500 mb-1">Visibility Access</label>
+                <select className="h-10 w-full appearance-none rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] px-3 text-xs font-bold text-slate-800 dark:text-[#F8FAFC] outline-none">
+                  <option value="public">Public to Enrolled</option>
+                  <option value="preview">Free Sample Preview</option>
+                  <option value="locked">Prerequisite Locked</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-slate-500 mb-1">Completion Rule</label>
+                <select className="h-10 w-full appearance-none rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] px-3 text-xs font-bold text-slate-800 dark:text-[#F8FAFC] outline-none">
+                  <option value="must_view">Must View All Content</option>
+                  <option value="pass_quiz">Must Pass Assessment</option>
+                  <option value="complete_all">Complete All Activities</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-slate-500 mb-1">Estimated Duration</label>
+                <input
+                  type="text"
+                  defaultValue="15 mins"
+                  className="h-10 w-full rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] px-3 text-xs font-bold text-slate-800 dark:text-[#F8FAFC] outline-none"
+                />
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Confirmation of deletion dialog */}
+      {/* Quiz Builder Studio Modal */}
+      {quizModalOpen && (
+        <QuizBuilderModal
+          initialData={quizModalOpen}
+          onClose={() => setQuizModalOpen(null)}
+          onSave={handleSaveQuizBlock}
+          showToast={showToast}
+        />
+      )}
+
+      {/* Assignment Builder Studio Modal */}
+      {assignmentModalOpen && (
+        <AssignmentBuilderModal
+          initialData={assignmentModalOpen}
+          onClose={() => setAssignmentModalOpen(null)}
+          onSave={handleSaveAssignmentBlock}
+          showToast={showToast}
+        />
+      )}
+
+      {/* Module Add / Edit Modal */}
+      {moduleFormOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-[#334155] rounded-[24px] max-w-md w-full p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#334155] pb-4">
+              <h3 className="text-base font-extrabold text-slate-900 dark:text-[#F8FAFC]">
+                {moduleFormOpen === 'add' ? 'Add New Module' : 'Edit Module'}
+              </h3>
+              <button type="button" onClick={() => setModuleFormOpen(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-[#CBD5E1] mb-1">
+                  Module Title <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Module 1: Core Architecture & Setup"
+                  value={moduleForm.title}
+                  onChange={e => setModuleForm(prev => ({ ...prev, title: e.target.value }))}
+                  className="h-11 w-full rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] px-3.5 text-xs font-bold text-slate-800 dark:text-[#F8FAFC] outline-none focus:border-[#7C3AED]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-[#CBD5E1] mb-1">Description</label>
+                <textarea
+                  rows={3}
+                  placeholder="Module summary and learning objectives..."
+                  value={moduleForm.description}
+                  onChange={e => setModuleForm(prev => ({ ...prev, description: e.target.value }))}
+                  className="w-full rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] p-3.5 text-xs font-medium text-slate-800 dark:text-[#F8FAFC] outline-none resize-none focus:border-[#7C3AED]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-[#CBD5E1] mb-1">Estimated Duration</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 2 hours"
+                    value={moduleForm.duration}
+                    onChange={e => setModuleForm(prev => ({ ...prev, duration: e.target.value }))}
+                    className="h-11 w-full rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] px-3.5 text-xs font-semibold text-slate-800 dark:text-[#F8FAFC] outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-[#CBD5E1] mb-1">Display Order</label>
+                  <input
+                    type="number"
+                    value={moduleForm.moduleOrder}
+                    onChange={e => setModuleForm(prev => ({ ...prev, moduleOrder: Number(e.target.value) }))}
+                    className="h-11 w-full rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] px-3.5 text-xs font-semibold text-slate-800 dark:text-[#F8FAFC] outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-[#334155]">
+              <button type="button" onClick={() => setModuleFormOpen(null)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600">
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={!moduleForm.title.trim() || isSavingModule}
+                onClick={handleSaveModule}
+                className="flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold text-white shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ backgroundColor: '#10B5A5' }}
+              >
+                {isSavingModule ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <span>{moduleFormOpen === 'add' ? 'Create Module' : 'Save Changes'}</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Submodule Add / Edit Modal */}
+      {submoduleFormOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-[#334155] rounded-[24px] max-w-md w-full p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#334155] pb-4">
+              <h3 className="text-base font-extrabold text-slate-900 dark:text-[#F8FAFC]">
+                {submoduleFormOpen === 'add' ? 'Add New Submodule / Lesson' : 'Edit Submodule'}
+              </h3>
+              <button type="button" onClick={() => setSubmoduleFormOpen(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-[#CBD5E1] mb-1">
+                  Submodule / Lesson Name <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Lesson 1.1: Environment Setup"
+                  value={submoduleForm.title}
+                  onChange={e => setSubmoduleForm(prev => ({ ...prev, title: e.target.value, slug: slugify(e.target.value) }))}
+                  className="h-11 w-full rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] px-3.5 text-xs font-bold text-slate-800 dark:text-[#F8FAFC] outline-none focus:border-[#7C3AED]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-[#CBD5E1] mb-1">Slug</label>
+                <input
+                  type="text"
+                  placeholder="lesson-slug"
+                  value={submoduleForm.slug}
+                  onChange={e => setSubmoduleForm(prev => ({ ...prev, slug: e.target.value }))}
+                  className="h-11 w-full rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] px-3.5 text-xs font-mono text-slate-700 dark:text-[#CBD5E1] outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-[#CBD5E1] mb-1">Description</label>
+                <textarea
+                  rows={3}
+                  placeholder="Summary of this submodule lesson..."
+                  value={submoduleForm.description}
+                  onChange={e => setSubmoduleForm(prev => ({ ...prev, description: e.target.value }))}
+                  className="w-full rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] p-3.5 text-xs font-medium text-slate-800 dark:text-[#F8FAFC] outline-none resize-none focus:border-[#7C3AED]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-[#CBD5E1] mb-1">Duration</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 30 mins"
+                  value={submoduleForm.duration}
+                  onChange={e => setSubmoduleForm(prev => ({ ...prev, duration: e.target.value }))}
+                  className="h-11 w-full rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] px-3.5 text-xs font-semibold text-slate-800 dark:text-[#F8FAFC] outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-[#334155]">
+              <button type="button" onClick={() => setSubmoduleFormOpen(null)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600">
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={!submoduleForm.title.trim() || isSavingSubmodule}
+                onClick={handleSaveSubmodule}
+                className="flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold text-white shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ backgroundColor: '#7C3AED' }}
+              >
+                {isSavingSubmodule ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <span>{submoduleFormOpen === 'add' ? 'Create Submodule' : 'Save Changes'}</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Media Upload Modal for Content Blocks */}
+      {contentFormOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-[#334155] rounded-[24px] max-w-xl w-full p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#334155] pb-4">
+              <h3 className="text-base font-extrabold text-slate-900 dark:text-[#F8FAFC]">
+                {contentFormOpen === 'add' ? 'Add Content Block' : 'Edit Content Block'} ({contentForm.type.toUpperCase()})
+              </h3>
+              <button type="button" onClick={() => setContentFormOpen(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* 3 Upload Method Tabs for Files & Videos */}
+            {['video', 'image', 'pdf', 'ppt', 'word', 'excel', 'zip'].includes(contentForm.type) && (
+              <div className="flex h-10 items-center gap-1 rounded-xl border border-slate-200 dark:border-[#334155] bg-slate-50 dark:bg-[#0B1120] p-1">
+                <button
+                  type="button"
+                  onClick={() => setUploadTab('computer')}
+                  className={`flex-1 text-xs font-bold rounded-lg py-1.5 cursor-pointer ${uploadTab === 'computer' ? 'bg-[#7C3AED] text-white shadow-sm' : 'text-slate-500'}`}
+                >
+                  Upload from Computer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUploadTab('library')}
+                  className={`flex-1 text-xs font-bold rounded-lg py-1.5 cursor-pointer ${uploadTab === 'library' ? 'bg-[#7C3AED] text-white shadow-sm' : 'text-slate-500'}`}
+                >
+                  Media Library
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUploadTab('url')}
+                  className={`flex-1 text-xs font-bold rounded-lg py-1.5 cursor-pointer ${uploadTab === 'url' ? 'bg-[#7C3AED] text-white shadow-sm' : 'text-slate-500'}`}
+                >
+                  Paste URL
+                </button>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-[#CBD5E1] mb-1">Block Title</label>
+                <input
+                  type="text"
+                  placeholder="Block title / heading..."
+                  value={contentForm.title}
+                  onChange={e => setContentForm(prev => ({ ...prev, title: e.target.value }))}
+                  className="h-11 w-full rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] px-3.5 text-xs font-bold text-slate-800 dark:text-[#F8FAFC] outline-none"
+                />
+              </div>
+
+              {contentForm.type === 'text' && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-[#CBD5E1] mb-1">Body Text</label>
+                  <textarea
+                    rows={4}
+                    placeholder="Enter lesson text content..."
+                    value={contentForm.markdown}
+                    onChange={e => setContentForm(prev => ({ ...prev, markdown: e.target.value }))}
+                    className="w-full rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] p-3.5 text-xs font-medium text-slate-800 dark:text-[#F8FAFC] outline-none resize-none"
+                  />
+                </div>
+              )}
+
+              {['video', 'image', 'pdf', 'ppt', 'word', 'excel', 'zip', 'link'].includes(contentForm.type) && (
+                <div>
+                  {uploadTab === 'computer' && (
+                    <div className="p-6 border-2 border-dashed border-slate-200 dark:border-[#334155] rounded-2xl flex flex-col items-center justify-center text-center">
+                      {contentUploading ? (
+                        <div className="space-y-3 w-full max-w-xs text-center">
+                          <Loader2 className="h-7 w-7 text-purple-600 animate-spin mx-auto" />
+                          <div className="text-xs font-bold text-slate-800 dark:text-[#F8FAFC]">{uploadStatusText} ({contentUploadProgress}%)</div>
+                          <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-purple-600 transition-all duration-300" style={{ width: `${contentUploadProgress}%` }} />
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <UploadCloud className="h-8 w-8 text-purple-500 mb-2" />
+                          <span className="text-xs font-bold text-slate-800 dark:text-[#F8FAFC]">Click or drag video file to upload</span>
+                          <span className="text-[10px] text-slate-400 mt-0.5">
+                            Supports MP4, MOV, AVI, MKV, WebM, WMV, FLV, M4V, 3GP, TS, VOB up to 2GB
+                          </span>
+                          <input
+                            type="file"
+                            accept="video/*,.mp4,.mov,.avi,.mkv,.webm,.wmv,.flv,.m4v,.mpeg,.mpg,.3gp,.ogv,.ts,.mts,.m2ts,.asf,.vob,.f4v,.rmvb,.pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.zip"
+                            onChange={e => handleFileUpload(e.target.files[0])}
+                            className="hidden"
+                            id="modal-file-upload"
+                          />
+                          <label htmlFor="modal-file-upload" className="mt-3 px-4 py-2 bg-purple-50 text-purple-600 rounded-xl text-xs font-bold cursor-pointer hover:bg-purple-100">
+                            Browse Computer Files
+                          </label>
+                        </>
+                      )}
+                    </div>
+                  )}
+                  {uploadTab === 'url' && (
+                    <input
+                      type="url"
+                      placeholder="Paste MP4, YouTube, Vimeo, S3, or Cloudinary URL..."
+                      value={contentForm.fileUrl}
+                      onChange={e => setContentForm(prev => ({ ...prev, fileUrl: e.target.value }))}
+                      className="h-11 w-full rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] px-3.5 text-xs font-semibold text-slate-800 dark:text-[#F8FAFC] outline-none"
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-[#334155]">
+              <button type="button" onClick={() => setContentFormOpen(null)} className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600">
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveContent}
+                className="px-5 py-2 rounded-xl text-xs font-bold text-white shadow-md cursor-pointer"
+                style={{ backgroundColor: '#7C3AED' }}
+              >
+                Save Block
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Device Live Preview Modal (Desktop, Tablet, Mobile) */}
+      {showLivePreviewModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-md flex flex-col items-center justify-center p-6">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="flex h-10 items-center gap-1 rounded-xl border border-white/20 bg-white/10 p-1">
+              <button
+                type="button"
+                onClick={() => setPreviewDevice('desktop')}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold text-white ${previewDevice === 'desktop' ? 'bg-purple-600' : ''}`}
+              >
+                <Monitor className="h-4 w-4" /> Desktop
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewDevice('tablet')}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold text-white ${previewDevice === 'tablet' ? 'bg-purple-600' : ''}`}
+              >
+                <Tablet className="h-4 w-4" /> Tablet
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewDevice('mobile')}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold text-white ${previewDevice === 'mobile' ? 'bg-purple-600' : ''}`}
+              >
+                <Smartphone className="h-4 w-4" /> Mobile
+              </button>
+            </div>
+            <button type="button" onClick={() => setShowLivePreviewModal(false)} className="text-white hover:text-rose-400 p-2 cursor-pointer">
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+
+          <div
+            className="bg-white dark:bg-[#0B1120] rounded-[24px] border border-slate-700 shadow-2xl overflow-y-auto p-8 transition-all duration-300 h-[80vh]"
+            style={{ width: previewDevice === 'desktop' ? '1000px' : previewDevice === 'tablet' ? '768px' : '375px' }}
+          >
+            <h2 className="text-xl font-black text-slate-900 dark:text-white mb-4">{course.title}</h2>
+            <div className="space-y-4">
+              {activeModule?.submodules?.map((s) => (
+                <div key={s.id} className="p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+                  <h3 className="text-sm font-bold text-purple-600 mb-2">{s.title}</h3>
+                  <div className="space-y-2 text-xs text-slate-600 dark:text-slate-300">
+                    {s.contents?.map((c) => (
+                      <div key={c.id} className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                        {c.title || c.type}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation */}
       <ConfirmationDialog
         open={!!deleteConfirm}
         onClose={() => setDeleteConfirm(null)}
         onConfirm={confirmDelete}
-        title="Delete Item Confirmation"
-        message="Are you sure you want to delete this element? This will permanently delete the item and all nested contents."
-        confirmLabel="Delete"
+        title="Confirm Deletion"
+        message="Are you sure you want to delete this item? Action cannot be undone."
       />
     </div>
   );

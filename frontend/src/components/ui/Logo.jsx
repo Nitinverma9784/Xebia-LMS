@@ -60,22 +60,13 @@ export default function Logo({ className, iconOnly = false, variant = 'light', s
         <div className="flex flex-col">
           <span
             className={cn(
-              'font-bold tracking-tight transition-colors truncate',
-              size === 'lg' || size === 'xl' ? 'text-base' : 'text-sm',
+              'font-extrabold tracking-tight transition-colors truncate',
+              size === 'lg' || size === 'xl' ? 'text-lg' : 'text-sm',
               isDark ? 'text-white' : 'text-brand-text-primary dark:text-slate-50'
             )}
             style={{ fontFamily: 'Inter, sans-serif' }}
           >
             {companyName}
-          </span>
-          <span 
-            className={cn(
-              'font-medium',
-              size === 'lg' || size === 'xl' ? 'text-[11px]' : 'text-[10px]'
-            )} 
-            style={{ color: isDark ? 'rgba(255, 255, 255, 0.45)' : '#6b7280' }}
-          >
-            {isStudent ? 'Student Portal' : 'Admin Panel'}
           </span>
         </div>
       )}

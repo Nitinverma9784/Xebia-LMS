@@ -31,13 +31,13 @@ function SelectDropdown({ value, options, onChange }) {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="appearance-none cursor-pointer rounded-md border bg-brand-background border-brand-border py-2 pl-3 pr-8 text-sm text-brand-text-primary focus:outline-none"
+        className="h-11 appearance-none cursor-pointer rounded-xl border bg-white dark:bg-[#1E293B] border-slate-200 dark:border-[#334155] py-2 pl-4 pr-9 text-xs font-semibold text-slate-800 dark:text-[#F8FAFC] focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all outline-none"
       >
         {options.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
+          <option key={o.value} value={o.value} className="dark:bg-[#1E293B] dark:text-[#F8FAFC]">{o.label}</option>
         ))}
       </select>
-      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-brand-text-secondary" />
+      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400 dark:text-[#CBD5E1]" />
     </div>
   );
 }
@@ -87,30 +87,30 @@ export default function CategoryManagement() {
   if (!hydrated) return null;
 
   return (
-    <div className="flex min-h-screen flex-col bg-brand-surface text-brand-text-primary transition-colors">
+    <div className="flex min-h-screen flex-col bg-[#F8FAFC] dark:bg-[#0B1120] text-slate-800 dark:text-[#F8FAFC] transition-colors duration-300">
       {/* Page header bar */}
       <div
-        className="flex items-center justify-between px-8 py-4 bg-brand-background border-b border-brand-border"
+        className="flex items-center justify-between px-8 py-5 bg-white dark:bg-[#111827] border-b border-slate-200 dark:border-[#334155]"
       >
         <div>
-          <h1 className="text-2xl font-bold text-brand-text-primary">Categories</h1>
-          <p className="mt-0.5 text-sm text-brand-text-secondary">Manage all learning categories on the platform</p>
+          <h1 className="text-2xl font-black text-slate-900 dark:text-[#F8FAFC] tracking-tight">Categories</h1>
+          <p className="mt-0.5 text-xs font-medium text-slate-500 dark:text-[#CBD5E1]">Manage all learning categories and course structures across the organization</p>
         </div>
         <button
           type="button"
           onClick={() => navigate('/admin/categories/new')}
-          className="flex items-center gap-2 rounded-md px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-          style={{ backgroundColor: '#01ac9f' }}
+          className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-bold text-white shadow-md transition-all hover:opacity-90 cursor-pointer"
+          style={{ backgroundColor: '#10B5A5' }}
         >
-          <Plus className="h-[15px] w-[15px]" />
+          <Plus className="h-4 w-4" />
           Create Category
         </button>
       </div>
 
       {/* Content area */}
-      <div className="flex-1 px-8 py-6">
+      <div className="flex-1 px-8 py-7">
         {/* Stats grid */}
-        <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="mb-8 grid grid-cols-2 gap-5 lg:gap-6 lg:grid-cols-4">
           <StatCard icon={Tag}          label="Total Categories" value={stats.total}        color="purple" index={0} />
           <StatCard icon={CheckCircle}  label="Active"           value={stats.active}       color="teal"   index={1} />
           <StatCard icon={XCircle}      label="Inactive"         value={stats.inactive}     color="orange" index={2} />
@@ -118,19 +118,18 @@ export default function CategoryManagement() {
         </div>
 
         {/* Filters toolbar */}
-        <div className="mb-5 flex items-center gap-3">
+        <div className="mb-6 flex flex-wrap items-center gap-4">
           {/* Search */}
           <div
-            className="flex flex-1 items-center gap-2 rounded-md border bg-brand-background border-brand-border px-3 py-2"
-            style={{ maxWidth: 280 }}
+            className="flex h-11 flex-1 items-center gap-2.5 rounded-xl border bg-white dark:bg-[#1E293B] border-slate-200 dark:border-[#334155] px-3.5 max-w-xs transition-all focus-within:border-[#7C3AED]"
           >
-            <Search className="h-3.5 w-3.5 shrink-0 text-brand-text-secondary" />
+            <Search className="h-4 w-4 shrink-0 text-slate-400 dark:text-[#CBD5E1]" />
             <input
               type="text"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               placeholder="Search categories..."
-              className="w-full bg-transparent text-sm text-brand-text-primary placeholder:text-brand-text-secondary focus:outline-none"
+              className="w-full bg-transparent text-xs font-medium text-slate-800 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none"
             />
           </div>
 
@@ -142,30 +141,28 @@ export default function CategoryManagement() {
 
           {/* View toggle */}
           <div
-            className="ml-auto flex items-center gap-1 rounded-md border bg-brand-background border-brand-border p-1"
+            className="ml-auto flex h-11 items-center gap-1 rounded-xl border bg-white dark:bg-[#1E293B] border-slate-200 dark:border-[#334155] p-1"
           >
             <button
               type="button"
               onClick={() => setView('grid')}
-              className="flex h-7 w-8 items-center justify-center rounded"
-              style={view === 'grid' ? { backgroundColor: '#6c1d5f18' } : {}}
+              className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors cursor-pointer ${view === 'grid' ? 'bg-[#7C3AED]/15 text-[#7C3AED] dark:text-purple-300' : 'text-slate-400 hover:text-slate-600'}`}
               title="Grid view"
             >
-              <LayoutGrid className="h-3.5 w-3.5" style={{ color: view === 'grid' ? '#01ac9f' : '#9ca3af' }} />
+              <LayoutGrid className="h-4 w-4" />
             </button>
             <button
               type="button"
               onClick={() => setView('table')}
-              className="flex h-7 w-8 items-center justify-center rounded"
-              style={view === 'table' ? { backgroundColor: '#6c1d5f18' } : {}}
+              className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors cursor-pointer ${view === 'table' ? 'bg-[#7C3AED]/15 text-[#7C3AED] dark:text-purple-300' : 'text-slate-400 hover:text-slate-600'}`}
               title="List view"
             >
-              <List className="h-3.5 w-3.5" style={{ color: view === 'table' ? '#01ac9f' : '#9ca3af' }} />
+              <List className="h-4 w-4" />
             </button>
           </div>
 
           {/* Result count */}
-          <span className="whitespace-nowrap text-sm text-brand-text-secondary">
+          <span className="whitespace-nowrap text-xs font-semibold text-slate-500 dark:text-[#CBD5E1]">
             {filtered.length} categories
           </span>
         </div>
@@ -180,7 +177,7 @@ export default function CategoryManagement() {
             onAction={() => navigate('/admin/categories/new')}
           />
         ) : view === 'grid' ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {data.map((cat) => (
               <CategoryCard
                 key={cat.id}
@@ -194,11 +191,11 @@ export default function CategoryManagement() {
           </div>
         ) : (
           <div
-            className="overflow-x-auto rounded-xl border bg-brand-background border-brand-border"
+            className="overflow-x-auto rounded-[20px] border bg-white dark:bg-[#1E293B] border-slate-200 dark:border-[#334155] shadow-sm"
           >
-            <table className="w-full text-sm">
-              <thead className="border-b border-brand-border bg-brand-surface">
-                <tr className="text-left text-[11px] font-semibold uppercase tracking-wide text-brand-text-secondary">
+            <table className="w-full text-xs">
+              <thead className="border-b border-slate-200 dark:border-[#334155] bg-slate-50 dark:bg-[#111827]">
+                <tr className="text-left text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#CBD5E1]">
                   <th className="px-4 py-3">Category</th>
                   <th className="px-4 py-3">Description</th>
                   <th className="px-4 py-3">Courses</th>

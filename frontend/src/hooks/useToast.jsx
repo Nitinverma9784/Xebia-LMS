@@ -14,9 +14,9 @@ const ICONS = {
 };
 
 const COLORS = {
-  success: 'border-brand-success/30 bg-brand-success/5 text-brand-success',
-  error: 'border-red-300 bg-red-50 text-red-700',
-  info: 'border-brand-primary/30 bg-brand-primary/5 text-brand-primary',
+  success: 'border-brand-success/30 bg-brand-success/5 dark:bg-emerald-950/80 dark:border-emerald-700/50 text-brand-success dark:text-emerald-300',
+  error: 'border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/80 text-red-700 dark:text-red-300',
+  info: 'border-brand-primary/30 dark:border-purple-800 bg-brand-primary/5 dark:bg-purple-950/80 text-brand-primary dark:text-purple-300',
 };
 
 export function ToastProvider({ children }) {
@@ -53,7 +53,7 @@ export function ToastProvider({ children }) {
                 )}
               >
                 <Icon className="h-5 w-5 shrink-0" />
-                <p className="flex-1 text-sm font-medium text-brand-text-primary">{toast.message}</p>
+                <p className="flex-1 text-sm font-medium text-brand-text-primary dark:text-slate-100">{toast.message}</p>
                 <button
                   type="button"
                   onClick={() => dismiss(toast.id)}

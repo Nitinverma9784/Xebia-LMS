@@ -828,6 +828,10 @@ export function CatalogProvider({ children }) {
 
   // ── Content ──
   const addContent = useCallback(async (courseId, moduleId, submoduleId, payload) => {
+    if (!submoduleId || Number(submoduleId) <= 0) {
+      showToast('Please create or select a lesson/submodule first.', 'error');
+      throw new Error('Invalid submoduleId');
+    }
     try {
       const course = data.courses.find((c) => c.id === courseId);
       const mod = course?.modules?.find((m) => m.id === moduleId);
@@ -845,6 +849,10 @@ export function CatalogProvider({ children }) {
   }, [data.courses, showToast, refreshData]);
 
   const updateContent = useCallback(async (courseId, moduleId, submoduleId, contentId, updates) => {
+    if (!submoduleId || Number(submoduleId) <= 0) {
+      showToast('Please create or select a lesson/submodule first.', 'error');
+      throw new Error('Invalid submoduleId');
+    }
     try {
       const course = data.courses.find((c) => c.id === courseId);
       const mod = course?.modules?.find((m) => m.id === moduleId);

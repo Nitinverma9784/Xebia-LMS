@@ -48,12 +48,12 @@ export default function CurriculumLanding() {
   if (!hydrated) return null;
 
   return (
-    <div className="flex min-h-screen flex-col bg-brand-surface text-brand-text-primary transition-colors">
+    <div className="flex min-h-screen flex-col bg-brand-surface dark:bg-[#0F172A] text-brand-text-primary dark:text-slate-100 transition-colors">
       {/* Page header bar */}
-      <div className="flex items-center justify-between px-8 py-4 bg-brand-background border-b border-brand-border">
+      <div className="flex items-center justify-between px-8 py-4 bg-brand-background dark:bg-slate-900 border-b border-brand-border dark:border-slate-800">
         <div>
-          <h1 className="text-2xl font-bold text-brand-text-primary">Curriculum Builder</h1>
-          <p className="mt-0.5 text-sm text-brand-text-secondary">Select a course below to manage its modules, submodules and content blocks</p>
+          <h1 className="text-2xl font-bold text-brand-text-primary dark:text-slate-100">Curriculum Builder</h1>
+          <p className="mt-0.5 text-sm text-brand-text-secondary dark:text-slate-400">Select a course below to manage its modules, submodules and content blocks</p>
         </div>
         <div className="flex gap-2">
           <Badge color="purple"><Layers className="h-3 w-3" /> {totals.modules} modules</Badge>

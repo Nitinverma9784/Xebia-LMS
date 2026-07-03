@@ -7,24 +7,13 @@ import {
   BookOpen, FileText, Image as ImageIcon, Settings2, Sparkles, ArrowLeft,
   Clock, Users, Globe2, Plus, Trash2, Search, CheckCircle, Info,
   ChevronRight, Save, LayoutGrid, Cloud, GripVertical, Lock, Link2,
-  AlignLeft, Upload, X, ArrowRight, PlayCircle, Video, List,
+  AlignLeft, Upload, X, ArrowRight, PlayCircle, Video, List, Check, AlertCircle,
+  HelpCircle, Eye, ShieldCheck, Code, Layers
 } from 'lucide-react';
 import { useCatalog } from '@/hooks/useCatalog';
 import { DIFFICULTY_LEVELS, LANGUAGES, TECHNOLOGIES } from '@/constants';
 import { slugify } from '@/utils';
 import api from '@/services/api';
-
-/* ─── colours that match the design tokens ─── */
-const C = {
-  primary:  'var(--brand-primary)',
-  secondary:'var(--brand-success)',
-  accent:   'var(--brand-cta)',
-  border:   'var(--brand-border)',
-  muted:    'var(--brand-muted)',
-  mutedFg:  'var(--brand-muted-fg)',
-  card:     'var(--brand-background)',
-  fg:       'var(--text-primary)',
-};
 
 const EMPTY_FORM = {
   title:'', categoryId:'', technology:'Python', difficulty:'Intermediate',
@@ -41,122 +30,46 @@ const EMPTY_FORM = {
   allowIndexing: true, showInSearch: true,
 };
 
-/* ─── tiny reusable helpers ─── */
-
-function FieldLabel({ children, hint }) {
+function FieldLabel({ children, hint, required }) {
   return (
-    <label className="block text-sm font-semibold mb-1.5" style={{ color: C.fg }}>
-      {children}
-      {hint && <span className="ml-1.5 text-xs font-normal" style={{ color: C.mutedFg }}>{hint}</span>}
+    <label className="block text-xs font-bold uppercase tracking-wider mb-2 text-slate-700 dark:text-[#CBD5E1]">
+      {children} {required && <span className="text-rose-500 font-extrabold">*</span>}
+      {hint && <span className="ml-1.5 text-[11px] font-medium text-slate-400 dark:text-slate-400 capitalize">({hint})</span>}
     </label>
   );
 }
 
-function FieldInput({ leftAccent, value, onChange, placeholder, maxLength, type='text', readOnly, rightSlot, error }) {
+function SectionCard({ title, icon: Icon, children, action }) {
   return (
-    <div
-      className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm bg-card"
-      style={{
-        border: `1px solid ${error ? '#ef4444' : C.border}`,
-        borderLeft: leftAccent ? `3px solid ${leftAccent}` : undefined,
-      }}
-    >
-      <input
-        type={type}
-        readOnly={readOnly}
-        maxLength={maxLength}
-        placeholder={placeholder}
-        value={value}
-        onChange={onChange}
-        className="flex-1 bg-transparent text-sm focus:outline-none focus:ring-0 outline-none"
-        style={{
-          color: C.fg,
-          fontFamily: readOnly ? 'IBM Plex Mono, monospace' : undefined,
-          border: 'none',
-          outline: 'none',
-          boxShadow: 'none',
-        }}
-      />
-      {rightSlot}
-    </div>
-  );
-}
-
-function FieldTextarea({ value, onChange, placeholder, rows=4, leftAccent, minHeight }) {
-  return (
-    <textarea
-      rows={rows}
-      placeholder={placeholder}
-      value={value}
-      onChange={onChange}
-      className="w-full resize-none rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-0 outline-none leading-relaxed"
-      style={{
-        border: `1px solid ${C.border}`,
-        borderLeft: leftAccent ? `3px solid ${leftAccent}` : undefined,
-        backgroundColor: C.card,
-        color: C.fg,
-        minHeight,
-        boxShadow: 'none',
-      }}
-    />
-  );
-}
-
-function FieldSelect({ value, onChange, options, placeholder }) {
-  return (
-    <div
-      className="flex items-center justify-between px-4 py-3 rounded-lg text-sm cursor-pointer"
-      style={{ border: `1px solid ${C.border}`, backgroundColor: C.card }}
-    >
-      <div className="flex items-center gap-2">
-        {options.find(o => o.value === value)?.color && (
-          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: options.find(o => o.value === value)?.color }} />
-        )}
-        <span style={{ color: value ? C.fg : C.mutedFg, fontWeight: value ? 600 : 400 }}>
-          {options.find(o => String(o.value) === String(value))?.label || placeholder}
-        </span>
+    <div className="rounded-[20px] border bg-white dark:bg-[#1E293B] border-slate-200 dark:border-[#334155] shadow-sm overflow-hidden transition-all duration-300">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-[#334155]">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-50 dark:bg-purple-950/50 text-[#7C3AED] dark:text-purple-300">
+            {Icon && <Icon className="h-4 w-4" />}
+          </div>
+          <h2 className="text-sm font-extrabold text-slate-900 dark:text-[#F8FAFC] tracking-tight">{title}</h2>
+        </div>
+        {action}
       </div>
-      <select
-        value={value}
-        onChange={onChange}
-        className="absolute inset-0 opacity-0 cursor-pointer w-full"
-      />
-      <ChevronRight className="w-[13px] h-[13px] rotate-90 shrink-0" style={{ color: C.mutedFg }} />
+      <div className="p-6 space-y-6">{children}</div>
     </div>
   );
 }
 
-/* Section card matching the design */
-function Card({ title, titleIcon: Icon, titleColor='#6c1d5f', accentColor='#6c1d5f', children }) {
+function ToggleSwitch({ value, onChange, label, description }) {
   return (
-    <div
-      className="rounded-xl overflow-hidden"
-      style={{ border: `1px solid ${C.border}`, borderTop: `3px solid ${accentColor}`, backgroundColor: C.card }}
-    >
-      <div className="flex items-center gap-2 px-6 py-4" style={{ borderBottom: `1px solid ${C.border}` }}>
-        {Icon && <Icon className="w-[14px] h-[14px] shrink-0" style={{ color: accentColor }} />}
-        <span className="text-sm font-bold" style={{ color: C.fg }}>{title}</span>
-      </div>
-      <div className="px-6 py-5 space-y-5">{children}</div>
-    </div>
-  );
-}
-
-/* Toggle pill */
-function Toggle({ value, onChange, label }) {
-  return (
-    <div className="flex items-center justify-between p-4 rounded-xl" style={{ border: `1px solid ${C.border}` }}>
+    <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 dark:border-[#334155] bg-slate-50/50 dark:bg-[#0B1120]/50 transition-colors">
       <div>
-        <div className="text-sm font-bold" style={{ color: C.fg }}>{label}</div>
+        <div className="text-xs font-bold text-slate-800 dark:text-[#F8FAFC]">{label}</div>
+        {description && <div className="text-[11px] text-slate-400 dark:text-[#CBD5E1] mt-0.5">{description}</div>}
       </div>
       <button
         type="button"
         onClick={() => onChange(!value)}
-        className="w-11 h-6 rounded-full px-0.5 flex items-center shrink-0 ml-3 transition-colors"
-        style={{ backgroundColor: value ? C.secondary : C.border }}
+        className={`w-11 h-6 rounded-full p-0.5 flex items-center shrink-0 ml-3 transition-colors cursor-pointer ${value ? 'bg-[#7C3AED]' : 'bg-slate-300 dark:bg-slate-700'}`}
       >
         <div
-          className="w-5 h-5 rounded-full bg-white shadow-sm transition-transform"
+          className="w-5 h-5 rounded-full bg-white shadow-md transition-transform"
           style={{ transform: value ? 'translateX(20px)' : 'translateX(0)' }}
         />
       </button>
@@ -180,7 +93,6 @@ function ensureArray(val) {
   return [];
 }
 
-/* Precise list builder for Course Content Builders matching design */
 function CourseListBuilder({
   label,
   hint,
@@ -193,18 +105,15 @@ function CourseListBuilder({
   onDragOver,
   onDrop,
   placeholder,
-  bulletColor,
+  bulletColor = '#7C3AED',
   addButtonLabel,
   dragType
 }) {
   const safeItems = ensureArray(items);
   return (
     <div>
-      <div className="flex items-center justify-between mb-2">
-        <label className="text-sm font-semibold" style={{ color: C.fg }}>{label}</label>
-        {hint && <span className="text-xs" style={{ color: C.mutedFg }}>{hint}</span>}
-      </div>
-      <div className="bg-card border border-border rounded-lg overflow-hidden">
+      <FieldLabel hint={hint}>{label}</FieldLabel>
+      <div className="rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] overflow-hidden">
         {safeItems.map((item, idx) => (
           <div
             key={idx}
@@ -212,41 +121,37 @@ function CourseListBuilder({
             onDragStart={(e) => onDragStart(e, idx, dragType)}
             onDragOver={onDragOver}
             onDrop={(e) => onDrop(e, idx, dragType)}
-            className="flex items-center gap-3 px-4 py-3 border-b border-border hover:bg-gray-50 transition-colors cursor-grab active:cursor-grabbing"
+            className="flex items-center gap-3 px-4 py-3 border-b border-slate-100 dark:border-[#334155] hover:bg-slate-50 dark:hover:bg-[#0B1120]/50 transition-colors cursor-grab active:cursor-grabbing text-xs font-semibold text-slate-800 dark:text-[#F8FAFC]"
           >
-            <GripVertical className="w-[14px] h-[14px] shrink-0" style={{ color: '#dadcea' }} />
-            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: bulletColor }} />
-            <span className="flex-1 text-sm text-foreground" style={{ color: C.fg }}>{item}</span>
+            <GripVertical className="h-4 w-4 text-slate-300 dark:text-slate-600 shrink-0" />
+            <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: bulletColor }} />
+            <span className="flex-1">{item}</span>
             <button
               type="button"
               onClick={() => onRemove(idx)}
-              className="shrink-0 transition-opacity opacity-60 hover:opacity-100"
+              className="text-slate-400 hover:text-rose-500 transition-colors p-1 cursor-pointer"
             >
-              <X className="w-3.5 h-3.5" style={{ color: '#5a5a5a' }} />
+              <X className="h-3.5 w-3.5" />
             </button>
           </div>
         ))}
-        {/* Input box is a clean full-width field above the action button */}
-        <div className="px-4 py-3 border-b border-border bg-white">
+        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-slate-100 dark:border-[#334155]">
           <input
             type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), onAdd())}
             placeholder={placeholder}
-            className="w-full bg-transparent text-sm focus:outline-none focus:ring-0 outline-none"
-            style={{ color: C.fg, border: 'none', outline: 'none', boxShadow: 'none' }}
+            className="w-full bg-transparent text-xs font-medium text-slate-800 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none"
           />
         </div>
-        {/* Action Add button is nested inside the bottom section */}
-        <div className="px-4 py-3 bg-gray-50/50">
+        <div className="p-3 bg-slate-50/50 dark:bg-[#0B1120]/30 flex justify-end">
           <button
             type="button"
             onClick={onAdd}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold border transition-colors hover:bg-white"
-            style={{ color: bulletColor, borderColor: bulletColor }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-purple-200 dark:border-purple-800/40 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40 transition-colors cursor-pointer"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="h-3.5 w-3.5" />
             {addButtonLabel}
           </button>
         </div>
@@ -255,7 +160,6 @@ function CourseListBuilder({
   );
 }
 
-/* Simple image input (url + upload to Cloudinary) */
 function ImageField({ label, hint, value, onChange }) {
   const fileRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
@@ -292,42 +196,39 @@ function ImageField({ label, hint, value, onChange }) {
   return (
     <div>
       <FieldLabel hint={hint}>{label}</FieldLabel>
-      {/* URL row */}
-      <div className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm mb-2"
-        style={{ border: `1px solid ${C.border}`, backgroundColor: C.card }}>
-        <ImageIcon className="w-[13px] h-[13px] shrink-0" style={{ color: C.mutedFg }} />
+      <div className="flex h-11 items-center gap-2.5 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] px-3.5 text-xs mb-2 transition-all focus-within:border-[#7C3AED]">
+        <ImageIcon className="h-4 w-4 text-slate-400 dark:text-[#CBD5E1] shrink-0" />
         <input
           type="url"
           placeholder="https://cdn.example.com/image.jpg"
           value={value}
           onChange={e => onChange(e.target.value)}
-          className="flex-1 bg-transparent text-sm focus:outline-none"
-          style={{ color: C.fg }}
+          className="w-full bg-transparent font-medium text-slate-800 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none"
         />
         {value && (
-          <button type="button" onClick={() => onChange('')}>
-            <X className="w-3 h-3" style={{ color: '#9ca3af' }} />
+          <button type="button" onClick={() => onChange('')} className="text-slate-400 hover:text-slate-600">
+            <X className="h-3.5 w-3.5" />
           </button>
         )}
       </div>
-      {/* Upload zone / preview / uploading state */}
+
       {uploading ? (
-        <div className="mt-1 rounded-lg flex items-center justify-center gap-2 bg-gray-50 border border-dashed border-gray-305" style={{ height: 72 }}>
-          <div className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: `${C.secondary} transparent ${C.secondary} ${C.secondary}` }} />
-          <span className="text-xs text-gray-500">Uploading to Cloudinary...</span>
+        <div className="rounded-xl flex items-center justify-center gap-2 bg-slate-50 dark:bg-[#0B1120] border border-dashed border-slate-300 dark:border-slate-700 h-20">
+          <div className="h-4 w-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
+          <span className="text-xs font-semibold text-slate-500">Uploading media...</span>
         </div>
       ) : isImage ? (
-        <div className="mt-1 rounded-lg overflow-hidden relative group" style={{ border: `1px solid ${C.border}`, height: 72 }}>
-          <img 
-            src={(value.startsWith('/') && !value.startsWith('/uploads/')) ? `https://res.cloudinary.com${value}` : value} 
-            alt="preview" 
-            className="w-full h-full object-cover" 
+        <div className="rounded-xl overflow-hidden relative group border border-slate-200 dark:border-[#334155] h-24">
+          <img
+            src={(value.startsWith('/') && !value.startsWith('/uploads/')) ? `https://res.cloudinary.com${value}` : value}
+            alt="preview"
+            className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+          <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="px-2.5 py-1 bg-white rounded text-xs font-semibold text-gray-800 hover:bg-gray-100"
+              className="px-3 py-1.5 bg-white rounded-lg text-xs font-bold text-slate-900 hover:bg-slate-100 cursor-pointer shadow"
             >
               Replace Image
             </button>
@@ -340,19 +241,18 @@ function ImageField({ label, hint, value, onChange }) {
           onDragLeave={() => setDragOver(false)}
           onDrop={e => { e.preventDefault(); setDragOver(false); handleFile(e.dataTransfer.files[0]); }}
           onClick={() => fileRef.current?.click()}
-          className="cursor-pointer flex items-center justify-center gap-2 rounded-lg border-2 border-dashed transition-colors hover:bg-gray-50"
-          style={{ height: 72, backgroundColor: dragOver ? '#01ac9f08' : C.muted, borderColor: dragOver ? C.secondary : C.border }}
+          className={`cursor-pointer flex flex-col items-center justify-center p-4 rounded-xl border-2 border-dashed transition-all hover:bg-purple-50/50 dark:hover:bg-purple-950/20 text-center ${dragOver ? 'border-[#7C3AED] bg-purple-50/50' : 'border-slate-200 dark:border-[#334155]'}`}
         >
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => handleFile(e.target.files[0])} />
-          <ImageIcon className="w-[22px] h-[22px]" style={{ color: C.border }} />
-          <span className="text-xs" style={{ color: C.mutedFg }}>Drop or click to upload</span>
+          <Upload className="h-5 w-5 text-purple-500 mb-1" />
+          <span className="text-xs font-bold text-slate-700 dark:text-[#F8FAFC]">Click to upload or drag & drop</span>
+          <span className="text-[10px] text-slate-400 dark:text-[#CBD5E1]">PNG, JPG, WEBP up to 5MB</span>
         </div>
       )}
     </div>
   );
 }
 
-/* ─── Main Component ─── */
 export default function CourseForm() {
   const { courseId } = useParams();
   const navigate = useNavigate();
@@ -362,52 +262,12 @@ export default function CourseForm() {
   const isEdit = !!courseId;
   const existing = isEdit ? courses.find(c => String(c.id) === String(courseId)) : null;
 
-  const [step, setStep]     = useState(1);
-  const [form, setForm]     = useState(EMPTY_FORM);
-  const [errors, setErrors] = useState({});
+  const [step, setStep]           = useState(1);
+  const [form, setForm]           = useState(EMPTY_FORM);
+  const [errors, setErrors]       = useState({});
   const [slugLocked, setSlugLocked] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const handleGenerateDescription = () => {
-    if (!form.title.trim()) {
-      showToast('Please enter a course title first to generate a relevant description.', 'error');
-      return;
-    }
-    setIsGenerating(true);
-    setTimeout(() => {
-      try {
-        const categoryNameSelected = categories.find(c => String(c.id) === String(form.categoryId))?.name || 'Technology';
-        
-        const generatedText = `Welcome to the comprehensive course on **${form.title}**! 
-
-This program is specifically designed to take you from a foundational understanding to advanced implementation strategies in **${categoryNameSelected}**. 
-
-### Course Highlights:
-- **Comprehensive Coverage**: Learn the fundamentals, syntax, libraries, and advanced techniques of ${form.title}.
-- **Real-World Scenarios**: Solve industry-relevant case studies and practical laboratory exercises.
-- **Best Practices**: Master performance optimization, debugging, and production-ready deployments.
-
-### Who Should Enroll:
-- Developers and developers-in-training seeking practical mastery of ${form.title}.
-- Solutions Architects looking to leverage ${categoryNameSelected} within enterprise applications.
-- Technology enthusiasts interested in modern engineering best practices.
-
-By the end of this course, you will have built several real-world projects and developed the confidence to write, debug, and architect high-quality systems.`;
-
-        setForm(prev => ({
-          ...prev,
-          description: generatedText
-        }));
-        showToast('Description generated successfully! You can now edit it.', 'success');
-      } catch (err) {
-        showToast('Failed to generate description', 'error');
-      } finally {
-        setIsGenerating(false);
-      }
-    }, 1500);
-  };
-
-  // Lists
   const [outcomeInput, setOutcomeInput] = useState('');
   const [prereqInput,  setPrereqInput]  = useState('');
   const [audInput,     setAudInput]     = useState('');
@@ -415,13 +275,12 @@ By the end of this course, you will have built several real-world projects and d
   const [prereqs,  setPrereqs]  = useState([]);
   const [audience, setAudience] = useState([]);
 
-  // Drag state
   const [dragIdx,  setDragIdx]  = useState(null);
   const [dragType, setDragType] = useState('');
 
   const slugPreview = slugLocked ? slugify(form.title || 'course') : (form.slug || slugify(form.title || 'course'));
   const categoryObj = categories.find(c => String(c.id) === String(form.categoryId));
-  const categoryColor = categoryObj?.color || C.primary;
+  const categoryColor = categoryObj?.color || '#7C3AED';
   const categoryName  = categoryObj?.name  || '—';
 
   useEffect(() => {
@@ -473,7 +332,6 @@ By the end of this course, you will have built several real-world projects and d
 
   const setF = (patch) => setForm(prev => ({ ...prev, ...patch }));
 
-  /* List helpers */
   const addItem = (list, setList, input, setInput, field) => {
     if (!input.trim()) return;
     const next = [...list, input.trim()];
@@ -495,6 +353,38 @@ By the end of this course, you will have built several real-world projects and d
     setDragIdx(null); setDragType('');
   };
 
+  const handleGenerateDescription = () => {
+    if (!form.title.trim()) {
+      showToast('Please enter a course title first to generate a relevant description.', 'error');
+      return;
+    }
+    setIsGenerating(true);
+    setTimeout(() => {
+      try {
+        const categoryNameSelected = categories.find(c => String(c.id) === String(form.categoryId))?.name || 'Technology';
+        const generatedText = `Welcome to the comprehensive enterprise course on **${form.title}**!
+
+This course is designed to take software engineers and solution architects from foundational understanding to production-ready deployment in **${categoryNameSelected}**.
+
+### Key Learning Objectives:
+- **Foundational Concepts**: Core architecture, syntax, design patterns, and platform tooling.
+- **Hands-on Projects**: Build end-to-end applications through laboratory exercises.
+- **Enterprise Best Practices**: Performance optimization, security hardening, and CI/CD automation.
+
+### Target Audience:
+- Engineers and technical leads aiming to master ${form.title}.
+- Enterprise practitioners leveraging ${categoryNameSelected} solutions.`;
+
+        setForm(prev => ({ ...prev, description: generatedText }));
+        showToast('AI Description generated successfully!', 'success');
+      } catch (err) {
+        showToast('Failed to generate description', 'error');
+      } finally {
+        setIsGenerating(false);
+      }
+    }, 1200);
+  };
+
   const validate = () => {
     const e = {};
     if (!form.title.trim()) e.title = 'Title is required';
@@ -504,294 +394,269 @@ By the end of this course, you will have built several real-world projects and d
     return Object.keys(e).length === 0;
   };
 
-  const handleSave = async () => {
+  const handleSave = async (forceStatus = null) => {
     if (!validate()) { setStep(1); return; }
     try {
-      const payload = { ...form, slug: slugPreview, learningOutcomes: JSON.stringify(outcomes), prerequisites: JSON.stringify(prereqs), targetAudience: JSON.stringify(audience) };
+      const finalStatus = forceStatus || (form.isPublished ? 'published' : 'draft');
+      const payload = { 
+        ...form, 
+        status: finalStatus,
+        slug: slugPreview, 
+        learningOutcomes: JSON.stringify(outcomes), 
+        prerequisites: JSON.stringify(prereqs), 
+        targetAudience: JSON.stringify(audience) 
+      };
       if (isEdit) await updateCourse(existing.id, payload);
       else        await createCourse(payload);
-      showToast('Course saved successfully');
+      showToast(`Course ${finalStatus === 'published' ? 'published' : 'saved as draft'} successfully`);
       navigate('/admin/courses');
     } catch { showToast('Failed to save course', 'error'); }
   };
 
+  const completionChecklist = [
+    { label: 'Course Title', check: !!form.title.trim() },
+    { label: 'Category Selected', check: !!form.categoryId },
+    { label: 'Short Description', check: !!form.shortDescription.trim() },
+    { label: 'Course Thumbnail', check: !!form.thumbnail },
+    { label: 'Learning Outcomes', check: outcomes.length > 0 },
+  ];
+  const completedCount = completionChecklist.filter(c => c.check).length;
+  const completionPercent = Math.round((completedCount / completionChecklist.length) * 100);
+
   if (!hydrated) return null;
 
-  /* ── field input style shorthand ── */
-  const inp = (opts = {}) => ({
-    className: 'flex-1 bg-transparent focus:outline-none text-sm',
-    style: { color: C.fg, ...(opts.mono ? { fontFamily: 'IBM Plex Mono, monospace' } : {}) },
-  });
-
   return (
-    <div className="flex min-h-screen flex-col" style={{ backgroundColor: C.muted }}>
+    <div className="flex min-h-screen flex-col bg-[#F8FAFC] dark:bg-[#0B1120] text-slate-800 dark:text-[#F8FAFC] transition-colors duration-300">
 
-      {/* ── Breadcrumb bar ── */}
-      <div className="flex items-center justify-between px-8 py-3"
-        style={{ backgroundColor: C.card, borderBottom: `1px solid ${C.border}` }}>
-        <nav className="flex items-center gap-2 text-sm" style={{ color: C.mutedFg }}>
-          <Link to="/admin/dashboard" style={{ color: C.mutedFg }} className="hover:underline">Dashboard</Link>
-          <ChevronRight className="w-[13px] h-[13px]" />
-          <Link to="/admin/courses" style={{ color: C.mutedFg }} className="hover:underline">Courses</Link>
-          <ChevronRight className="w-[13px] h-[13px]" />
-          <span style={{ color: C.fg, fontWeight: 500 }}>{isEdit ? 'Edit' : 'Create'}</span>
-        </nav>
+      {/* Top Header Bar */}
+      <div className="flex items-center justify-between px-8 py-5 bg-white dark:bg-[#111827] border-b border-slate-200 dark:border-[#334155]">
         <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1.5 text-xs rounded-full px-3 py-1"
-            style={{ border: `1px solid ${C.border}`, color: C.mutedFg }}>
-            <Clock className="w-3 h-3" /> Draft auto-saved
-          </span>
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white"
-            style={{ backgroundColor: C.primary }}>A</div>
+          <Link
+            to="/admin/courses"
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 dark:border-[#334155] text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+          <div>
+            <h1 className="text-xl font-black text-slate-900 dark:text-[#F8FAFC] tracking-tight">
+              {isEdit ? 'Edit Course' : 'Create Course'} — {step === 1 ? 'Core Details' : 'SEO & Marketing'}
+            </h1>
+            <p className="text-xs font-medium text-slate-500 dark:text-[#CBD5E1]">
+              {step === 1 ? 'Define basic info, media assets, curriculum builders, and access flags.' : 'Configure search engine optimization, open graph metadata, and schema tags.'}
+            </p>
+          </div>
+        </div>
+
+        {/* Step Navigation Tabs */}
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 items-center gap-1 rounded-xl border border-slate-200 dark:border-[#334155] bg-slate-50 dark:bg-[#1E293B] p-1 select-none">
+            <button
+              type="button"
+              onClick={() => setStep(1)}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${step === 1 ? 'bg-[#7C3AED] text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}
+            >
+              <Info className="h-3.5 w-3.5" />
+              1. Core Details
+            </button>
+            <button
+              type="button"
+              onClick={() => validate() && setStep(2)}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${step === 2 ? 'bg-[#7C3AED] text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}
+            >
+              <Search className="h-3.5 w-3.5" />
+              2. SEO &amp; Meta
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* ── Page title band ── */}
-      <div className="flex items-center gap-4 px-8 pt-6 pb-2"
-        style={{ borderBottom: `1px solid ${C.border}`, backgroundColor: C.card }}>
-        <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-          style={{ backgroundColor: '#6c1d5f18' }}>
-          <BookOpen className="w-[17px] h-[17px]" style={{ color: C.primary }} />
-        </div>
-        <div className="flex-1">
-          <h1 className="text-xl font-bold" style={{ color: C.fg }}>
-            {isEdit ? 'Edit Course' : 'Create Course'} — {step === 1 ? 'Basic Details' : 'SEO & Meta'}
-          </h1>
-          <p className="text-sm" style={{ color: C.mutedFg }}>
-            {step === 1
-              ? 'Core information, media, content builders and course settings.'
-              : 'Configure meta tags, Open Graph details and search engine previews.'}
-          </p>
-        </div>
-        {step === 1 ? (
-          <button
-            type="button"
-            onClick={() => validate() && setStep(2)}
-            className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-colors hover:bg-gray-50"
-            style={{ border: `1px solid ${C.border}`, color: C.mutedFg, backgroundColor: C.card }}
-          >
-            <ArrowRight className="w-[14px] h-[14px]" /> Next: SEO &amp; Meta
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setStep(1)}
-            className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-colors hover:bg-gray-50"
-            style={{ border: `1px solid ${C.border}`, color: C.mutedFg, backgroundColor: C.card }}
-          >
-            <ArrowLeft className="w-[14px] h-[14px]" /> Back to Details
-          </button>
-        )}
-      </div>
+      {/* Main Two-Column Layout */}
+      <div className="flex flex-1 gap-8 px-8 py-8 max-w-7xl w-full mx-auto">
 
-      {/* ── Body: left form + right sidebar ── */}
-      <div className="flex flex-1 gap-0 px-8 py-7">
-
-        {/* LEFT */}
-        <div className="flex-1 min-w-0 pr-8 space-y-6">
+        {/* LEFT COLUMN: Form Cards */}
+        <div className="flex-1 min-w-0 space-y-8">
           {step === 1 ? (
             <>
-              {/* Course Identity */}
-              <Card title="Course Identity" titleIcon={Info} accentColor={C.primary}>
-                {/* Title */}
+              {/* Basic Information */}
+              <SectionCard title="Basic Information" icon={Info}>
                 <div>
-                  <FieldLabel hint="max 200">title <span style={{ color: C.accent }}>*</span></FieldLabel>
-                  <div className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm"
-                    style={{ border: `1px solid ${errors.title ? '#ef4444' : C.border}`, borderLeft: `3px solid ${C.primary}`, backgroundColor: C.card }}>
+                  <FieldLabel hint="max 200 chars" required>Course Title</FieldLabel>
+                  <div className="flex h-11 items-center gap-2.5 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] px-3.5 transition-all focus-within:border-[#7C3AED]">
                     <input
-                      type="text" maxLength={200}
-                      placeholder="e.g. Spring Boot Masterclass"
+                      type="text"
+                      maxLength={200}
+                      placeholder="e.g. Master Enterprise Spring Boot Architectures"
                       value={form.title}
                       onChange={e => setF({ title: e.target.value })}
-                      className="flex-1 bg-transparent focus:outline-none text-sm"
-                      style={{ color: C.fg }}
+                      className="w-full bg-transparent text-xs font-bold text-slate-900 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none"
                     />
-                    <span className="text-xs shrink-0" style={{ color: C.mutedFg }}>{form.title.length}/200</span>
+                    <span className="text-[10px] font-semibold text-slate-400 shrink-0">{form.title.length}/200</span>
                   </div>
-                  {errors.title && <p className="mt-1 text-xs" style={{ color: '#ef4444' }}>{errors.title}</p>}
+                  {errors.title && <p className="mt-1 text-xs text-rose-500 font-semibold">{errors.title}</p>}
                 </div>
 
-                {/* Slug */}
                 <div>
-                  <FieldLabel hint="unique · max 250">slug <span style={{ color: C.accent }}>*</span></FieldLabel>
-                  <div className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm"
-                    style={{ border: `1px solid ${C.border}`, backgroundColor: C.card }}>
-                    <Link2 className="w-[13px] h-[13px] shrink-0" style={{ color: C.mutedFg }} />
-                    <span className="flex-1 font-mono text-sm" style={{ color: C.fg }}>{slugPreview}</span>
-                    {form.title.trim() && (
-                      <span className="flex items-center gap-1 text-xs font-semibold shrink-0" style={{ color: C.secondary }}>
-                        <CheckCircle className="w-3 h-3" /> Unique
-                      </span>
-                    )}
-                    <button type="button" onClick={() => setSlugLocked(!slugLocked)} className="shrink-0 ml-1">
-                      <Lock className="w-3 h-3" style={{ color: slugLocked ? C.border : C.secondary }} />
+                  <FieldLabel hint="auto-generated permalink" required>Course Slug</FieldLabel>
+                  <div className="flex h-11 items-center gap-2.5 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] px-3.5 transition-all">
+                    <Link2 className="h-4 w-4 text-slate-400 shrink-0" />
+                    <span className="flex-1 font-mono text-xs font-semibold text-slate-700 dark:text-[#F8FAFC] truncate">{slugPreview}</span>
+                    <button
+                      type="button"
+                      onClick={() => setSlugLocked(!slugLocked)}
+                      className="p-1 text-slate-400 hover:text-purple-600 transition-colors cursor-pointer"
+                      title={slugLocked ? "Unlock to edit slug manually" : "Lock slug"}
+                    >
+                      <Lock className={`h-3.5 w-3.5 ${!slugLocked ? 'text-purple-600' : ''}`} />
                     </button>
                   </div>
-                  <p className="text-xs mt-1" style={{ color: C.mutedFg }}>Auto-generated from title. Click lock to edit manually.</p>
                 </div>
 
-                {/* Category + Level */}
-                <div className="grid grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <FieldLabel>category <span style={{ color: C.accent }}>*</span></FieldLabel>
+                    <FieldLabel required>Category</FieldLabel>
                     <div className="relative">
-                      <div className="flex items-center justify-between px-4 py-3 rounded-lg text-sm"
-                        style={{ border: `1px solid ${errors.categoryId ? '#ef4444' : C.border}`, backgroundColor: C.card }}>
-                        <div className="flex items-center gap-2">
-                          {categoryObj?.color && <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: categoryObj.color }} />}
-                          <span style={{ color: form.categoryId ? C.fg : C.mutedFg, fontWeight: form.categoryId ? 600 : 400 }}>
-                            {categoryName}
-                          </span>
-                        </div>
-                        <ChevronRight className="w-[13px] h-[13px] rotate-90 shrink-0" style={{ color: C.mutedFg }} />
-                      </div>
                       <select
                         value={form.categoryId}
                         onChange={e => setF({ categoryId: e.target.value })}
-                        className="absolute inset-0 opacity-0 w-full cursor-pointer"
+                        className="h-11 w-full appearance-none cursor-pointer rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] py-2 pl-4 pr-9 text-xs font-semibold text-slate-800 dark:text-[#F8FAFC] focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all outline-none"
                       >
                         <option value="">Select category</option>
-                        {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        {categories.map(c => <option key={c.id} value={c.id} className="dark:bg-[#1E293B]">{c.name}</option>)}
                       </select>
+                      <ChevronRight className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 rotate-90 text-slate-400" />
                     </div>
-                    {errors.categoryId && <p className="mt-1 text-xs" style={{ color: '#ef4444' }}>{errors.categoryId}</p>}
+                    {errors.categoryId && <p className="mt-1 text-xs text-rose-500 font-semibold">{errors.categoryId}</p>}
                   </div>
+
                   <div>
-                    <FieldLabel>level</FieldLabel>
+                    <FieldLabel>Difficulty Level</FieldLabel>
                     <div className="relative">
-                      <div className="flex items-center justify-between px-4 py-3 rounded-lg text-sm"
-                        style={{ border: `1px solid ${C.border}`, backgroundColor: C.card }}>
-                        <span style={{ color: C.primary, fontWeight: 600 }}>{form.difficulty}</span>
-                        <ChevronRight className="w-[13px] h-[13px] rotate-90 shrink-0" style={{ color: C.mutedFg }} />
-                      </div>
-                      <select value={form.difficulty} onChange={e => setF({ difficulty: e.target.value })}
-                        className="absolute inset-0 opacity-0 w-full cursor-pointer">
-                        {DIFFICULTY_LEVELS.map(d => <option key={d} value={d}>{d}</option>)}
+                      <select
+                        value={form.difficulty}
+                        onChange={e => setF({ difficulty: e.target.value })}
+                        className="h-11 w-full appearance-none cursor-pointer rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] py-2 pl-4 pr-9 text-xs font-semibold text-slate-800 dark:text-[#F8FAFC] focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all outline-none"
+                      >
+                        {DIFFICULTY_LEVELS.map(d => <option key={d} value={d} className="dark:bg-[#1E293B]">{d}</option>)}
                       </select>
+                      <ChevronRight className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 rotate-90 text-slate-400" />
                     </div>
                   </div>
                 </div>
 
-                {/* Language + Duration */}
-                <div className="grid grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <FieldLabel hint="max 100">language</FieldLabel>
+                    <FieldLabel>Language</FieldLabel>
                     <div className="relative">
-                      <div className="flex items-center justify-between px-4 py-3 rounded-lg text-sm"
-                        style={{ border: `1px solid ${C.border}`, backgroundColor: C.card }}>
-                        <span style={{ color: C.fg }}>{form.language}</span>
-                        <ChevronRight className="w-[13px] h-[13px] rotate-90 shrink-0" style={{ color: C.mutedFg }} />
-                      </div>
-                      <select value={form.language} onChange={e => setF({ language: e.target.value })}
-                        className="absolute inset-0 opacity-0 w-full cursor-pointer">
-                        {LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
+                      <select
+                        value={form.language}
+                        onChange={e => setF({ language: e.target.value })}
+                        className="h-11 w-full appearance-none cursor-pointer rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] py-2 pl-4 pr-9 text-xs font-semibold text-slate-800 dark:text-[#F8FAFC] focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all outline-none"
+                      >
+                        {LANGUAGES.map(l => <option key={l} value={l} className="dark:bg-[#1E293B]">{l}</option>)}
                       </select>
+                      <ChevronRight className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 rotate-90 text-slate-400" />
                     </div>
                   </div>
+
                   <div>
-                    <FieldLabel hint="max 100">duration</FieldLabel>
-                    <div className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm"
-                      style={{ border: `1px solid ${C.border}`, backgroundColor: C.card }}>
-                      <input type="text" placeholder="e.g. 18 hrs, 6 weeks" value={form.duration}
+                    <FieldLabel hint="e.g. 8 weeks / 24 hrs">Estimated Duration</FieldLabel>
+                    <div className="flex h-11 items-center gap-2.5 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] px-3.5 transition-all focus-within:border-[#7C3AED]">
+                      <Clock className="h-4 w-4 text-slate-400 shrink-0" />
+                      <input
+                        type="text"
+                        placeholder="e.g. 8 weeks, 32 hrs"
+                        value={form.duration}
                         onChange={e => setF({ duration: e.target.value })}
-                        className="flex-1 bg-transparent focus:outline-none text-sm" style={{ color: C.fg }} />
+                        className="w-full bg-transparent text-xs font-semibold text-slate-800 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none"
+                      />
                     </div>
                   </div>
                 </div>
-              </Card>
+              </SectionCard>
 
-              <Card title="Descriptions" titleIcon={AlignLeft} accentColor="#793b74">
+              {/* Descriptions & AI Generator */}
+              <SectionCard
+                title="Course Descriptions"
+                icon={AlignLeft}
+                action={
+                  <button
+                    type="button"
+                    onClick={handleGenerateDescription}
+                    disabled={isGenerating}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 text-xs font-bold hover:bg-purple-100 transition-colors cursor-pointer border border-purple-200 dark:border-purple-800/40"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <div className="h-3 w-3 animate-spin rounded-full border-2 border-purple-600 border-t-transparent" />
+                        <span>Generating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-3.5 w-3.5 text-purple-600" />
+                        <span>AI Generate Description</span>
+                      </>
+                    )}
+                  </button>
+                }
+              >
                 <div>
-                  <FieldLabel>Short Description</FieldLabel>
-                  <textarea rows={3} placeholder="A brief summary shown in course cards and search results..."
+                  <FieldLabel required>Short Description</FieldLabel>
+                  <textarea
+                    rows={2}
+                    placeholder="Brief summary displayed on course cards and search engines..."
                     value={form.shortDescription}
                     onChange={e => setF({ shortDescription: e.target.value })}
-                    className="w-full resize-none rounded-lg px-4 py-3 text-sm focus:outline-none"
-                    style={{ border: `1px solid ${errors.shortDescription ? '#ef4444' : C.border}`, backgroundColor: C.card, color: C.fg, minHeight: 72 }}
+                    className="w-full rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] p-3.5 text-xs font-medium text-slate-800 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all outline-none resize-none"
                   />
-                  {errors.shortDescription && <p className="mt-1 text-xs" style={{ color: '#ef4444' }}>{errors.shortDescription}</p>}
+                  {errors.shortDescription && <p className="mt-1 text-xs text-rose-500 font-semibold">{errors.shortDescription}</p>}
                 </div>
+
                 <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <FieldLabel>
-                      <span>Description</span> <span className="font-normal text-xs" style={{ color: C.mutedFg }}>(Markdown Supported)</span>
-                    </FieldLabel>
-                    <button
-                      type="button"
-                      onClick={handleGenerateDescription}
-                      disabled={isGenerating}
-                      className="text-xs font-semibold text-accent-teal hover:text-accent-teal-dark disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 select-none cursor-pointer"
-                    >
-                      {isGenerating ? (
-                        <>
-                          <div className="h-3 w-3 animate-spin rounded-full border-2 border-accent-teal border-t-transparent" />
-                          <span>Generating...</span>
-                        </>
-                      ) : (
-                        <span>✨ Generate Description</span>
-                      )}
-                    </button>
-                  </div>
-                  <textarea rows={6} placeholder="Full course description — markdown supported..."
+                  <FieldLabel hint="Markdown Supported">Full Detailed Overview</FieldLabel>
+                  <textarea
+                    rows={6}
+                    placeholder="Comprehensive course breakdown, prerequisites, and learning path..."
                     value={form.description}
                     onChange={e => setF({ description: e.target.value })}
-                    className="w-full resize-none rounded-lg px-4 py-3 text-sm focus:outline-none leading-relaxed"
-                    style={{ border: `1px solid ${C.border}`, borderLeft: `3px solid #793b74`, backgroundColor: C.card, color: C.fg, minHeight: 140 }}
+                    className="w-full rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] p-3.5 text-xs font-medium text-slate-800 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all outline-none leading-relaxed resize-none"
                   />
                 </div>
-              </Card>
+              </SectionCard>
 
-              {/* Media */}
-              <Card title="Media" titleIcon={ImageIcon} accentColor={C.accent}>
-                <div className="grid grid-cols-2 gap-5">
-                  <ImageField label="icon" hint="max 1000" value={form.logo} onChange={v => setF({ logo: v })} />
-                  <ImageField label="thumbnail" hint="max 1000" value={form.thumbnail} onChange={v => setF({ thumbnail: v })} />
+              {/* Course Media */}
+              <SectionCard title="Course Media & Uploads" icon={ImageIcon}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <ImageField label="Course Icon / Logo" value={form.logo} onChange={v => setF({ logo: v })} />
+                  <ImageField label="Course Card Thumbnail" hint="Main card image" value={form.thumbnail} onChange={v => setF({ thumbnail: v })} />
                 </div>
-                <div className="grid grid-cols-2 gap-5">
-                  <ImageField label="bannerImage" hint="max 1000" value={form.bannerImage} onChange={v => setF({ bannerImage: v })} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <ImageField label="Banner Header Image" value={form.bannerImage} onChange={v => setF({ bannerImage: v })} />
                   <div>
-                    <FieldLabel hint="max 1000">youtubeVideoUrl</FieldLabel>
-                    <div className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm bg-card"
-                      style={{ border: `1px solid ${C.border}` }}>
-                      <PlayCircle className="w-[13px] h-[13px] shrink-0" style={{ color: C.accent }} />
+                    <FieldLabel hint="YouTube Embed URL">Trailer Video URL</FieldLabel>
+                    <div className="flex h-11 items-center gap-2.5 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] px-3.5 transition-all focus-within:border-[#7C3AED]">
+                      <PlayCircle className="h-4 w-4 text-purple-500 shrink-0" />
                       <input
                         type="url"
                         placeholder="https://youtube.com/watch?v=..."
                         value={form.youtubeVideoUrl || ''}
                         onChange={e => setF({ youtubeVideoUrl: e.target.value })}
-                        className="flex-1 bg-transparent text-sm focus:outline-none"
-                        style={{ color: C.fg }}
+                        className="w-full bg-transparent text-xs font-medium text-slate-800 dark:text-[#F8FAFC] placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none"
                       />
                     </div>
                   </div>
                 </div>
-                <div>
-                  <FieldLabel hint="max 1000 — shown on course landing page">previewVideoUrl</FieldLabel>
-                  <div className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm bg-card"
-                    style={{ border: `1px solid ${C.border}` }}>
-                    <Video className="w-[13px] h-[13px] shrink-0" style={{ color: C.mutedFg }} />
-                    <input
-                      type="url"
-                      placeholder="Preview / trailer video URL..."
-                      value={form.previewVideoUrl || ''}
-                      onChange={e => setF({ previewVideoUrl: e.target.value })}
-                      className="flex-1 bg-transparent text-sm focus:outline-none"
-                      style={{ color: C.fg }}
-                    />
-                  </div>
-                </div>
-              </Card>
+              </SectionCard>
 
               {/* Course Content Builders */}
-              <Card title="Course Content Builders" titleIcon={List} accentColor={C.secondary}>
+              <SectionCard title="Curriculum & Objectives Builder" icon={List}>
                 <CourseListBuilder
-                  label="learningOutcomes"
-                  hint="(LONGTEXT — JSON list)"
+                  label="Learning Outcomes"
+                  hint="Key skills students will gain"
                   items={outcomes}
                   input={outcomeInput}
                   setInput={setOutcomeInput}
-                  placeholder="Build REST APIs with Spring Boot"
-                  bulletColor="#01ac9f"
+                  placeholder="e.g. Build enterprise Spring Boot microservices"
+                  bulletColor="#10B5A5"
                   addButtonLabel="Add Outcome"
                   dragType="outcome"
                   onAdd={() => addItem(outcomes, setOutcomes, outcomeInput, setOutcomeInput, 'learningOutcomes')}
@@ -800,14 +665,14 @@ By the end of this course, you will have built several real-world projects and d
                   onDragOver={e => e.preventDefault()}
                   onDrop={(e, idx) => dropItem(e, idx, outcomes, setOutcomes, 'learningOutcomes', 'outcome')}
                 />
+
                 <CourseListBuilder
-                  label="prerequisites"
-                  hint="(LONGTEXT)"
+                  label="Prerequisites"
                   items={prereqs}
                   input={prereqInput}
                   setInput={setPrereqInput}
-                  placeholder="Basic Java knowledge"
-                  bulletColor="#6c1d5f"
+                  placeholder="e.g. Basic Java & OOP knowledge"
+                  bulletColor="#7C3AED"
                   addButtonLabel="Add Prerequisite"
                   dragType="prereq"
                   onAdd={() => addItem(prereqs, setPrereqs, prereqInput, setPrereqInput, 'prerequisites')}
@@ -816,14 +681,14 @@ By the end of this course, you will have built several real-world projects and d
                   onDragOver={e => e.preventDefault()}
                   onDrop={(e, idx) => dropItem(e, idx, prereqs, setPrereqs, 'prerequisites', 'prereq')}
                 />
+
                 <CourseListBuilder
-                  label="targetAudience"
-                  hint="(LONGTEXT)"
+                  label="Target Audience"
                   items={audience}
                   input={audInput}
                   setInput={setAudInput}
-                  placeholder="Java developers wanting to learn Spring"
-                  bulletColor="#ff6200"
+                  placeholder="e.g. Backend Engineers & Tech Leads"
+                  bulletColor="#F59E0B"
                   addButtonLabel="Add Audience"
                   dragType="audience"
                   onAdd={() => addItem(audience, setAudience, audInput, setAudInput, 'targetAudience')}
@@ -832,327 +697,253 @@ By the end of this course, you will have built several real-world projects and d
                   onDragOver={e => e.preventDefault()}
                   onDrop={(e, idx) => dropItem(e, idx, audience, setAudience, 'targetAudience', 'audience')}
                 />
-                <div>
-                  <FieldLabel hint="(LONGTEXT)">courseHighlights</FieldLabel>
-                  <textarea rows={2} placeholder="Short course highlights..."
-                    value={form.courseHighlights} onChange={e => setF({ courseHighlights: e.target.value })}
-                    className="w-full resize-none rounded-lg px-4 py-3 text-sm focus:outline-none"
-                    style={{ border: `1px solid ${C.border}`, backgroundColor: C.card, color: C.fg }} />
-                </div>
-                <div>
-                  <FieldLabel hint="(LONGTEXT)">careerOpportunities</FieldLabel>
-                  <textarea rows={2} placeholder="Describe future job scopes..."
-                    value={form.careerOpportunities} onChange={e => setF({ careerOpportunities: e.target.value })}
-                    className="w-full resize-none rounded-lg px-4 py-3 text-sm focus:outline-none"
-                    style={{ border: `1px solid ${C.border}`, backgroundColor: C.card, color: C.fg }} />
-                </div>
-              </Card>
+              </SectionCard>
 
               {/* Course Flags */}
-              <Card title="Course Flags" titleIcon={Settings2} accentColor="#4a1e47">
+              <SectionCard title="Course Access & Flags" icon={Settings2}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Toggle label="Active Status"      value={form.isActive}      onChange={v => setF({ isActive: v })} />
-                  <Toggle label="Published Status"   value={form.status === 'published'} onChange={v => setF({ status: v ? 'published' : 'draft' })} />
-                  <Toggle label="Featured Status"    value={form.isFeatured}    onChange={v => setF({ isFeatured: v })} />
-                  <Toggle label="Allow Indexing" value={form.allowIndexing} onChange={v => setF({ allowIndexing: v })} />
-                  <Toggle label="Show in Search"  value={form.showInSearch}  onChange={v => setF({ showInSearch: v })} />
+                  <ToggleSwitch label="Active Status" description="Enable course visibility in system" value={form.isActive} onChange={v => setF({ isActive: v })} />
+                  <ToggleSwitch label="Published Status" description="Make course live to students" value={form.status === 'published'} onChange={v => setF({ status: v ? 'published' : 'draft', isPublished: v })} />
+                  <ToggleSwitch label="Featured Course" description="Highlight on main landing page" value={form.isFeatured} onChange={v => setF({ isFeatured: v })} />
+                  <ToggleSwitch label="Allow SEO Indexing" description="Permit search engine crawlers" value={form.allowIndexing} onChange={v => setF({ allowIndexing: v })} />
                 </div>
-              </Card>
+              </SectionCard>
             </>
           ) : (
             <>
-              {/* SEO Core */}
-              <Card title="SEO Core Properties" titleIcon={Search} accentColor={C.secondary}>
+              {/* Step 2: SEO & Meta */}
+              <SectionCard title="SEO Meta Information" icon={Search}>
                 <div>
-                  <FieldLabel hint="max 70">Meta Title</FieldLabel>
-                  <FieldInput
-                    maxLength={70}
-                    placeholder="Master Spring Boot Core - Custom SEO Title"
-                    value={form.metaTitle}
-                    onChange={e => setF({ metaTitle: e.target.value })}
-                    rightSlot={<span className="text-xs shrink-0" style={{ color: C.mutedFg }}>{form.metaTitle.length}/70</span>}
-                  />
+                  <FieldLabel hint="max 70 chars">Meta Title</FieldLabel>
+                  <div className="flex h-11 items-center gap-2.5 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] px-3.5 transition-all focus-within:border-[#7C3AED]">
+                    <input
+                      type="text"
+                      maxLength={70}
+                      placeholder="Custom Title Tag for Search Engines"
+                      value={form.metaTitle}
+                      onChange={e => setF({ metaTitle: e.target.value })}
+                      className="w-full bg-transparent text-xs font-semibold text-slate-800 dark:text-[#F8FAFC] focus:outline-none"
+                    />
+                    <span className="text-[10px] font-semibold text-slate-400 shrink-0">{form.metaTitle.length}/70</span>
+                  </div>
                 </div>
+
                 <div>
-                  <FieldLabel hint="max 320">Meta Description</FieldLabel>
-                  <FieldTextarea
+                  <FieldLabel hint="max 320 chars">Meta Description</FieldLabel>
+                  <textarea
                     rows={3}
-                    placeholder="Meta descriptions snippet..."
+                    placeholder="Snippet description displayed in Google search results..."
                     value={form.metaDescription}
                     onChange={e => setF({ metaDescription: e.target.value.slice(0, 320) })}
+                    className="w-full rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] p-3.5 text-xs font-medium text-slate-800 dark:text-[#F8FAFC] placeholder:text-slate-400 focus:border-[#7C3AED] outline-none resize-none"
                   />
-                  <div className="text-right text-xs mt-0.5" style={{ color: C.mutedFg }}>{form.metaDescription.length}/320</div>
+                  <div className="text-right text-[10px] font-medium text-slate-400 mt-1">{form.metaDescription.length}/320</div>
                 </div>
-                <div>
-                  <FieldLabel>Canonical URL</FieldLabel>
-                  <FieldInput
-                    type="url"
-                    placeholder="https://xebialms.com/courses/spring-boot"
-                    value={form.canonicalUrl}
-                    onChange={e => setF({ canonicalUrl: e.target.value })}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-5">
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <FieldLabel>Primary Focus Keyword</FieldLabel>
-                    <FieldInput
-                      placeholder="e.g. spring boot course"
-                      value={form.primaryKeyword}
-                      onChange={e => setF({ primaryKeyword: e.target.value })}
-                    />
+                    <div className="flex h-11 items-center gap-2.5 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] px-3.5">
+                      <input
+                        type="text"
+                        placeholder="e.g. spring boot course"
+                        value={form.primaryKeyword}
+                        onChange={e => setF({ primaryKeyword: e.target.value })}
+                        className="w-full bg-transparent text-xs font-semibold text-slate-800 dark:text-[#F8FAFC] focus:outline-none"
+                      />
+                    </div>
                   </div>
+
                   <div>
-                    <FieldLabel>Meta Keywords</FieldLabel>
-                    <FieldInput
-                      placeholder="e.g. spring boot, java, learning"
-                      value={form.metaKeywords}
-                      onChange={e => setF({ metaKeywords: e.target.value })}
-                    />
+                    <FieldLabel>Canonical URL</FieldLabel>
+                    <div className="flex h-11 items-center gap-2.5 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] px-3.5">
+                      <input
+                        type="url"
+                        placeholder="https://xebia.com/courses/spring-boot"
+                        value={form.canonicalUrl}
+                        onChange={e => setF({ canonicalUrl: e.target.value })}
+                        className="w-full bg-transparent text-xs font-semibold text-slate-800 dark:text-[#F8FAFC] focus:outline-none"
+                      />
+                    </div>
                   </div>
                 </div>
-              </Card>
+              </SectionCard>
 
-              {/* Advanced SEO */}
-              <Card title="Advanced SEO & Robots" titleIcon={Settings2} accentColor={C.primary}>
-                <div>
-                  <FieldLabel>Robots tag</FieldLabel>
-                  <FieldInput
-                    placeholder="index, follow"
-                    value={form.robots}
-                    onChange={e => setF({ robots: e.target.value })}
-                  />
-                </div>
-              </Card>
-
-              {/* Open Graph */}
-              <Card title="Open Graph Social (og:)" titleIcon={Sparkles} accentColor={C.accent}>
-                <div className="grid grid-cols-2 gap-5">
+              {/* Social Open Graph */}
+              <SectionCard title="Social Open Graph Preview" icon={Sparkles}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <FieldLabel>OG Title</FieldLabel>
-                    <FieldInput
-                      placeholder="Spring Boot Masterclass"
-                      value={form.ogTitle}
-                      onChange={e => setF({ ogTitle: e.target.value })}
-                    />
+                    <div className="flex h-11 items-center gap-2.5 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] px-3.5">
+                      <input
+                        type="text"
+                        placeholder="Title for Facebook/LinkedIn shares"
+                        value={form.ogTitle}
+                        onChange={e => setF({ ogTitle: e.target.value })}
+                        className="w-full bg-transparent text-xs font-semibold text-slate-800 dark:text-[#F8FAFC] focus:outline-none"
+                      />
+                    </div>
                   </div>
+
                   <div>
                     <FieldLabel>OG Type</FieldLabel>
-                    <FieldInput
-                      placeholder="website"
-                      value={form.ogType}
-                      onChange={e => setF({ ogType: e.target.value })}
-                    />
+                    <div className="flex h-11 items-center gap-2.5 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] px-3.5">
+                      <input
+                        type="text"
+                        placeholder="website"
+                        value={form.ogType}
+                        onChange={e => setF({ ogType: e.target.value })}
+                        className="w-full bg-transparent text-xs font-semibold text-slate-800 dark:text-[#F8FAFC] focus:outline-none"
+                      />
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <FieldLabel>OG Description</FieldLabel>
-                  <FieldTextarea
-                    rows={2}
-                    placeholder="Short summary..."
-                    value={form.ogDescription}
-                    onChange={e => setF({ ogDescription: e.target.value })}
-                  />
-                </div>
-                <ImageField label="OG Image" value={form.ogImage} onChange={v => setF({ ogImage: v })} />
-              </Card>
 
-              {/* Twitter */}
-              <Card title="Twitter/X Cards" titleIcon={Sparkles} accentColor={C.primary}>
-                <div className="grid grid-cols-2 gap-5">
-                  <div>
-                    <FieldLabel>Twitter Title</FieldLabel>
-                    <FieldInput
-                      placeholder="Master Spring Boot"
-                      value={form.twitterTitle}
-                      onChange={e => setF({ twitterTitle: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel>Twitter Card Type</FieldLabel>
-                    <FieldInput
-                      placeholder="summary_large_image"
-                      value={form.twitterCard}
-                      onChange={e => setF({ twitterCard: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <FieldLabel>Twitter Description</FieldLabel>
-                  <FieldTextarea
-                    rows={2}
-                    placeholder="Sharing snippet..."
-                    value={form.twitterDescription}
-                    onChange={e => setF({ twitterDescription: e.target.value })}
-                  />
-                </div>
-                <ImageField label="Twitter Image" value={form.twitterImage} onChange={v => setF({ twitterImage: v })} />
-              </Card>
-
-              {/* Schema Markups */}
-              <Card title="JSON-LD Schema Markups" titleIcon={LayoutGrid} accentColor={C.secondary}>
-                {[
-                  ['Local Business Schema', 'schemaMarkup'],
-                  ['FAQ Schema', 'faqSchema'],
-                  ['Breadcrumb Schema', 'breadcrumbSchema']
-                ].map(([l, k]) => (
-                  <div key={k}>
-                    <FieldLabel>{l}</FieldLabel>
-                    <textarea
-                      rows={3}
-                      placeholder="Paste JSON-LD..."
-                      value={form[k]}
-                      onChange={e => setF({ [k]: e.target.value })}
-                      className="w-full resize-none rounded-lg px-4 py-3 text-xs font-mono focus:outline-none focus:ring-0 outline-none"
-                      style={{
-                        border: `1px solid ${C.border}`,
-                        backgroundColor: '#1a1a2e',
-                        color: '#a9b1d6',
-                        boxShadow: 'none',
-                        outline: 'none',
-                      }}
-                    />
-                  </div>
-                ))}
-              </Card>
+                <ImageField label="OG Share Image" value={form.ogImage} onChange={v => setF({ ogImage: v })} />
+              </SectionCard>
             </>
           )}
 
-          {/* Footer action bar */}
-          <div className="flex items-center justify-between pt-5" style={{ borderTop: `1px solid ${C.border}` }}>
-            <div>
-              {step === 2 && (
-                <button type="button" onClick={() => setStep(1)}
-                  className="flex items-center gap-1.5 px-5 py-2.5 rounded-md text-sm font-semibold transition-colors hover:bg-gray-50"
-                  style={{ border: `1px solid ${C.border}`, color: C.mutedFg }}>
-                  <ArrowLeft className="w-3.5 h-3.5" /> Back to Details
-                </button>
-              )}
-            </div>
+          {/* Footer Action Bar */}
+          <div className="flex items-center justify-between pt-6 border-t border-slate-200 dark:border-[#334155]">
+            <button
+              type="button"
+              onClick={() => navigate('/admin/courses')}
+              className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+
             <div className="flex items-center gap-3">
-              <button type="button" onClick={() => navigate('/admin/courses')}
-                className="px-5 py-2.5 rounded-md text-sm font-semibold transition-colors hover:bg-gray-50"
-                style={{ border: `1px solid ${C.border}`, color: C.mutedFg }}>
-                Cancel
+              <button
+                type="button"
+                onClick={() => handleSave('draft')}
+                className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] text-xs font-bold text-slate-700 dark:text-[#F8FAFC] hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer shadow-sm"
+              >
+                Save Draft
               </button>
+
               {step === 1 ? (
-                <button type="button" onClick={() => validate() && setStep(2)}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white hover:opacity-90"
-                  style={{ backgroundColor: C.secondary }}>
-                  Next: SEO &amp; Meta <ArrowRight className="w-3.5 h-3.5" />
+                <button
+                  type="button"
+                  onClick={() => validate() && setStep(2)}
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold text-white shadow-md transition-all hover:opacity-90 cursor-pointer"
+                  style={{ backgroundColor: '#7C3AED' }}
+                >
+                  Next: SEO &amp; Meta <ArrowRight className="h-4 w-4" />
                 </button>
               ) : (
-                <button type="button" onClick={handleSave}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-semibold text-white hover:opacity-90"
-                  style={{ backgroundColor: C.secondary }}>
-                  <Save className="w-3.5 h-3.5" /> {isEdit ? 'Save Changes' : 'Create Course'}
+                <button
+                  type="button"
+                  onClick={() => handleSave('published')}
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold text-white shadow-md transition-all hover:opacity-90 cursor-pointer"
+                  style={{ backgroundColor: '#10B5A5' }}
+                >
+                  <Save className="h-4 w-4" />
+                  {isEdit ? 'Save Changes' : 'Publish Course'}
                 </button>
               )}
             </div>
           </div>
         </div>
 
-        {/* RIGHT SIDEBAR */}
-        <div className="w-72 shrink-0 space-y-5">
-          {step === 1 ? (
-            /* Live preview card */
-            <div className="rounded-xl overflow-hidden sticky top-6"
-              style={{ border: `1px solid ${C.border}`, boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}>
-              <div className="relative aspect-video bg-gray-900 overflow-hidden">
-                {form.thumbnail
-                  ? <img src={form.thumbnail} alt="" className="h-full w-full object-cover opacity-90" />
-                  : <div className="h-full w-full flex items-center justify-center" style={{ backgroundColor: '#f1f1f7' }}>
-                      <ImageIcon className="w-10 h-10" style={{ color: C.border }} />
-                    </div>
-                }
-                <div className="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent" />
-                <div className="absolute bottom-3 left-3 w-10 h-10 rounded-xl bg-white/90 flex items-center justify-center shadow overflow-hidden">
-                  {form.logo
-                    ? <img src={form.logo} alt="" className="w-full h-full object-contain" />
-                    : <BookOpen className="w-5 h-5" style={{ color: C.primary }} />
-                  }
-                </div>
+        {/* RIGHT COLUMN: Sticky Sidebar */}
+        <div className="w-80 shrink-0 space-y-6">
+          <div className="sticky top-6 space-y-6">
+
+            {/* Course Completion Progress Card */}
+            <div className="rounded-[20px] border bg-white dark:bg-[#1E293B] border-slate-200 dark:border-[#334155] p-5 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-extrabold text-slate-900 dark:text-[#F8FAFC] tracking-tight">Course Completion</span>
+                <span className="text-xs font-extrabold text-purple-600 dark:text-purple-400">{completionPercent}%</span>
               </div>
-              <div className="p-5">
-                <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: C.mutedFg }}>Live Preview</p>
-                <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-                  <span className="rounded-full px-2.5 py-0.5 text-[11px] font-semibold text-white"
-                    style={{ backgroundColor: categoryColor }}>{categoryName}</span>
-                  <span className="rounded-full px-2 py-0.5 text-[10px] font-bold"
-                    style={{ backgroundColor: form.status === 'published' ? '#01ac9f18' : '#f1f1f7', color: form.status === 'published' ? C.secondary : C.mutedFg }}>
-                    {form.status === 'published' ? '● Live' : '◌ Draft'}
-                  </span>
-                </div>
-                <h4 className="font-bold truncate" style={{ color: C.fg }}>{form.title || 'Course title'}</h4>
-                <p className="mt-1 text-sm line-clamp-2" style={{ color: C.mutedFg }}>{form.shortDescription || 'Short description preview...'}</p>
-                <div className="mt-3 flex items-center gap-3 text-xs pt-3" style={{ color: C.mutedFg, borderTop: `1px solid ${C.border}` }}>
-                  <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{form.duration}</span>
-                  <span className="flex items-center gap-1"><Globe2 className="w-3.5 h-3.5" />{form.language}</span>
-                </div>
-              </div>
-            </div>
-          ) : (
-            /* SEO score + snippet */
-            <div className="space-y-5 sticky top-6">
-              <div className="rounded-xl p-5" style={{ border: `1px solid ${C.border}`, backgroundColor: C.card }}>
-                <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: C.mutedFg }}>SEO Score</p>
-                <div className="flex items-center gap-4">
-                  <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
-                    <svg className="absolute w-full h-full -rotate-90" viewBox="0 0 64 64">
-                      <circle cx="32" cy="32" r="28" fill="transparent" stroke="#e2e8f0" strokeWidth="4" />
-                      <circle cx="32" cy="32" r="28" fill="transparent" stroke={C.secondary} strokeWidth="4"
-                        strokeDasharray={2 * Math.PI * 28}
-                        strokeDashoffset={2 * Math.PI * 28 * (1 - (form.metaTitle ? 0.75 : 0.4))} />
-                    </svg>
-                    <span className="text-base font-bold" style={{ color: C.secondary }}>
-                      {form.metaTitle ? '75%' : '40%'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-sm font-bold" style={{ color: C.fg }}>
-                      {form.metaTitle ? 'Good Score' : 'Needs Work'}
-                    </span>
-                    <p className="text-xs mt-0.5" style={{ color: C.mutedFg }}>Fill meta title &amp; description for higher score.</p>
-                  </div>
-                </div>
+              <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden mb-4">
+                <div
+                  className="h-full bg-gradient-to-r from-purple-600 to-teal-500 transition-all duration-500 rounded-full"
+                  style={{ width: `${completionPercent}%` }}
+                />
               </div>
 
-              <div className="rounded-xl p-5 space-y-3" style={{ border: `1px solid ${C.border}`, backgroundColor: C.card }}>
-                <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: C.mutedFg }}>Google SERP Preview</p>
-                <div className="p-3.5 rounded-xl" style={{ border: `1px solid ${C.border}`, backgroundColor: C.muted }}>
-                  <div className="text-[11px] truncate" style={{ color: C.mutedFg }}>
-                    https://xebialms.com/courses/{slugPreview}
+              {/* Required Checklist */}
+              <div className="space-y-2.5 pt-1">
+                {completionChecklist.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-xs">
+                    <span className={`font-semibold ${item.check ? 'text-slate-700 dark:text-[#F8FAFC]' : 'text-slate-400 dark:text-slate-500'}`}>
+                      {item.label}
+                    </span>
+                    {item.check ? (
+                      <CheckCircle className="h-4 w-4 text-teal-500 shrink-0" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 text-slate-300 dark:text-slate-700 shrink-0" />
+                    )}
                   </div>
-                  <h3 className="text-base font-bold mt-0.5 line-clamp-1" style={{ color: '#1a0dab' }}>
-                    {form.metaTitle || form.title || 'Course meta title goes here'}
-                  </h3>
-                  <p className="text-xs mt-1 line-clamp-2 leading-relaxed" style={{ color: '#545454' }}>
-                    {form.metaDescription || form.shortDescription || 'Meta description will appear here…'}
+                ))}
+              </div>
+            </div>
+
+            {/* Live Card Preview */}
+            <div className="rounded-[20px] border bg-white dark:bg-[#1E293B] border-slate-200 dark:border-[#334155] overflow-hidden shadow-sm">
+              <div className="p-4 border-b border-slate-100 dark:border-[#334155] flex items-center justify-between">
+                <span className="text-xs font-extrabold text-slate-900 dark:text-[#F8FAFC] flex items-center gap-1.5">
+                  <Eye className="h-3.5 w-3.5 text-purple-500" />
+                  Live Card Preview
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 dark:bg-purple-950/50 dark:text-purple-300">
+                  {form.status === 'published' ? 'Live' : 'Draft'}
+                </span>
+              </div>
+
+              {/* Mini Preview Component */}
+              <div className="p-4 space-y-3">
+                <div className="relative aspect-video rounded-xl bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                  {form.thumbnail ? (
+                    <img src={form.thumbnail} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+                      Thumbnail Preview
+                    </div>
+                  )}
+                  <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-extrabold text-white bg-[#7C3AED]">
+                    {categoryName}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-xs font-extrabold text-slate-900 dark:text-[#F8FAFC] line-clamp-1">
+                    {form.title || 'Course Title...'}
+                  </h4>
+                  <p className="text-[11px] text-slate-500 dark:text-[#CBD5E1] line-clamp-2 mt-1">
+                    {form.shortDescription || 'Short description will appear here on course cards.'}
                   </p>
                 </div>
-              </div>
 
-              <div className="rounded-xl p-4" style={{ backgroundColor: '#6c1d5f08', border: `1px solid #6c1d5f20` }}>
-                <p className="text-xs font-bold mb-2 flex items-center gap-1" style={{ color: C.primary }}>
-                  <Sparkles className="w-3.5 h-3.5" /> SEO Checklist
-                </p>
-                <ul className="space-y-1.5 text-xs" style={{ color: C.mutedFg }}>
-                  {[
-                    ['Meta title set', !!form.metaTitle],
-                    ['Meta description set', !!form.metaDescription],
-                    ['Primary keyword set', !!form.primaryKeyword],
-                    ['OG image set', !!form.ogImage],
-                    ['Canonical URL set', !!form.canonicalUrl],
-                  ].map(([label, done]) => (
-                    <li key={label} className="flex items-center gap-1.5">
-                      <CheckCircle className="w-3 h-3 shrink-0" style={{ color: done ? C.secondary : C.border }} />
-                      <span style={{ color: done ? C.fg : C.mutedFg, fontWeight: done ? 600 : 400 }}>{label}</span>
-                    </li>
-                  ))}
-                </ul>
+                <div className="flex items-center justify-between border-t border-slate-100 dark:border-[#334155] pt-2 text-[10px] font-semibold text-slate-400">
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" /> {form.duration}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Globe2 className="h-3 w-3" /> {form.language}
+                  </span>
+                </div>
               </div>
             </div>
-          )}
+
+            {/* Quick Enterprise Tips */}
+            <div className="rounded-[20px] border border-purple-100 dark:border-purple-900/30 bg-purple-50/40 dark:bg-purple-950/20 p-5">
+              <h4 className="text-xs font-extrabold text-purple-900 dark:text-purple-300 flex items-center gap-1.5 mb-2">
+                <ShieldCheck className="h-4 w-4 text-purple-600" />
+                Enterprise Best Practices
+              </h4>
+              <ul className="text-[11px] text-purple-800/80 dark:text-purple-300/80 space-y-1.5 leading-relaxed">
+                <li>• Use clear titles mentioning key tech stacks.</li>
+                <li>• Add at least 3 concrete learning outcomes.</li>
+                <li>• Upload 16:9 high-resolution card thumbnails.</li>
+              </ul>
+            </div>
+
+          </div>
         </div>
+
       </div>
     </div>
   );
