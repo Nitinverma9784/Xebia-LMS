@@ -2,7 +2,7 @@
 
 A full-stack Learning Management System (LMS) with a Spring Boot backend, PostgreSQL database, Cloudinary media storage, and a React + Vite frontend.
 
----
+
 
 ## Project Architecture
 
