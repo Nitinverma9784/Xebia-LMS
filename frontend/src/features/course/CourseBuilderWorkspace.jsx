@@ -12,6 +12,60 @@ import { ConfirmationDialog } from '@/components/ui/Modal';
 import { Link } from 'react-router-dom';
 import api from '@/services/api';
 
+const getVideoPreview = (url) => {
+  if (!url) return null;
+  
+  // YouTube regexes
+  const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ ]{11})/;
+  const ytMatch = url.match(ytRegex);
+  
+  // Vimeo regexes
+  const vimeoRegex = /(?:vimeo\.com\/)\??([^"&?\/ ]+)/;
+  const vimeoMatch = url.match(vimeoRegex);
+  
+  if (ytMatch && ytMatch[1]) {
+    const embedUrl = `https://www.youtube.com/embed/${ytMatch[1]}`;
+    return (
+      <iframe
+        src={embedUrl}
+        title="YouTube video player"
+        className="w-full h-full rounded-xl border-0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowFullScreen
+      />
+    );
+  }
+  
+  if (vimeoMatch && vimeoMatch[1]) {
+    const embedUrl = `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+    return (
+      <iframe
+        src={embedUrl}
+        title="Vimeo video player"
+        className="w-full h-full rounded-xl border-0"
+        allow="autoplay; fullscreen; picture-in-picture"
+        allowFullScreen
+      />
+    );
+  }
+  
+  // Direct video URL (MP4, WebM, Ogg, Cloudinary secure_url, etc.)
+  let videoSrc = url;
+  if (url.startsWith('/') && !url.startsWith('/uploads/')) {
+    videoSrc = `https://res.cloudinary.com${url}`;
+  }
+  
+  return (
+    <video
+      controls
+      className="w-full h-full rounded-xl object-contain bg-black"
+      src={videoSrc}
+    >
+      Your browser does not support video playback.
+    </video>
+  );
+};
+
 export default function CourseBuilderWorkspace({ course, catalog, showToast }) {
   // Navigation & View Mode
   const [activeView, setActiveView] = useState('modules_submodules'); // 'modules_submodules' or 'submodule_content'
@@ -1554,28 +1608,63 @@ export default function CourseBuilderWorkspace({ course, catalog, showToast }) {
                   {/* 4. Video Type */}
                   {contentForm.type === 'video' && (
                     <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5">
-                          Video URL <span className="text-accent-orange">*</span>
-                        </label>
-                        <div 
-                          className="border-l-3 border border-brand-border dark:border-slate-700 rounded-md px-4 py-2.5 bg-brand-surface dark:bg-slate-800 text-sm flex items-center gap-2"
-                          style={{ borderLeftColor: currentTypeColor }}
-                        >
-                          <span className="text-brand-text-secondary"><LinkIcon className="h-4 w-4" /></span>
-                          <input
-                            type="text"
-                            value={contentForm.fileUrl}
-                            onChange={e => setContentForm(prev => ({ ...prev, fileUrl: e.target.value }))}
-                            placeholder="https://www.youtube.com/watch?v=..."
-                            className="flex-1 bg-transparent text-brand-text-primary focus:outline-none"
-                          />
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-sm font-semibold text-brand-text-primary dark:text-slate-200 mb-1.5 font-sans">
+                              Video URL / Paste Link <span className="text-accent-orange">*</span>
+                            </label>
+                            <div 
+                              className="border-l-3 border border-brand-border dark:border-slate-700 rounded-md px-4 py-2.5 bg-brand-surface dark:bg-slate-800 text-sm flex items-center gap-2 mb-2"
+                              style={{ borderLeftColor: currentTypeColor }}
+                            >
+                              <span className="text-brand-text-secondary"><LinkIcon className="h-4 w-4" /></span>
+                              <input
+                                type="text"
+                                value={contentForm.fileUrl}
+                                onChange={e => setContentForm(prev => ({ ...prev, fileUrl: e.target.value }))}
+                                placeholder="YouTube, Vimeo, or direct video URL..."
+                                className="flex-1 bg-transparent text-brand-text-primary focus:outline-none"
+                              />
+                            </div>
+                          </div>
+                          
+                          {/* File upload drag & drop inside Video form */}
+                          <div
+                            className="border border-dashed border-brand-border dark:border-slate-700 rounded-lg p-4 text-center bg-brand-surface dark:bg-slate-855 cursor-pointer hover:bg-brand-surface transition-colors"
+                            onClick={() => {
+                              const input = document.createElement('input');
+                              input.type = 'file';
+                              input.accept = 'video/*';
+                              input.onchange = (e) => {
+                                const f = e.target.files[0];
+                                if (f) handleInlineFileUpload(f);
+                              };
+                              input.click();
+                            }}
+                          >
+                            <UploadCloud className="h-6 w-6 text-brand-text-secondary mx-auto mb-1 shrink-0" />
+                            <p className="text-[11px] font-semibold text-brand-text-primary">
+                              Click to upload video file from computer
+                            </p>
+                            <p className="text-[9px] text-brand-text-secondary/65 mt-0.5">
+                              Will be saved in Cloudinary and linked here
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                      <div className="rounded-xl border border-brand-border dark:border-slate-800 flex items-center justify-center aspect-video bg-brand-surface dark:bg-slate-800/40">
-                        <div className="text-center text-brand-text-secondary space-y-2">
-                          <span className="inline-block p-3 rounded-full bg-brand-primary/10 text-brand-primary">📹</span>
-                          <p className="text-xs font-semibold">Video preview will appear here</p>
+
+                        {/* Video preview or placeholder */}
+                        <div className="flex items-center justify-center rounded-xl border border-brand-border dark:border-slate-800 bg-brand-surface dark:bg-slate-800/40 relative overflow-hidden aspect-video">
+                          {contentForm.fileUrl ? (
+                            <div className="w-full h-full">
+                              {getVideoPreview(contentForm.fileUrl)}
+                            </div>
+                          ) : (
+                            <div className="text-center text-brand-text-secondary space-y-2">
+                              <span className="inline-block p-3 rounded-full bg-brand-primary/10 text-brand-primary text-xl">📹</span>
+                              <p className="text-xs font-semibold">Video preview will appear here</p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

@@ -7,6 +7,57 @@ import { PlayCircle, FileText, CheckCircle2, ArrowLeft, Clock, BookOpen, Layers,
 import Button from '@/components/ui/Button';
 import { useCatalog } from '@/hooks/useCatalog';
 
+const getVideoPlayer = (url) => {
+  if (!url) return null;
+  
+  // YouTube regexes
+  const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ ]{11})/;
+  const ytMatch = url.match(ytRegex);
+  
+  // Vimeo regexes
+  const vimeoRegex = /(?:vimeo\.com\/)\??([^"&?\/ ]+)/;
+  const vimeoMatch = url.match(vimeoRegex);
+  
+  if (ytMatch && ytMatch[1]) {
+    const embedUrl = `https://www.youtube.com/embed/${ytMatch[1]}`;
+    return (
+      <iframe
+        src={embedUrl}
+        title="YouTube video player"
+        className="w-full h-full rounded-xl border-0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowFullScreen
+      />
+    );
+  }
+  
+  if (vimeoMatch && vimeoMatch[1]) {
+    const embedUrl = `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+    return (
+      <iframe
+        src={embedUrl}
+        title="Vimeo video player"
+        className="w-full h-full rounded-xl border-0"
+        allow="autoplay; fullscreen; picture-in-picture"
+        allowFullScreen
+      />
+    );
+  }
+  
+  // Direct video URL (MP4, WebM, Ogg, Cloudinary secure_url, etc.)
+  let videoSrc = url;
+  if (url.startsWith('/') && !url.startsWith('/uploads/')) {
+    videoSrc = `https://res.cloudinary.com${url}`;
+  }
+  
+  return (
+    <video controls className="w-full h-full object-contain">
+      <source src={videoSrc} type="video/mp4" />
+      Your browser does not support video playback.
+    </video>
+  );
+};
+
 export default function StudentCourseDetailsPage() {
   const { courseId } = useParams();
   const { courses } = useCatalog();
@@ -123,10 +174,7 @@ export default function StudentCourseDetailsPage() {
                     {/* Video Player */}
                     {blk.type === 'video' && blk.fileUrl && (
                       <div className="rounded-xl overflow-hidden aspect-video bg-black shadow-md">
-                        <video controls className="w-full h-full object-contain">
-                          <source src={blk.fileUrl} type="video/mp4" />
-                          Your browser does not support video playback.
-                        </video>
+                        {getVideoPlayer(blk.fileUrl)}
                       </div>
                     )}
 
