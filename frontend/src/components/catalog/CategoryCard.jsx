@@ -42,13 +42,17 @@ export default function CategoryCard({ category, courseCount, onEdit, onDelete, 
         {/* Icon + Status badge */}
         <div className="mb-3 flex items-start justify-between">
           <div
-            className="flex h-12 w-12 items-center justify-center rounded-xl text-2xl"
+            className="flex h-12 w-12 items-center justify-center rounded-xl text-2xl overflow-hidden"
             style={{
               backgroundColor: `${color}18`,
               border: `1.5px solid ${color}30`,
             }}
           >
-            {category.icon || '💻'}
+            {category.icon && (category.icon.startsWith('http') || category.icon.startsWith('/') || category.icon.startsWith('data:') || category.icon.startsWith('blob:')) ? (
+              <img src={category.icon} alt={category.name} className="w-full h-full object-cover" />
+            ) : (
+              category.icon || '💻'
+            )}
           </div>
           <StatusBadge status={category.deletedAt ? 'inactive' : (category.status || 'active')} />
         </div>
@@ -126,10 +130,14 @@ export function CategoryRow({ category, courseCount, onEdit, onDelete, onView })
       <td className="px-4 py-3">
         <button type="button" onClick={() => onView(category)} className="flex items-center gap-2.5 text-left">
           <span
-            className="flex h-9 w-9 items-center justify-center rounded-xl text-base"
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-base overflow-hidden"
             style={{ backgroundColor: `${color}18`, border: `1.5px solid ${color}30` }}
           >
-            {category.icon || '💻'}
+            {category.icon && (category.icon.startsWith('http') || category.icon.startsWith('/') || category.icon.startsWith('data:') || category.icon.startsWith('blob:')) ? (
+              <img src={category.icon} alt={category.name} className="w-full h-full object-cover" />
+            ) : (
+              category.icon || '💻'
+            )}
           </span>
           <div>
             <p className="text-sm font-semibold text-brand-text-primary">{category.name}</p>

@@ -18,6 +18,33 @@ const SWATCH_PALETTE = [
   { hex: '#793b74', label: 'Violet'     },
 ];
 
+const MORE_COLORS = [
+  { hex: '#3b82f6', label: 'Blue' },
+  { hex: '#60a5fa', label: 'Blue Light' },
+  { hex: '#2563eb', label: 'Blue Dark' },
+  { hex: '#0d9488', label: 'Teal' },
+  { hex: '#14b8a6', label: 'Teal Light' },
+  { hex: '#06b6d4', label: 'Cyan' },
+  { hex: '#22d3ee', label: 'Cyan Light' },
+  { hex: '#10b981', label: 'Green' },
+  { hex: '#34d399', label: 'Green Light' },
+  { hex: '#059669', label: 'Green Dark' },
+  { hex: '#84cc16', label: 'Lime' },
+  { hex: '#f97316', label: 'Orange' },
+  { hex: '#fb923c', label: 'Orange Light' },
+  { hex: '#f59e0b', label: 'Yellow' },
+  { hex: '#facc15', label: 'Yellow Light' },
+  { hex: '#ef4444', label: 'Red' },
+  { hex: '#f87171', label: 'Red Light' },
+  { hex: '#dc2626', label: 'Red Dark' },
+  { hex: '#f43f5e', label: 'Rose' },
+  { hex: '#ec4899', label: 'Pink' },
+  { hex: '#f472b6', label: 'Pink Light' },
+  { hex: '#d946ef', label: 'Fuchsia' },
+  { hex: '#8b5cf6', label: 'Purple' },
+  { hex: '#6b7280', label: 'Gray' }
+];
+
 const EMOJI_OPTIONS = [
   '💻', '🤖', '📊', '☁️', '⚙️', '🔒',
   '📱', '🎨', '💼', '🧠', '🚀', '📚',
@@ -77,10 +104,14 @@ function EmojiPicker({ value, onChange }) {
     <div className="flex items-center gap-3" ref={ref}>
       {/* Preview swatch */}
       <div
-        className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
+        className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 overflow-hidden"
         style={{ border: '1px solid #dadcea', backgroundColor: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
       >
-        {value || '💻'}
+        {value && (value.startsWith('http') || value.startsWith('/') || value.startsWith('data:') || value.startsWith('blob:')) ? (
+          <img src={value} alt="icon" className="w-full h-full object-cover" />
+        ) : (
+          value || '💻'
+        )}
       </div>
 
       {/* Trigger input */}
@@ -267,6 +298,7 @@ function ImageMedia({ value, onChange }) {
 /** Accent Color card (big circle + hex input + palette swatches) */
 function AccentColorPicker({ value, onChange }) {
   const [hex, setHex] = useState(value?.replace('#', '') || '01AC9F');
+  const [showMore, setShowMore] = useState(false);
 
   useEffect(() => { setHex((value || '#01AC9F').replace('#', '')); }, [value]);
 
@@ -309,7 +341,7 @@ function AccentColorPicker({ value, onChange }) {
         </div>
 
         {/* Swatches */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {SWATCH_PALETTE.map((s) => (
             <button
               key={s.hex}
@@ -326,7 +358,36 @@ function AccentColorPicker({ value, onChange }) {
               }}
             />
           ))}
+          <button
+            type="button"
+            onClick={() => setShowMore(!showMore)}
+            className="text-xs font-semibold px-2 py-1 rounded border transition-all hover:bg-gray-50 ml-1"
+            style={{ borderColor: '#dadcea', color: '#5a5a5a', backgroundColor: '#fff' }}
+          >
+            {showMore ? 'Less' : 'More'}
+          </button>
         </div>
+
+        {showMore && (
+          <div className="mt-3 grid grid-cols-6 gap-2 p-2.5 rounded-lg border bg-gray-50/50" style={{ borderColor: '#dadcea' }}>
+            {MORE_COLORS.map((s) => (
+              <button
+                key={s.hex}
+                type="button"
+                aria-label={s.label}
+                onClick={() => onChange(s.hex.toUpperCase())}
+                className="w-6 h-6 rounded-full mx-auto transition-transform hover:scale-110"
+                style={{
+                  backgroundColor: s.hex,
+                  boxShadow:
+                    value?.toLowerCase() === s.hex.toLowerCase()
+                      ? '0 0 0 2px white, 0 0 0 3px ' + s.hex
+                      : 'none',
+                }}
+              />
+            ))}
+          </div>
+        )}
 
         <p className="text-xs mt-3" style={{ color: '#5a5a5a' }}>
           Used for badges and highlights.
@@ -408,6 +469,13 @@ export default function CategoryForm() {
 
   useEffect(() => {
     if (existing) {
+      const isUrl = existing.icon && (
+        existing.icon.startsWith('http') ||
+        existing.icon.startsWith('/') ||
+        existing.icon.startsWith('data:') ||
+        existing.icon.startsWith('blob:')
+      );
+      setMedia(isUrl ? 'upload' : 'emoji');
       setForm({
         name:        existing.name        || '',
         description: existing.description || '',
@@ -749,6 +817,11 @@ export default function CategoryForm() {
               <p className="text-xs leading-relaxed mt-3 line-clamp-3" style={{ color: '#5a5a5a' }}>
                 {form.description || 'Learn the fundamentals of building modern web applications using industry-standard tools and best practices.'}
               </p>
+              {/* Stats row */}
+              <div className="flex items-center gap-3 text-xs mt-3.5" style={{ color: '#5a5a5a' }}>
+                <span className="flex items-center gap-1">📖 0 Courses</span>
+                <span className="flex items-center gap-1">👥 0 Learners</span>
+              </div>
             </div>
 
             {/* Card footer */}
@@ -761,10 +834,6 @@ export default function CategoryForm() {
                 <span className="text-xs font-mono" style={{ color: '#5a5a5a' }}>
                   {accentColor.toUpperCase()}
                 </span>
-              </div>
-              <div className="flex items-center gap-3 text-xs" style={{ color: '#5a5a5a' }}>
-                <span className="flex items-center gap-1">📖 0 Courses</span>
-                <span className="flex items-center gap-1">👥 0 Learners</span>
               </div>
             </div>
           </div>
@@ -815,21 +884,7 @@ export default function CategoryForm() {
             </ul>
           </div>
 
-          {/* Footer signature */}
-          <div
-            className="mt-auto flex items-center gap-2 pt-4"
-            style={{ borderTop: '1px solid #dadcea' }}
-          >
-            <div
-              className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white"
-              style={{ backgroundColor: '#6c1d5f' }}
-            >
-              X
-            </div>
-            <span className="text-xs font-medium" style={{ color: '#5a5a5a' }}>
-              Xebia LMS · Admin
-            </span>
-          </div>
+
         </div>
       </div>
     </div>
