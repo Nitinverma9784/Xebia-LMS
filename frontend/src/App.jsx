@@ -49,6 +49,28 @@ function RouteTitle({ title, children }) {
 }
 
 export default function App() {
+  React.useEffect(() => {
+    const baseUrl = import.meta.env.VITE_API_URL || '/api';
+    const cleanUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+    fetch(`${cleanUrl}/status`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.database === 'connected') {
+          console.log("Database connection successful");
+        } else {
+          console.error("Database connection failed:", data.database);
+        }
+        if (data.redis === 'connected') {
+          console.log("Redis connection successful");
+        } else {
+          console.error("Redis connection failed:", data.redis);
+        }
+      })
+      .catch(err => {
+        console.error("Failed to verify database and Redis status:", err);
+      });
+  }, []);
+
   return (
     <Router>
       <Providers>
