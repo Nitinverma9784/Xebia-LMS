@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Teacher {
+  id          String       @id @default(uuid())
+  name        String
+  email       String       @unique
+  password    String
+  role        String       @default("teacher")
+  subject     String?
+  avatar      String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  assignments Assignment[]
+
+  @@map("teachers")
+}
+
+model Student {
+  id               String       @id @default(uuid())
+  name             String
+  enrollmentNumber String       @unique
+  email            String       @unique
+  password         String
+  role             String       @default("student")
+  avatar           String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  submissions      Submission[]
+
+  @@map("students")
+}
+
+model Assignment {
+  id             String       @id @default(uuid())
+  title          String
+  subject        String
+  description    String
+  instructions   String?
+  dueDate        DateTime
+  maxMarks       Int
+  attachment     String?
+  attachmentName String?
+  status         String       @default("draft")
+  teacherId      String
+  teacher        Teacher      @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  submissions    Submission[]
+
+  @@map("assignments")
+}
+
+model Submission {
+  id           String     @id @default(uuid())
+  assignmentId String
+  studentId    String
+  uploadedFile String
+  fileName     String
+  submittedAt  DateTime   @default(now())
+  marks        Int?
+  feedback     String?
+  status       String     @default("submitted")
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student      Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([assignmentId, studentId])
+  @@map("submissions")
+}
