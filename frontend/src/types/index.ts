@@ -52,6 +52,20 @@ export interface StudentRegisterData {
 
 // ─── Assignment Types ─────────────────────────────────────────────────────────
 
+export interface Question {
+  id?: string;
+  assignmentId?: string;
+  questionText: string;
+  optionA: string;
+  optionB: string;
+  optionC: string;
+  optionD: string;
+  correctAnswer?: string;
+  marks: number;
+  difficulty: string;
+  questionType?: string; // MCQ, TRUE_FALSE, SHORT_ANSWER
+}
+
 export interface Assignment {
   id: string;
   title: string;
@@ -77,6 +91,8 @@ export interface Assignment {
   submissionStatus?: 'not_submitted' | 'submitted' | 'reviewed';
   submission?: Submission | null;
   _count?: { submissions: number };
+  assignmentType?: 'PDF' | 'QUIZ' | 'CODING' | 'PROJECT' | 'PRESENTATION' | 'VIDEO' | 'LINK';
+  questions?: Question[];
 }
 
 export interface CreateAssignmentData {
@@ -90,6 +106,8 @@ export interface CreateAssignmentData {
   status: 'draft' | 'published';
   attachment?: File;
   batchId: string;
+  assignmentType?: 'PDF' | 'QUIZ' | 'CODING' | 'PROJECT' | 'PRESENTATION' | 'VIDEO' | 'LINK';
+  questions?: Question[];
 }
 
 // ─── Submission Types ─────────────────────────────────────────────────────────
@@ -109,6 +127,7 @@ export interface Submission {
     name: string;
     email: string;
     enrollmentNumber: string;
+    batchName?: string;
   };
   assignment?: {
     id: string;
@@ -117,6 +136,7 @@ export interface Submission {
     teacher?: { name: string };
   };
   updatedAt?: string;
+  quizAnswers?: string;
 }
 
 export interface GradeSubmissionData {
@@ -177,4 +197,12 @@ export interface ApiResponse<T = any> {
   data?: T;
   message?: string;
   error?: string;
+}
+
+export interface Subject {
+  id: string;
+  subjectCode: string;
+  subjectName: string;
+  semester?: string;
+  department?: string;
 }

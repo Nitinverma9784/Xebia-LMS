@@ -20,6 +20,15 @@ public class AssignmentController {
 
     // --- Teacher Assignment Endpoints ---
 
+    @PostMapping(value = "/api/teacher/assignments/import-excel", consumes = {"multipart/form-data"})
+    public ResponseEntity<ApiResponse<List<com.assignment.dto.request.QuestionRequest>>> importExcel(
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            Principal principal
+    ) {
+        List<com.assignment.dto.request.QuestionRequest> response = assignmentService.importExcelQuestions(file);
+        return ResponseEntity.ok(ApiResponse.success("Excel file imported successfully", response));
+    }
+
     @PostMapping(value = "/api/teacher/assignments", consumes = {"multipart/form-data"})
     public ResponseEntity<ApiResponse<AssignmentResponse>> createAssignment(
             @Valid @ModelAttribute AssignmentRequest request,

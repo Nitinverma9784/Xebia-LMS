@@ -42,6 +42,9 @@ public class AssignmentServiceImpl implements AssignmentService {
     private final CloudinaryService cloudinaryService;
     private final RedisService redisService;
     private final AssignmentMapper assignmentMapper;
+    private final com.assignment.repository.QuestionRepository questionRepository;
+    private final com.assignment.mapper.QuestionMapper questionMapper;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
     private Teacher getTeacher(String email) {
         Teacher teacher = teacherRepository.findByEmail(email)
@@ -90,6 +93,36 @@ public class AssignmentServiceImpl implements AssignmentService {
         redisService.saveAssignmentStatus(assignmentId, cache);
     }
 
+    private void populateResponseCounts(AssignmentResponse res) {
+        if (res == null) return;
+        List<Student> students = studentRepository.findByBatchId(res.getBatchId());
+        List<Long> allStudentIds = students.stream().map(Student::getId).toList();
+
+        List<Submission> submissions = submissionRepository.findByAssignmentId(res.getId());
+        List<Long> submittedStudentIds = submissions.stream()
+                .filter(sub -> sub.getStatus() == SubmissionStatus.SUBMITTED || sub.getStatus() == SubmissionStatus.REVIEWED)
+                .map(sub -> sub.getStudent().getId())
+                .toList();
+
+        int total = allStudentIds.size();
+        int submitted = submittedStudentIds.size();
+        int pending = total - submitted;
+        double pct = total > 0 ? ((double) submitted / total) * 100.0 : 0.0;
+
+        res.setTotalStudents(total);
+        res.setSubmittedCount(submitted);
+        res.setPendingCount(pending);
+        res.setSubmissionPercentage(Math.round(pct * 100.0) / 100.0);
+    }
+
+    private List<AssignmentResponse> populateResponseCounts(List<AssignmentResponse> responses) {
+        if (responses == null) return null;
+        for (AssignmentResponse res : responses) {
+            populateResponseCounts(res);
+        }
+        return responses;
+    }
+
     @Override
     @Transactional
     public AssignmentResponse createAssignment(AssignmentRequest request, String teacherEmail) {
@@ -133,10 +166,30 @@ public class AssignmentServiceImpl implements AssignmentService {
 
         Assignment savedAssignment = assignmentRepository.save(assignment);
 
+        // Parse and save questions if QUIZ type and questionsJson is provided
+        if (request.getAssignmentType() == com.assignment.enums.AssignmentType.QUIZ && request.getQuestionsJson() != null && !request.getQuestionsJson().isBlank()) {
+            try {
+                List<com.assignment.dto.request.QuestionRequest> questionRequests = objectMapper.readValue(
+                        request.getQuestionsJson(),
+                        new com.fasterxml.jackson.core.type.TypeReference<List<com.assignment.dto.request.QuestionRequest>>() {}
+                );
+                for (com.assignment.dto.request.QuestionRequest qReq : questionRequests) {
+                    com.assignment.entity.Question question = questionMapper.toEntity(qReq);
+                    question.setAssignment(savedAssignment);
+                    questionRepository.save(question);
+                }
+            } catch (Exception e) {
+                throw new BadRequestException("Failed to parse quiz questions: " + e.getMessage());
+            }
+        }
+
         // Initialize Redis cache
         rebuildAssignmentStatusCache(savedAssignment.getId());
 
-        return assignmentMapper.toResponse(savedAssignment);
+        Assignment loadedAssignment = assignmentRepository.findById(savedAssignment.getId()).orElse(savedAssignment);
+        AssignmentResponse response = assignmentMapper.toResponse(loadedAssignment);
+        populateResponseCounts(response);
+        return response;
     }
 
     @Override
@@ -145,7 +198,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         Teacher teacher = getTeacher(teacherEmail);
         Pageable pageable = PageRequest.of(page, size);
         Page<Assignment> assignmentPage = assignmentRepository.findByTeacherId(teacher.getId(), pageable);
-        return assignmentMapper.toResponseList(assignmentPage.getContent());
+        return populateResponseCounts(assignmentMapper.toResponseList(assignmentPage.getContent()));
     }
 
     @Override
@@ -157,7 +210,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         }
         Pageable pageable = PageRequest.of(page, size);
         Page<Assignment> assignmentPage = assignmentRepository.findByBatchId(student.getBatch().getId(), pageable);
-        return assignmentMapper.toResponseList(assignmentPage.getContent());
+        return populateResponseCounts(assignmentMapper.toResponseList(assignmentPage.getContent()));
     }
 
     @Override
@@ -176,7 +229,21 @@ public class AssignmentServiceImpl implements AssignmentService {
             assignment = assignmentRepository.findByIdAndBatchId(id, student.getBatch().getId())
                     .orElseThrow(() -> new ResourceNotFoundException("Assignment not found or unauthorized"));
         }
-        return assignmentMapper.toResponse(assignment);
+        
+        boolean hasSubmitted = false;
+        if (!"TEACHER".equals(role)) {
+            Student student = getStudent(email);
+            hasSubmitted = submissionRepository.findByAssignmentIdAndStudentId(id, student.getId()).isPresent();
+        }
+        
+        AssignmentResponse response = assignmentMapper.toResponse(assignment);
+        populateResponseCounts(response);
+        if (!"TEACHER".equals(role) && !hasSubmitted && response.getQuestions() != null) {
+            for (com.assignment.dto.response.QuestionResponse qr : response.getQuestions()) {
+                qr.setCorrectAnswer(null);
+            }
+        }
+        return response;
     }
 
     @Override
@@ -222,10 +289,33 @@ public class AssignmentServiceImpl implements AssignmentService {
 
         Assignment updatedAssignment = assignmentRepository.save(assignment);
 
+        // Parse and update questions if QUIZ type
+        if (request.getAssignmentType() == com.assignment.enums.AssignmentType.QUIZ && request.getQuestionsJson() != null && !request.getQuestionsJson().isBlank()) {
+            try {
+                // Delete existing questions
+                questionRepository.deleteByAssignmentId(assignment.getId());
+
+                List<com.assignment.dto.request.QuestionRequest> questionRequests = objectMapper.readValue(
+                        request.getQuestionsJson(),
+                        new com.fasterxml.jackson.core.type.TypeReference<List<com.assignment.dto.request.QuestionRequest>>() {}
+                );
+                for (com.assignment.dto.request.QuestionRequest qReq : questionRequests) {
+                    com.assignment.entity.Question question = questionMapper.toEntity(qReq);
+                    question.setAssignment(assignment);
+                    questionRepository.save(question);
+                }
+            } catch (Exception e) {
+                throw new BadRequestException("Failed to update quiz questions: " + e.getMessage());
+            }
+        }
+
         // Sync Redis cache
         rebuildAssignmentStatusCache(updatedAssignment.getId());
 
-        return assignmentMapper.toResponse(updatedAssignment);
+        Assignment loadedAssignment = assignmentRepository.findById(updatedAssignment.getId()).orElse(updatedAssignment);
+        AssignmentResponse response = assignmentMapper.toResponse(loadedAssignment);
+        populateResponseCounts(response);
+        return response;
     }
 
     @Override
@@ -239,5 +329,14 @@ public class AssignmentServiceImpl implements AssignmentService {
 
         // Delete Redis cache key
         redisService.deleteAssignmentStatus(id);
+    }
+
+    @Override
+    public List<com.assignment.dto.request.QuestionRequest> importExcelQuestions(org.springframework.web.multipart.MultipartFile file) {
+        try {
+            return ExcelParserHelper.parseExcel(file);
+        } catch (Exception e) {
+            throw new BadRequestException("Failed to parse Excel file: " + e.getMessage());
+        }
     }
 }

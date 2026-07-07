@@ -12,4 +12,5 @@ public interface AssignmentService {
     AssignmentResponse getAssignmentById(Long id, String email, String role);
     AssignmentResponse updateAssignment(Long id, AssignmentRequest request, String teacherEmail);
     void deleteAssignment(Long id, String teacherEmail);
+    List<com.assignment.dto.request.QuestionRequest> importExcelQuestions(org.springframework.web.multipart.MultipartFile file);
 }

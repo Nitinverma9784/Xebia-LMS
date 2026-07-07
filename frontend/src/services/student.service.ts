@@ -291,9 +291,13 @@ export const studentService = {
   },
 
   // Submissions
-  submitAssignment: async (assignmentId: string, file: File, onProgress?: (pct: number) => void) => {
+  submitAssignment: async (assignmentId: string, payload: File | { quizAnswersJson: string }, onProgress?: (pct: number) => void) => {
     const formData = new FormData();
-    formData.append('file', file);
+    if (payload instanceof File) {
+      formData.append('file', payload);
+    } else {
+      formData.append('quizAnswersJson', payload.quizAnswersJson);
+    }
     const res = await api.post(`/student/assignments/${assignmentId}/submit`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
       onUploadProgress: (e) => {

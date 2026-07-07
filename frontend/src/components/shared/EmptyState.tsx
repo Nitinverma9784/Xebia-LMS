@@ -12,7 +12,7 @@ interface EmptyStateProps {
 const icons = {
   file: FileText,
   search: Search,
-  inbox: Inbox,
+  inbox: FileText,
 };
 
 export const EmptyState: React.FC<EmptyStateProps> = ({

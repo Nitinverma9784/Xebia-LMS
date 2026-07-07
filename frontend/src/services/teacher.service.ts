@@ -43,6 +43,7 @@ const mapSubmission = (s: any, assignmentMaxMarks: number = 100): Submission => 
       name: s.studentName || 'Student',
       email: s.studentEmail || '',
       enrollmentNumber: s.studentEnrollment || 'ENR-' + s.studentId,
+      batchName: s.studentBatchName || 'General Class',
     },
     assignment: {
       id: String(s.assignmentId),
@@ -102,23 +103,7 @@ export const teacherService = {
     const res = await api.get('/teacher/assignments', { params: { page: '0', size: '1000' } });
     const rawAssignments = res.data.data || [];
 
-    const mappedPromises = rawAssignments.map(async (a: any) => {
-      let submittedCount = 0;
-      let pendingCount = 0;
-      let totalStudents = 0;
-
-      try {
-        const [subRes, pendingRes] = await Promise.all([
-          api.get(`/teacher/assignments/${a.id}/submitted`),
-          api.get(`/teacher/assignments/${a.id}/pending`),
-        ]);
-        submittedCount = (subRes.data.data || []).length;
-        pendingCount = (pendingRes.data.data || []).length;
-        totalStudents = submittedCount + pendingCount;
-      } catch (e) {
-        console.error("Error fetching stats for assignment", a.id, e);
-      }
-
+    const mapped = rawAssignments.map((a: any) => {
       let attachmentName = a.resourceUrl ? a.resourceUrl.substring(a.resourceUrl.lastIndexOf('/') + 1) : undefined;
       if (attachmentName) {
         try {
@@ -141,19 +126,18 @@ export const teacherService = {
         maxMarks: a.totalMarks || 100,
         attachment: a.resourceUrl || undefined,
         attachmentName: attachmentName,
-        status: a.status === 'ACTIVE' ? 'published' : 'draft',
+        status: a.status === 'DRAFT' ? 'draft' : 'published',
         teacherId: String(a.teacherId || ''),
         createdAt: a.createdAt || '',
         updatedAt: a.updatedAt || '',
         batchId: String(a.batchId || ''),
         batchName: a.batchName || '',
-        totalStudents,
-        submittedCount,
-        pendingCount,
+        totalStudents: a.totalStudents || 0,
+        submittedCount: a.submittedCount || 0,
+        pendingCount: a.pendingCount || 0,
+        submissionPercentage: a.submissionPercentage || 0,
       };
     });
-
-    let mapped = await Promise.all(mappedPromises);
 
     if (params?.search) {
       const searchLower = params.search.toLowerCase();
@@ -225,6 +209,7 @@ export const teacherService = {
       updatedAt: a.updatedAt || '',
       batchId: String(a.batchId || ''),
       batchName: a.batchName || '',
+      questions: a.questions || [],
     };
   },
 
@@ -243,7 +228,11 @@ export const teacherService = {
     
     formData.append('dueDate', data.dueDate);
     formData.append('dueTime', '23:59:00');
-    formData.append('assignmentType', 'PDF');
+    formData.append('assignmentType', data.assignmentType || 'PDF');
+    
+    if (data.questions) {
+      formData.append('questionsJson', JSON.stringify(data.questions));
+    }
     
     if (data.attachment) {
       formData.append('resourceFile', data.attachment);
@@ -277,7 +266,13 @@ export const teacherService = {
       formData.append('dueDate', data.dueDate);
     }
     formData.append('dueTime', '23:59:00');
-    formData.append('assignmentType', 'PDF');
+    if (data.assignmentType !== undefined) {
+      formData.append('assignmentType', data.assignmentType);
+    }
+    
+    if (data.questions) {
+      formData.append('questionsJson', JSON.stringify(data.questions));
+    }
     
     if (data.attachment) {
       formData.append('resourceFile', data.attachment);
@@ -294,19 +289,60 @@ export const teacherService = {
     return res.data;
   },
 
+  importExcel: async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await api.post('/teacher/assignments/import-excel', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data;
+  },
+
+  getSubjects: async (params?: { semester?: string; department?: string }) => {
+    const res = await api.get('/teacher/subjects', { params });
+    return res.data;
+  },
+
   // Submissions
   getSubmissions: async (assignmentId: string) => {
-    const [assignmentRes, submissionsRes] = await Promise.all([
+    const [assignmentRes, submissionsRes, pendingRes] = await Promise.all([
       api.get(`/teacher/assignments/${assignmentId}`),
       api.get(`/teacher/assignments/${assignmentId}/submitted`),
+      api.get(`/teacher/assignments/${assignmentId}/pending`),
     ]);
     
     const maxMarks = assignmentRes.data.data?.totalMarks || 100;
     const rawSubmissions = submissionsRes.data.data || [];
+    const rawPending = pendingRes.data.data || [];
     
-    const mapped = rawSubmissions.map((s: any) => mapSubmission(s, maxMarks));
+    const mappedSubmissions = rawSubmissions.map((s: any) => mapSubmission(s, maxMarks));
+    
+    const mappedPending = rawPending.map((p: any): Submission => ({
+      id: `pending-${p.id}`,
+      assignmentId: String(assignmentId),
+      studentId: String(p.id),
+      uploadedFile: '',
+      fileName: '',
+      submittedAt: '',
+      marks: null,
+      feedback: null,
+      status: 'pending' as any,
+      student: {
+        id: String(p.id),
+        name: p.fullName || 'Student',
+        email: p.email || '',
+        enrollmentNumber: p.enrollmentNumber || 'ENR-' + p.id,
+        batchName: p.batchName || 'General Class',
+      },
+      assignment: {
+        id: String(assignmentId),
+        title: assignmentRes.data.data?.title || 'Assignment',
+        maxMarks: maxMarks,
+      }
+    }));
+    
     return {
-      submissions: mapped,
+      submissions: [...mappedSubmissions, ...mappedPending],
     };
   },
 
